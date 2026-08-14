@@ -87,15 +87,6 @@ jobs:
           cache: npm
           cache-dependency-path: matchday-africa/package-lock.json
 
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.2"
-          coverage: none
-
-      - name: Install production PHP dependencies
-        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
-
       - name: Build production assets
         run: npm ci && npm run build
 
@@ -113,6 +104,7 @@ jobs:
             **/.git*
             **/.git*/**
             **/node_modules/**
+            **/vendor/**
             **/tests/**
             **/.env
             **/.env.*

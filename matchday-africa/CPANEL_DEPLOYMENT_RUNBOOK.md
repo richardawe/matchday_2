@@ -6,8 +6,9 @@ This runbook deploys the Laravel 12 application to `https://matchday.africa`, in
 
 The GitHub Actions workflow at `.github/workflows/matchday-africa.yml` runs the
 Laravel test suite and production frontend build for pull requests. A successful
-push to `main` installs locked production dependencies, builds the frontend, and
-deploys the result to cPanel by FTP.
+push to `main` builds the frontend and deploys the application code and compiled
+assets to cPanel by FTP. The existing server-managed `vendor` directory is
+preserved to avoid transferring thousands of dependency files on every release.
 
 Create a GitHub environment named `production` and add these environment
 secrets:
@@ -24,8 +25,10 @@ Keep the production `.env`, writable `storage` data, public storage link, and
 user uploads on the server. The workflow deliberately excludes them from file
 synchronization. FTP cannot run migrations or restart workers, so after a
 deployment containing database or queue changes, run `bash deploy-production.sh`
-from the application root in cPanel Terminal. Configure an environment approval
-rule in GitHub if production deployments should require manual confirmation.
+from the application root in cPanel Terminal. Run the same command whenever
+`composer.lock` changes so server dependencies are refreshed. Configure an
+environment approval rule in GitHub if production deployments should require
+manual confirmation.
 
 ## 1. Confirm the hosting package
 
