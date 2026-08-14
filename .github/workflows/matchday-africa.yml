@@ -60,11 +60,11 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Run application tests
-        run: php artisan test
-
       - name: Build production assets
         run: npm run build
+
+      - name: Run application tests
+        run: php artisan test
 
   deploy:
     name: Deploy to matchday.africa by FTP
