@@ -108,7 +108,7 @@ jobs:
           protocol: ${{ secrets.CPANEL_FTP_PROTOCOL || 'ftp' }}
           port: ${{ secrets.CPANEL_FTP_PORT || 21 }}
           local-dir: ./matchday-africa/
-          server-dir: ${{ secrets.CPANEL_FTP_SERVER_DIR }}
+          server-dir: ${{ secrets.CPANEL_FTP_SERVER_DIR }}/
           exclude: |
             **/.git*
             **/.git*/**
