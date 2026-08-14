@@ -67,7 +67,7 @@ jobs:
         run: npm run build
 
   deploy:
-    name: Deploy to matchday.africa
+    name: Deploy to matchday.africa by FTP
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: test
     runs-on: ubuntu-latest
@@ -87,47 +87,38 @@ jobs:
           cache: npm
           cache-dependency-path: matchday-africa/package-lock.json
 
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          coverage: none
+
+      - name: Install production PHP dependencies
+        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
+
       - name: Build production assets
         run: npm ci && npm run build
 
-      - name: Configure SSH
-        env:
-          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
-          CPANEL_PORT: ${{ secrets.CPANEL_PORT }}
-          CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
-        run: |
-          install -m 700 -d "$HOME/.ssh"
-          printf '%s\n' "$CPANEL_SSH_KEY" > "$HOME/.ssh/id_ed25519"
-          chmod 600 "$HOME/.ssh/id_ed25519"
-          ssh-keyscan -p "${CPANEL_PORT:-22}" -H "$CPANEL_HOST" >> "$HOME/.ssh/known_hosts"
-
-      - name: Synchronize application files
-        env:
-          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
-          CPANEL_PORT: ${{ secrets.CPANEL_PORT }}
-          CPANEL_USER: ${{ secrets.CPANEL_USER }}
-          CPANEL_APP_PATH: ${{ secrets.CPANEL_APP_PATH }}
-        run: |
-          RSYNC_SSH="ssh -p ${CPANEL_PORT:-22} -o BatchMode=yes"
-          rsync -az --delete-delay \
-            --exclude='.env' \
-            --exclude='node_modules/' \
-            --exclude='vendor/' \
-            --exclude='storage/' \
-            --exclude='bootstrap/cache/' \
-            --exclude='public/storage' \
-            --exclude='public/uploads/' \
-            --exclude='*.log' \
-            -e "$RSYNC_SSH" \
-            ./ "${CPANEL_USER}@${CPANEL_HOST}:${CPANEL_APP_PATH%/}/"
-
-      - name: Finish deployment on cPanel
-        env:
-          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
-          CPANEL_PORT: ${{ secrets.CPANEL_PORT }}
-          CPANEL_USER: ${{ secrets.CPANEL_USER }}
-          CPANEL_APP_PATH: ${{ secrets.CPANEL_APP_PATH }}
-        run: |
-          ssh -p "${CPANEL_PORT:-22}" -o BatchMode=yes \
-            "${CPANEL_USER}@${CPANEL_HOST}" \
-            "cd '${CPANEL_APP_PATH%/}' && bash deploy-production.sh"
+      - name: Upload application to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.CPANEL_FTP_SERVER }}
+          username: ${{ secrets.CPANEL_FTP_USERNAME }}
+          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          protocol: ${{ secrets.CPANEL_FTP_PROTOCOL || 'ftp' }}
+          port: ${{ secrets.CPANEL_FTP_PORT || 21 }}
+          local-dir: ./matchday-africa/
+          server-dir: ${{ secrets.CPANEL_FTP_SERVER_DIR }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/tests/**
+            **/.env
+            **/.env.*
+            **/storage/**
+            **/bootstrap/cache/**
+            **/public/storage/**
+            **/public/uploads/**
+            **/*.log
+            **/releases/**

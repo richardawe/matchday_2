@@ -6,24 +6,26 @@ This runbook deploys the Laravel 12 application to `https://matchday.africa`, in
 
 The GitHub Actions workflow at `.github/workflows/matchday-africa.yml` runs the
 Laravel test suite and production frontend build for pull requests. A successful
-push to `main` deploys the application to cPanel over SSH, then runs
-`deploy-production.sh` remotely to install locked production dependencies,
-apply migrations, rebuild caches, and restart queue workers.
+push to `main` installs locked production dependencies, builds the frontend, and
+deploys the result to cPanel by FTP.
 
 Create a GitHub environment named `production` and add these environment
 secrets:
 
-- `CPANEL_HOST`: the cPanel SSH hostname (hostname only, without `https://`).
-- `CPANEL_PORT`: the SSH port; use `22` unless the host specifies another port.
-- `CPANEL_USER`: the cPanel SSH username.
-- `CPANEL_SSH_KEY`: a private deploy key whose public key is authorized in cPanel.
-- `CPANEL_APP_PATH`: the absolute server path to the Laravel application root,
-  where `artisan` and `composer.json` are located.
+- `CPANEL_FTP_SERVER`: the cPanel FTP hostname, without `ftp://` or `https://`.
+- `CPANEL_FTP_USERNAME`: the cPanel FTP account username.
+- `CPANEL_FTP_PASSWORD`: the cPanel FTP account password.
+- `CPANEL_FTP_SERVER_DIR`: the FTP path to the Laravel application root, ending
+  in `/`.
+- `CPANEL_FTP_PROTOCOL`: optional; use `ftps` when supported, otherwise `ftp`.
+- `CPANEL_FTP_PORT`: optional; normally `21`.
 
 Keep the production `.env`, writable `storage` data, public storage link, and
 user uploads on the server. The workflow deliberately excludes them from file
-synchronization. Configure an environment approval rule in GitHub if production
-deployments should require a manual confirmation.
+synchronization. FTP cannot run migrations or restart workers, so after a
+deployment containing database or queue changes, run `bash deploy-production.sh`
+from the application root in cPanel Terminal. Configure an environment approval
+rule in GitHub if production deployments should require manual confirmation.
 
 ## 1. Confirm the hosting package
 
