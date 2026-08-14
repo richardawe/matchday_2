@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Blog;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -22,5 +23,13 @@ class BlogImageTest extends TestCase
         Storage::fake('public');
 
         $this->get('/media/blog/missing.jpg')->assertNotFound();
+    }
+
+    public function test_missing_stored_image_uses_branded_fallback(): void
+    {
+        Storage::fake('public');
+        $blog = new Blog(['featured_image' => 'blog-images/missing.jpg']);
+
+        $this->assertStringEndsWith('/images/matchday-africa-logo.svg', $blog->featured_image_url);
     }
 }

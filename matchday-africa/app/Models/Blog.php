@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 class Blog extends Model
@@ -99,7 +100,12 @@ class Blog extends Model
                 return $this->featured_image;
             }
 
-            return route('blogs.image', ['filename' => basename($this->featured_image)]);
+            $path = 'blog-images/'.basename($this->featured_image);
+            if (Storage::disk('public')->exists($path)) {
+                return route('blogs.image', ['filename' => basename($this->featured_image)]);
+            }
+
+            return asset('images/matchday-africa-logo.svg');
         }
         
         return asset('images/default-blog-image.jpg');
