@@ -71,6 +71,9 @@ Route::get('/teams/{team}/squad', [TeamController::class, 'squad'])->name('teams
 
 // Blog routes
 Route::get('/blogs', [\App\Http\Controllers\BlogController::class, 'index'])->name('blogs.index');
+Route::get('/media/blog/{filename}', [\App\Http\Controllers\BlogController::class, 'image'])
+    ->where('filename', '[A-Za-z0-9._-]+')
+    ->name('blogs.image');
 Route::get('/blogs/{blog:slug}', [\App\Http\Controllers\BlogController::class, 'show'])->name('blogs.show');
 Route::get('/african-players', [DiscoveryController::class, 'index'])->name('discovery.index');
 Route::get('/african-players/{player}', [DiscoveryController::class, 'show'])->name('discovery.show');

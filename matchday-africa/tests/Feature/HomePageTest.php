@@ -35,6 +35,21 @@ class HomePageTest extends TestCase
             ->assertSee($match->homeTeam->name);
     }
 
+    public function test_fixture_later_in_the_week_is_shown_as_upcoming(): void
+    {
+        Carbon::setTestNow('2026-08-15 14:00:00');
+        $match = $this->match([
+            'status' => 'SCHEDULED',
+            'match_date' => now()->addDays(5),
+            'last_api_update' => now(),
+        ]);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Next 7 days')
+            ->assertSee($match->homeTeam->name);
+    }
+
     private function match(array $attributes): FootballMatch
     {
         $league = League::create(['football_data_id' => 100, 'name' => 'Test League']);

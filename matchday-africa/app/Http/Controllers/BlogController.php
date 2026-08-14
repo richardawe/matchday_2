@@ -4,9 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Models\Blog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class BlogController extends Controller
 {
+    public function image(string $filename)
+    {
+        abort_unless($filename === basename($filename), 404);
+        $path = 'blog-images/'.$filename;
+        abort_unless(Storage::disk('public')->exists($path), 404);
+
+        return response()->file(Storage::disk('public')->path($path), [
+            'Cache-Control' => 'public, max-age=604800, immutable',
+        ]);
+    }
+
     /**
      * Display a listing of published blogs
      */
@@ -36,4 +48,4 @@ class BlogController extends Controller
 
         return view('blogs.show', compact('blog'))->with('content', $blog);
     }
-} 
+}

@@ -21,6 +21,38 @@ class MatchService
         return $this->syncMatchesByDate(now()->toDateString());
     }
 
+    public function syncUpcomingMatches(int $days = 7): array
+    {
+        try {
+            $response = $this->footballDataService->get('matches', [
+                'dateFrom' => now()->toDateString(),
+                'dateTo' => now()->addDays($days)->toDateString(),
+            ]);
+
+            if (!$response || !isset($response['matches'])) {
+                return ['success' => 0, 'errors' => 1, 'message' => 'No response from API'];
+            }
+
+            $successCount = 0;
+            $errorCount = 0;
+            foreach ($response['matches'] as $matchData) {
+                try {
+                    $league = $this->findOrCreateLeague($matchData['competition']);
+                    $this->createOrUpdateMatch($matchData, $league->id, $league->football_data_id);
+                    $successCount++;
+                } catch (Exception $e) {
+                    $errorCount++;
+                    Log::error('Failed to sync upcoming match: '.$e->getMessage());
+                }
+            }
+
+            return ['success' => $successCount, 'errors' => $errorCount, 'message' => "Synced {$successCount} matches for the next {$days} days"];
+        } catch (Exception $e) {
+            Log::error('Upcoming match sync failed: '.$e->getMessage());
+            return ['success' => 0, 'errors' => 1, 'message' => $e->getMessage()];
+        }
+    }
+
     public function syncMatchesByDate(string $date): array
     {
         try {

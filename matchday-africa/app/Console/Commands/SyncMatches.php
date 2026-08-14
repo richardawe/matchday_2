@@ -16,6 +16,7 @@ class SyncMatches extends Command
     protected $signature = 'sync:matches 
                            {--date= : Specific date to sync (YYYY-MM-DD format)}
                            {--today : Sync today\'s matches only}
+                           {--upcoming= : Sync matches for the next number of days}
                            {--range= : Sync matches for date range (e.g., 7 for last 7 days)}
                            {--league= : Sync matches for specific league ID}';
 
@@ -42,6 +43,14 @@ class SyncMatches extends Command
         try {
             if ($this->option('today')) {
                 return $this->syncTodaysMatches();
+            }
+
+            if ($this->option('upcoming')) {
+                $days = max(1, min(14, (int) $this->option('upcoming')));
+                $this->info("📅 Syncing the next {$days} days...");
+                $result = $this->matchService->syncUpcomingMatches($days);
+                $this->displayResult($result);
+                return $result['errors'] > 0 ? Command::FAILURE : Command::SUCCESS;
             }
             
             if ($this->option('date')) {

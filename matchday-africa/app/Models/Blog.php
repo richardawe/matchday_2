@@ -95,7 +95,11 @@ class Blog extends Model
     public function getFeaturedImageUrlAttribute()
     {
         if ($this->featured_image) {
-            return asset('storage/' . $this->featured_image);
+            if (Str::startsWith($this->featured_image, ['http://', 'https://'])) {
+                return $this->featured_image;
+            }
+
+            return route('blogs.image', ['filename' => basename($this->featured_image)]);
         }
         
         return asset('images/default-blog-image.jpg');

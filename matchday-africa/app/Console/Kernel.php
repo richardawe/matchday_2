@@ -23,6 +23,16 @@ class Kernel extends ConsoleKernel
             }
         })->everyFifteenMinutes()->name('sync-todays-matches');
 
+        // Keep the coming weekend and midweek programme populated in advance.
+        $schedule->call(function () {
+            try {
+                $result = app(\App\Services\MatchService::class)->syncUpcomingMatches(7);
+                \Illuminate\Support\Facades\Log::info('Upcoming match sync completed', $result);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Upcoming match sync failed: '.$e->getMessage());
+            }
+        })->hourly()->withoutOverlapping()->name('sync-upcoming-matches');
+
         // A failed provider sync must never strand an old game as live.
         $schedule->call(function () {
             \App\Models\FootballMatch::whereIn('status', \App\Models\FootballMatch::LIVE_STATUSES)

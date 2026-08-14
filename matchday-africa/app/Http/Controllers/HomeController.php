@@ -54,7 +54,7 @@ class HomeController extends Controller
 
             $upcomingMatches = FootballMatch::with($matchRelations)
                 ->whereIn('status', ['SCHEDULED', 'TIMED'])
-                ->whereBetween('match_date', [$now, $now->copy()->addDays(2)])
+                ->whereBetween('match_date', [$now, $now->copy()->addDays(7)])
                 ->orderBy('match_date')
                 ->take(6)
                 ->get();
