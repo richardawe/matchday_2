@@ -28,7 +28,7 @@
 <link rel="canonical" href="{{ $metaData['url'] ?? config('app.url') }}">
 
 <!-- Favicon -->
-<link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+<x-favicon />
 
 <!-- Additional Open Graph Tags -->
 <meta property="og:locale" content="en_US">
@@ -44,6 +44,3 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Matchday Africa">
-
-<!-- Theme Color -->
-<meta name="theme-color" content="#1f2937">

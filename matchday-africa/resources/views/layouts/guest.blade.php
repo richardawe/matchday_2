@@ -6,6 +6,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>Account — Matchday Africa</title>
+        <x-favicon />
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
