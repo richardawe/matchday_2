@@ -1,0 +1,36 @@
+<svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ballGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f0f0f0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="circleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Chat bubble background -->
+  <path d="M12 42 L12 18 Q12 12 18 12 L42 12 Q48 12 48 18 L48 36 Q48 42 42 42 L24 42 L12 48 Z" 
+        fill="url(#circleGradient)" stroke="#059669" stroke-width="1"/>
+  
+  <!-- Football/Soccer ball -->
+  <circle cx="30" cy="27" r="12" fill="url(#ballGradient)" stroke="#374151" stroke-width="1"/>
+  
+  <!-- Pentagon in center of ball -->
+  <polygon points="30,19 26,22 27.5,27 32.5,27 34,22" fill="#374151"/>
+  
+  <!-- Hexagon patterns around pentagon -->
+  <polygon points="26,22 22,25 24,30 27.5,27" fill="none" stroke="#374151" stroke-width="0.8"/>
+  <polygon points="34,22 38,25 36,30 32.5,27" fill="none" stroke="#374151" stroke-width="0.8"/>
+  <polygon points="27.5,27 24,30 26,35 30,33" fill="none" stroke="#374151" stroke-width="0.8"/>
+  <polygon points="32.5,27 36,30 34,35 30,33" fill="none" stroke="#374151" stroke-width="0.8"/>
+  
+  <!-- Brand text -->
+  <text x="60" y="25" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#1f2937">matchday</text>
+  <text x="60" y="43" font-family="Arial, sans-serif" font-size="12" font-weight="normal" fill="#059669">africa</text>
+  
+  <!-- Tagline -->
+  <text x="145" y="20" font-family="Arial, sans-serif" font-size="8" fill="#6b7280">Live Football</text>
+  <text x="145" y="30" font-family="Arial, sans-serif" font-size="8" fill="#6b7280">Chat &amp; Banter</text>
+</svg>

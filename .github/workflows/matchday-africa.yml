@@ -1,0 +1,133 @@
+name: Matchday Africa CI/CD
+
+on:
+  pull_request:
+    paths:
+      - "matchday-africa/**"
+      - ".github/workflows/matchday-africa.yml"
+  push:
+    branches: [main]
+    paths:
+      - "matchday-africa/**"
+      - ".github/workflows/matchday-africa.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: matchday-africa-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: matchday-africa
+
+jobs:
+  test:
+    name: Test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out the application
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: mbstring, pdo_sqlite
+          coverage: none
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: matchday-africa/package-lock.json
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-${{ hashFiles('matchday-africa/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Install PHP dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run application tests
+        run: php artisan test
+
+      - name: Build production assets
+        run: npm run build
+
+  deploy:
+    name: Deploy to matchday.africa
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://matchday.africa
+
+    steps:
+      - name: Check out the application
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: matchday-africa/package-lock.json
+
+      - name: Build production assets
+        run: npm ci && npm run build
+
+      - name: Configure SSH
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+          CPANEL_PORT: ${{ secrets.CPANEL_PORT }}
+          CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+        run: |
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$CPANEL_SSH_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          ssh-keyscan -p "${CPANEL_PORT:-22}" -H "$CPANEL_HOST" >> "$HOME/.ssh/known_hosts"
+
+      - name: Synchronize application files
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+          CPANEL_PORT: ${{ secrets.CPANEL_PORT }}
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
+          CPANEL_APP_PATH: ${{ secrets.CPANEL_APP_PATH }}
+        run: |
+          RSYNC_SSH="ssh -p ${CPANEL_PORT:-22} -o BatchMode=yes"
+          rsync -az --delete-delay \
+            --exclude='.env' \
+            --exclude='node_modules/' \
+            --exclude='vendor/' \
+            --exclude='storage/' \
+            --exclude='bootstrap/cache/' \
+            --exclude='public/storage' \
+            --exclude='public/uploads/' \
+            --exclude='*.log' \
+            -e "$RSYNC_SSH" \
+            ./ "${CPANEL_USER}@${CPANEL_HOST}:${CPANEL_APP_PATH%/}/"
+
+      - name: Finish deployment on cPanel
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+          CPANEL_PORT: ${{ secrets.CPANEL_PORT }}
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
+          CPANEL_APP_PATH: ${{ secrets.CPANEL_APP_PATH }}
+        run: |
+          ssh -p "${CPANEL_PORT:-22}" -o BatchMode=yes \
+            "${CPANEL_USER}@${CPANEL_HOST}" \
+            "cd '${CPANEL_APP_PATH%/}' && bash deploy-production.sh"

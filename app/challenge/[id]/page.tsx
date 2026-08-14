@@ -1,0 +1,3 @@
+import {fallbackFixtures} from "../../growth-data";
+import ShareChallenge from "../../ShareChallenge";
+export default async function Challenge({params}:{params:Promise<{id:string}>}){const id=(await params).id,f=fallbackFixtures.find(x=>x.id===id);if(!f)return <main className="growthPage"><h1>Challenge expired.</h1></main>;return <main className="growthPage"><p className="eyebrow">A FRIEND HAS CHALLENGED YOU</p><h1>{f.home}<i>VS</i>{f.away}</h1><p>{f.myth}</p><ShareChallenge fixtureId={f.id} title={`${f.home} v ${f.away}`} playUrl={`/?fixture=${f.id}#game`}/><p className="rightsNote">Choose Two Players in the War Room, create a room and share its code.</p></main>}

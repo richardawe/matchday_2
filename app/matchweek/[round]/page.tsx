@@ -1,0 +1,3 @@
+import {fallbackFixtures} from "../../growth-data";
+import Link from "next/link";
+export default async function Matchweek({params}:{params:Promise<{round:string}>}){const round=Number((await params).round),fixtures=fallbackFixtures.filter(f=>f.matchweek===round);return <main className="growthPage"><Link className="brand" href="/"><span>MD</span>MATCHDAY</Link><p className="eyebrow">THE WEEKLY CAMPAIGN</p><h1>MATCHWEEK {String(round).padStart(2,"0")}</h1><div className="growthFixtureList">{fixtures.map(f=><Link href={`/match/${f.slug}`} key={f.id}><small>{new Date(f.kickoff).toLocaleString("en-GB",{weekday:"short",hour:"2-digit",minute:"2-digit"})}</small><b>{f.home}<i>VS</i>{f.away}</b><span>{f.hero?"HERO CLASH":"VIEW BATTLE"} →</span></Link>)}</div></main>}

@@ -1,0 +1,24 @@
+name: Render social campaign
+on:
+  workflow_dispatch:
+    inputs:
+      campaign_id: {description: Campaign ID, required: true, type: string}
+      spec_url: {description: Signed render specification URL, required: true, type: string}
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: npm}
+      - run: npm ci
+      - name: Render campaign assets
+        run: node scripts/render-social.mjs "${{ inputs.campaign_id }}" "${{ inputs.spec_url }}"
+      - name: Upload to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.CPANEL_FTP_SERVER }}
+          username: ${{ secrets.CPANEL_FTP_USERNAME }}
+          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          local-dir: ./render-output/
+          server-dir: public/generated/

@@ -11,10 +11,15 @@
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "growth:sync": "node scripts/growth-cron.mjs sync",
+    "growth:generate": "node scripts/growth-cron.mjs generate",
+    "growth:publish": "node scripts/growth-cron.mjs publish",
+    "growth:digest": "node scripts/growth-cron.mjs digest"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
+    "kokoro-js": "^1.2.1",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "react-loading-skeleton": "3.5.0"

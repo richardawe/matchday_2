@@ -1,0 +1,2 @@
+import {fallbackFixtures} from "./growth-data";
+export default function sitemap(){const base=process.env.PUBLIC_BASE_URL||"https://matchday.example.com";return[{url:base,lastModified:new Date(),priority:1},...fallbackFixtures.flatMap(f=>[{url:`${base}/match/${f.slug}`,lastModified:new Date(f.kickoff),priority:f.hero?.9:.7},{url:`${base}/challenge/${f.id}`,lastModified:new Date(f.kickoff),priority:.6}])]}

@@ -1,0 +1,1 @@
+const base=process.env.PUBLIC_BASE_URL,secret=process.env.CRON_SECRET;if(!base||!secret)throw new Error("PUBLIC_BASE_URL and CRON_SECRET are required");const endpoint=process.argv[2]||"sync",r=await fetch(`${base}/api/growth/${endpoint}`,{method:"POST",headers:{authorization:`Bearer ${secret}`}});console.log(r.status,await r.text());if(!r.ok)process.exitCode=1;

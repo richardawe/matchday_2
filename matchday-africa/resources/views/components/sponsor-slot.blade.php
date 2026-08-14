@@ -1,0 +1,1 @@
+@if($sponsor)<aside class="md-sponsor" aria-label="Sponsored"><span>SPONSORED</span>@if($sponsor->image_url)<img src="{{ $sponsor->image_url }}" alt="{{ $sponsor->name }}">@endif<div><small>{{ $sponsor->name }}</small><strong>{{ $sponsor->headline }}</strong></div><a href="{{ route('sponsors.click',$sponsor) }}" rel="sponsored nofollow">Explore</a></aside>@endif

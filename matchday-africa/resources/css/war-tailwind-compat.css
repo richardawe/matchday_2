@@ -1,0 +1,5 @@
+/*
+ * Compatibility target for the standalone War interface.
+ * Its design system is self-contained; the parent Matchday application
+ * continues to use the project's Tailwind pipeline normally.
+ */

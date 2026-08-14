@@ -1,0 +1,2 @@
+@extends('layouts.public') @section('content')
+<section class="md-phase"><div class="md-wrap"><p class="md-eyebrow">MATCHDAY CREATOR</p><h1>{{ $creator->display_name }}</h1><p class="md-lead">{{ $creator->bio }}</p><div class="md-card-grid">@foreach($creator->blogs as $blog)<a class="md-panel" href="{{ route('blogs.show',$blog) }}"><small>{{ $blog->formatted_published_date }}</small><h2>{{ $blog->title }}</h2><p>{{ $blog->excerpt }}</p></a>@endforeach</div></div></section>@endsection
