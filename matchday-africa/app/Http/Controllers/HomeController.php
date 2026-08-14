@@ -17,8 +17,9 @@ class HomeController extends Controller
     public function index()
     {
         try {
-            // Get today's matches WITH goal scorer relationships
-            $today = now()->format('Y-m-d');
+            $now = now();
+            $today = $now->toDateString();
+            $matchRelations = ['homeTeam', 'awayTeam', 'league'];
             $todaysMatches = FootballMatch::with([
                 'homeTeam', 
                 'awayTeam', 
@@ -28,7 +29,7 @@ class HomeController extends Controller
                           ->orderBy('minute', 'asc');
                 }
             ])
-            ->whereDate('match_date', $today)
+            ->whereBetween('match_date', [$now->copy()->startOfDay(), $now->copy()->endOfDay()])
             ->orderBy('match_date', 'asc')
             ->get();
 
@@ -47,9 +48,23 @@ class HomeController extends Controller
                           ->orderBy('minute', 'asc');
                 }
             ])
-            ->whereIn('status', ['LIVE', '1H', '2H', 'HT'])
+            ->crediblyLive($now)
             ->orderBy('match_date', 'asc')
             ->get();
+
+            $upcomingMatches = FootballMatch::with($matchRelations)
+                ->whereIn('status', ['SCHEDULED', 'TIMED'])
+                ->whereBetween('match_date', [$now, $now->copy()->addDays(2)])
+                ->orderBy('match_date')
+                ->take(6)
+                ->get();
+
+            $recentResults = FootballMatch::with($matchRelations)
+                ->whereIn('status', ['FINISHED', 'AWARDED'])
+                ->whereBetween('match_date', [$now->copy()->subDay(), $now])
+                ->orderByDesc('match_date')
+                ->take(6)
+                ->get();
 
             // Get featured blog posts
             $featuredBlogs = Blog::where('status', 'published')
@@ -105,6 +120,8 @@ class HomeController extends Controller
                 'todaysMatches',
                 'featuredLeagues', 
                 'liveMatches',
+                'upcomingMatches',
+                'recentResults',
                 'featuredBlogs',
                 'matchPreviews',
                 'featuredPreviews',
@@ -123,6 +140,8 @@ class HomeController extends Controller
                 'todaysMatches' => collect(),
                 'featuredLeagues' => collect(),
                 'liveMatches' => collect(),
+                'upcomingMatches' => collect(),
+                'recentResults' => collect(),
                 'featuredBlogs' => collect(),
                 'matchPreviews' => collect(),
                 'featuredPreviews' => collect(),

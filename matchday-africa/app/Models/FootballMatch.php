@@ -6,9 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 
 class FootballMatch extends Model
 {
+    public const LIVE_STATUSES = ['LIVE', 'IN_PLAY', 'PAUSED', '1H', '2H', 'HT', 'ET', 'PENALTY_SHOOTOUT'];
+
     protected $table = 'matches';
 
     protected $fillable = [
@@ -69,6 +72,20 @@ class FootballMatch extends Model
         'prediction_deadline' => 'datetime',
         'prediction_types_enabled' => 'array',
     ];
+
+    /**
+     * Only advertise a match as live when both its timing and API update are credible.
+     */
+    public function scopeCrediblyLive(Builder $query, ?Carbon $at = null): Builder
+    {
+        $at ??= now();
+
+        return $query
+            ->whereIn('status', self::LIVE_STATUSES)
+            ->whereBetween('match_date', [$at->copy()->subHours(4), $at->copy()->addMinutes(30)])
+            ->whereNotNull('last_api_update')
+            ->where('last_api_update', '>=', $at->copy()->subMinutes(30));
+    }
 
     /**
      * Get the league this match belongs to

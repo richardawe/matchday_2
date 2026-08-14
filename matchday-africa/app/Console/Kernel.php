@@ -23,6 +23,13 @@ class Kernel extends ConsoleKernel
             }
         })->everyFifteenMinutes()->name('sync-todays-matches');
 
+        // A failed provider sync must never strand an old game as live.
+        $schedule->call(function () {
+            \App\Models\FootballMatch::whereIn('status', \App\Models\FootballMatch::LIVE_STATUSES)
+                ->where('match_date', '<', now()->subHours(6))
+                ->update(['status' => 'FINISHED']);
+        })->everyFifteenMinutes()->name('reconcile-stale-live-matches');
+
         // Sync matches every hour during peak hours (14:00-23:00 UTC)
         $schedule->call(function () {
             try {
