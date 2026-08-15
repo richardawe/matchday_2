@@ -18,10 +18,14 @@ class DiagnoseMatchday extends Command {
             $r=Http::timeout(45)->withHeaders(['Authorization'=>'Bearer '.$openRouterKey,'Content-Type'=>'application/json','HTTP-Referer'=>config('app.url'),'X-Title'=>'Matchday Africa Diagnostics'])->post(rtrim(config('services.openrouter.base_url'),'/').'/chat/completions',[
                 'model'=>config('services.openrouter.model'),
                 'messages'=>[['role'=>'user','content'=>'Reply with exactly MATCHDAY_OK and nothing else.']],
-                'max_tokens'=>20,'temperature'=>0,
+                'max_tokens'=>128,'temperature'=>0,
+                'reasoning'=>['effort'=>'minimal','exclude'=>true],
             ]);
             $reply=trim((string)($r->json('choices.0.message.content')??''));
-            $checks[]=['OpenRouter completion',$r->status(),$r->successful()?($reply==='MATCHDAY_OK'?'Model replied correctly':'Unexpected reply: '.substr($reply,0,80)):$this->safeError($r)];
+            $routedModel=(string)($r->json('model')??'unknown');
+            $finish=(string)($r->json('choices.0.finish_reason')??'unknown');
+            $unexpected='Empty reply; routed='.$routedModel.'; finish='.$finish.'; completion_tokens='.(string)($r->json('usage.completion_tokens')??'unknown');
+            $checks[]=['OpenRouter completion',$r->status(),$r->successful()?($reply==='MATCHDAY_OK'?'Model replied correctly via '.$routedModel:($reply!==''?'Unexpected reply: '.substr($reply,0,80):$unexpected)):$this->safeError($r)];
             $checks[]=['OpenRouter model',config('services.openrouter.model'),'Primary'];
             $checks[]=['OpenRouter fallbacks',implode(', ',config('services.openrouter.fallback_models', [])),'Automatic'];
         }catch(\Throwable $e){$checks[]=['OpenRouter completion','ERROR',$e->getMessage()];}

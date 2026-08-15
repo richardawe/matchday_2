@@ -65,7 +65,7 @@ class OpenRouterService
         try {
             if (!$this->apiKey || $this->isRateLimited()) return null;
             $response = $this->makeApiRequest($prompt);
-            $content = $response['choices'][0]['message']['content'] ?? null;
+            $content = $this->extractContent($response);
             if ($content) $this->incrementRequestCount();
             return $content;
         } catch (\Throwable $e) {
@@ -169,13 +169,33 @@ Format the response in HTML with proper paragraphs and emphasis.";
                                 'content' => $prompt
                             ]
                         ],
-                        'max_tokens' => 800,
-                        'temperature' => 0.7
+                        'max_tokens' => 1800,
+                        'temperature' => 0.4,
+                        'reasoning' => [
+                            'effort' => 'minimal',
+                            'exclude' => true,
+                        ],
                     ]);
 
                     if ($response->successful()) {
-                        Log::info('OpenRouter request completed', ['model' => $model]);
-                        return $response->json();
+                        $payload = $response->json();
+                        if ($this->extractContent($payload) !== null) {
+                            Log::info('OpenRouter request completed', [
+                                'requested_model' => $model,
+                                'routed_model' => $payload['model'] ?? $model,
+                            ]);
+                            return $payload;
+                        }
+
+                        $lastError = new \Exception("OpenRouter model {$model} returned an empty completion");
+                        $retries++;
+                        Log::warning('OpenRouter returned empty content; retrying', [
+                            'requested_model' => $model,
+                            'routed_model' => $payload['model'] ?? null,
+                            'finish_reason' => $payload['choices'][0]['finish_reason'] ?? null,
+                            'attempt' => $retries,
+                        ]);
+                        continue;
                     }
 
                     // Handle rate limiting
@@ -212,6 +232,23 @@ Format the response in HTML with proper paragraphs and emphasis.";
         }
 
         throw $lastError ?? new \Exception('No OpenRouter model is configured');
+    }
+
+    private function extractContent(array $response): ?string
+    {
+        $content = $response['choices'][0]['message']['content'] ?? null;
+
+        if (is_array($content)) {
+            $content = collect($content)
+                ->where('type', 'text')
+                ->pluck('text')
+                ->filter()
+                ->implode("\n");
+        }
+
+        $content = is_string($content) ? trim($content) : '';
+
+        return $content !== '' ? $content : null;
     }
 
     /**

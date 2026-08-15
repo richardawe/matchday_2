@@ -16,7 +16,7 @@ class FootballNewsService {
         $limit=min(max(0,2-$alreadyPublished),max(1,min($limit,2)));
         if($limit===0)return ['success'=>0,'errors'=>0,'message'=>'Daily target of two football articles is already complete','discovered'=>$discovered];
         $published=0;$errors=0;
-        $candidates=NewsCandidate::where('status','discovered')->where('source_published_at','>=',now()->subHours(config('news.max_age_hours',36)))->orderByDesc('selection_score')->orderByDesc('source_published_at')->limit(max(1,min($limit,2)))->get();
+        $candidates=NewsCandidate::whereIn('status',['discovered','failed'])->where('source_published_at','>=',now()->subHours(config('news.max_age_hours',36)))->orderByDesc('selection_score')->orderByDesc('source_published_at')->limit(max(1,min($limit,2)))->get();
         foreach($candidates as $candidate){
             try { $this->turnIntoPost($candidate); $published++; }
             catch(\Throwable $e){$errors++;$candidate->update(['status'=>'failed','failure_reason'=>Str::limit($e->getMessage(),1000)]);Log::warning('Automated football article rejected',['candidate_id'=>$candidate->id,'source'=>$candidate->source,'reason'=>$e->getMessage()]);}
@@ -45,7 +45,7 @@ class FootballNewsService {
     }
 
     private function turnIntoPost(NewsCandidate $candidate): Blog {
-        $prompt="You are the copy editor for Matchday Africa. Write an original, accurate football news brief using ONLY the supplied facts. Do not invent quotes, statistics, context, player details or conclusions. If the facts are insufficient, return REJECT. Use a confident African football publication voice. Return exactly: TITLE: one line; EXCERPT: one line under 180 characters; BODY: 3 to 5 HTML <p> paragraphs, 220-350 words. Paraphrase; do not copy phrases from the source. End the BODY with: <p><a href=\"{$candidate->source_url}\" rel=\"nofollow noopener\" target=\"_blank\">Read the original report at {$candidate->source}</a></p>\n\nSOURCE: {$candidate->source}\nHEADLINE: {$candidate->title}\nPUBLISHED: {$candidate->source_published_at?->toIso8601String()}\nFACT SUMMARY: {$candidate->summary}";
+        $prompt="You are the copy editor for Matchday Africa. Write an original, accurate football news brief using ONLY the supplied facts. Do not invent quotes, statistics, context, player details or conclusions. If the facts are insufficient, return REJECT. Use a confident African football publication voice. Return exactly: TITLE: one line; EXCERPT: one line under 180 characters; BODY: 3 to 5 concise HTML <p> paragraphs, 140-240 words. Paraphrase; do not copy phrases from the source. End the BODY with: <p><a href=\"{$candidate->source_url}\" rel=\"nofollow noopener\" target=\"_blank\">Read the original report at {$candidate->source}</a></p>\n\nSOURCE: {$candidate->source}\nHEADLINE: {$candidate->title}\nPUBLISHED: {$candidate->source_published_at?->toIso8601String()}\nFACT SUMMARY: {$candidate->summary}";
         $edited=$this->editor->editFootballArticle($prompt);
         if(!$edited||str_contains(Str::upper($edited),'REJECT')) throw new \RuntimeException('Editorial model rejected insufficient facts.');
         if(!preg_match('/TITLE:\s*(.+)\R+EXCERPT:\s*(.+)\R+BODY:\s*(.+)/s',$edited,$m)) throw new \RuntimeException('Editorial response failed structure validation.');
