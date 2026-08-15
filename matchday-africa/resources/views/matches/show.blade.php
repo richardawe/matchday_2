@@ -2,10 +2,10 @@
 
 @section('content')
 <section class="md-room-head"><div class="md-wrap"><div class="md-room-label"><span class="md-live-dot"></span>{{ in_array($match->status,['LIVE','1H','2H','HT'])?'LIVE MATCH ROOM':'MATCH ROOM' }} · {{ $match->league?->name }}</div>
-<div class="md-scoreboard"><div><strong>{{ $match->homeTeam?->name }}</strong></div><b>{{ $match->home_score ?? '–' }} <i>:</i> {{ $match->away_score ?? '–' }}</b><div><strong>{{ $match->awayTeam?->name }}</strong></div></div>
+<div class="md-scoreboard"><div><strong>{{ $match->homeTeam?->name }}</strong></div><b><span id="match-home-score">{{ $match->home_score ?? '–' }}</span> <i>:</i> <span id="match-away-score">{{ $match->away_score ?? '–' }}</span></b><div><strong>{{ $match->awayTeam?->name }}</strong></div></div>
 <div class="md-momentum"><span style="width:{{ $momentum }}%"></span></div><div class="md-momentum-label"><span>{{ $match->homeTeam?->short_code ?: 'HOME' }} MOMENTUM</span><span>{{ $match->awayTeam?->short_code ?: 'AWAY' }}</span></div>
 <div class="md-room-actions">@if($predictionSet)<a class="md-primary" href="{{ route('predictions.show',$predictionSet) }}">Make your call</a>@endif<a class="md-secondary" href="{{ route('war.match',$match) }}">Enter War mode</a><button class="md-secondary md-share" data-share-title="{{ $match->homeTeam?->name }} vs {{ $match->awayTeam?->name }}" data-share-text="Join the match room on Matchday Africa.">Share match</button></div></div></section>
-@if($mythStory)<section class="md-myth"><div class="md-wrap md-narrow"><p class="md-eyebrow">THE MYTH GRAMMAR</p><h2>{{ $mythStory['headline'] }}</h2><p>{{ $mythStory['story'] }}</p>@if(count($mythStory['beats']))<div class="md-beats">@foreach($mythStory['beats'] as $beat)<div><b>{{ $beat['minute'] }}′</b><span>{{ $beat['text'] }}</span></div>@endforeach</div>@endif</div></section>@endif
+@if($mythStory)<section id="match-chronicle" class="md-myth" data-url="{{ route('matches.chronicle',$match) }}" data-signature="{{ $mythStory['signature'] }}" data-active="{{ in_array($match->status,\App\Models\FootballMatch::LIVE_STATUSES,true) ? '1' : '0' }}">@include('partials.match-chronicle',['fresh'=>$match->last_api_update && $match->last_api_update->gte(now()->subMinutes(5))])</section>@endif
     <!-- Match Header -->
     <div class="bg-gradient-to-r from-blue-600 to-green-600 text-white py-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

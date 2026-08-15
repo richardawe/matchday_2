@@ -61,6 +61,7 @@ Route::get('/leagues/{league}/standings', [LeagueController::class, 'standings']
 
 // Match routes
 Route::get('/matches', [MatchController::class, 'index'])->name('matches.index');
+Route::get('/matches/{match}/chronicle', [MatchController::class, 'chronicle'])->name('matches.chronicle');
 Route::get('/matches/{match}', [MatchController::class, 'show'])->name('matches.show');
 Route::get('/matches/enhanced', [App\Http\Controllers\EnhancedMatchController::class, 'index'])->name('matches.enhanced');
 Route::get('/matches/enhanced/{match}', [App\Http\Controllers\EnhancedMatchController::class, 'show'])->name('matches.enhanced.show');

@@ -10,9 +10,29 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\Services\MythGrammarService;
+use Illuminate\Http\JsonResponse;
 
 class MatchController extends Controller
 {
+    public function chronicle(FootballMatch $match, MythGrammarService $myth): JsonResponse
+    {
+        $match->load(['homeTeam', 'awayTeam', 'events.team']);
+        $story = $myth->tell($match);
+        $active = in_array($match->status, FootballMatch::LIVE_STATUSES, true);
+        $fresh = $match->last_api_update && $match->last_api_update->gte(now()->subMinutes(5));
+
+        return response()->json([
+            'signature' => $story['signature'],
+            'html' => view('partials.match-chronicle', ['match' => $match, 'mythStory' => $story, 'fresh' => $fresh])->render(),
+            'score' => ['home' => $match->home_score, 'away' => $match->away_score],
+            'status' => $match->status_display,
+            'minute' => $match->minute,
+            'active' => $active,
+            'fresh' => $fresh,
+            'updated_at' => $match->last_api_update?->toIso8601String(),
+        ])->header('Cache-Control', 'no-store, no-cache, must-revalidate');
+    }
+
     public function index(Request $request)
     {
         try {
