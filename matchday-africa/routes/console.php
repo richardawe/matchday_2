@@ -19,4 +19,5 @@ Schedule::command('sync:players --all --limit=20')->weeklyOn(1, '04:00')->withou
 Schedule::command('previews:generate-daily')->dailyAt('05:30')->withoutOverlapping(60)->name('previews-daily');
 Schedule::command('predictions:score')->everyFiveMinutes()->withoutOverlapping(10)->name('predictions-score');
 Schedule::command('news:publish-daily --limit=1')->dailyAt('07:30')->withoutOverlapping(30)->name('news-morning');
+Schedule::command('news:publish-daily --limit=1')->dailyAt('12:00')->withoutOverlapping(30)->name('news-midday');
 Schedule::command('news:publish-daily --limit=1')->dailyAt('16:30')->withoutOverlapping(30)->name('news-evening');

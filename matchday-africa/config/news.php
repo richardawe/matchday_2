@@ -6,4 +6,5 @@ return [
     ],
     'africa_keywords' => ['africa','african','caf','ghana','nigeria','senegal','morocco','egypt','south africa','kenya','cameroon','ivory coast','algeria','tunisia'],
     'max_age_hours' => 36,
+    'daily_target' => 3,
 ];

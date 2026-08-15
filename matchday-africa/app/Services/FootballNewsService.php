@@ -31,11 +31,12 @@ class FootballNewsService {
 
     public function publish(int $limit=1): array {
         $discovered=$this->discover();
+        $dailyTarget=max(1,(int)config('news.daily_target',3));
         $alreadyPublished=NewsCandidate::where('status','published')->whereDate('updated_at',now())->count();
-        $limit=min(max(0,2-$alreadyPublished),max(1,min($limit,2)));
-        if($limit===0)return ['success'=>0,'errors'=>0,'message'=>'Daily target of two football articles is already complete','discovered'=>$discovered];
+        $limit=min(max(0,$dailyTarget-$alreadyPublished),max(1,min($limit,$dailyTarget)));
+        if($limit===0)return ['success'=>0,'errors'=>0,'message'=>"Daily target of {$dailyTarget} football articles is already complete",'discovered'=>$discovered];
         $published=0;$errors=0;
-        $candidates=NewsCandidate::whereIn('status',['discovered','failed'])->where('source_published_at','>=',now()->subHours(config('news.max_age_hours',36)))->orderByDesc('selection_score')->orderByDesc('source_published_at')->limit(max(1,min($limit,2)))->get();
+        $candidates=NewsCandidate::whereIn('status',['discovered','failed'])->where('source_published_at','>=',now()->subHours(config('news.max_age_hours',36)))->orderByDesc('selection_score')->orderByDesc('source_published_at')->limit(max(1,min($limit,$dailyTarget)))->get();
         foreach($candidates as $candidate){
             try { $this->turnIntoPost($candidate); $published++; }
             catch(\Throwable $e){$errors++;$candidate->update(['status'=>'failed','failure_reason'=>Str::limit($e->getMessage(),1000)]);Log::warning('Automated football article rejected',['candidate_id'=>$candidate->id,'source'=>$candidate->source,'reason'=>$e->getMessage()]);}
