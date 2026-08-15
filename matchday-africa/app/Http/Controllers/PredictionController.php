@@ -220,8 +220,9 @@ class PredictionController extends Controller
     {
         $filters = $request->only(['prediction_set_id', 'limit']);
         $filters['period'] = 'all_time';
-        $filters['limit'] = in_array((int) ($filters['limit'] ?? 50), [10, 25, 50, 100], true)
-            ? (int) $filters['limit']
+        $requestedLimit = (int) ($filters['limit'] ?? 50);
+        $filters['limit'] = in_array($requestedLimit, [10, 25, 50, 100], true)
+            ? $requestedLimit
             : 50;
         
         $predictionSet = null;

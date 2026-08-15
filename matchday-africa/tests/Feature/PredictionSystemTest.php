@@ -115,6 +115,17 @@ class PredictionSystemTest extends TestCase
         $this->assertSame(1, $history->total());
     }
 
+    public function test_leaderboard_opens_without_filter_parameters(): void
+    {
+        [$user] = $this->scenario();
+        $user->forceFill(['email_verified_at' => now()])->save();
+
+        $this->actingAs($user)
+            ->get(route('predictions.leaderboard'))
+            ->assertOk()
+            ->assertSee('Global standings');
+    }
+
     private function scenario(): array
     {
         $user = User::factory()->create();
