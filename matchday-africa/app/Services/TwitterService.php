@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use GuzzleHttp\Subscriber\Oauth\Oauth1;
 use GuzzleHttp\Client;
 use Exception;
+use App\Models\TwitterToken;
 
 class TwitterService
 {
@@ -129,6 +130,12 @@ class TwitterService
 
             if ($response->successful()) {
                 $data = $response->json();
+                TwitterToken::updateOrCreate(['user_id' => null], [
+                    'access_token' => $data['access_token'],
+                    'refresh_token' => $data['refresh_token'] ?? null,
+                    'expires_at' => now()->addSeconds($data['expires_in'] ?? 7200),
+                    'scope' => $data['scope'] ?? 'tweet.read tweet.write users.read',
+                ]);
                 
                 // Store tokens (in production, store in database)
                 session([
@@ -221,8 +228,10 @@ class TwitterService
         }
 
         try {
-            // Get access token from session
-            $accessToken = session('twitter_access_token');
+            // Scheduled commands have no browser session, so prefer the persisted
+            // account token and fall back to a long-lived environment token.
+            $storedToken = TwitterToken::whereNull('user_id')->latest()->first();
+            $accessToken = $storedToken?->access_token ?: $this->accessToken ?: session('twitter_access_token');
             if (!$accessToken) {
                 return [
                     'success' => false,

@@ -21,3 +21,12 @@ Schedule::command('predictions:score')->everyFiveMinutes()->withoutOverlapping(1
 Schedule::command('news:publish-daily --limit=1')->dailyAt('07:30')->withoutOverlapping(30)->name('news-morning');
 Schedule::command('news:publish-daily --limit=1')->dailyAt('12:00')->withoutOverlapping(30)->name('news-midday');
 Schedule::command('news:publish-daily --limit=1')->dailyAt('16:30')->withoutOverlapping(30)->name('news-evening');
+Schedule::command('twitter:engage')->hourlyAt(5)->withoutOverlapping(15)->name('twitter-hourly-engagement');
+Schedule::command('matches:enrich-events')->everyThirtyMinutes()->withoutOverlapping(20)->name('match-event-enrichment');
+Schedule::command('matchday:send-digest')->dailyAt('08:00')->withoutOverlapping(30)->name('matchday-digest');
+Schedule::call(function(){
+    $service=app(\App\Services\PredictionNotificationService::class);
+    $service->sendDeadlineReminders();
+    $service->sendScoreUpdateNotifications();
+})->hourlyAt(15)->name('prediction-engagement-notifications')->withoutOverlapping(15);
+Schedule::call(fn()=>\App\Models\WarRoom::where('expires_at','<',now())->delete())->hourly()->name('war-clean-expired-rooms');

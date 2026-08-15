@@ -44,7 +44,7 @@
         <div><span>SEASON POINTS</span><strong>{{ number_format($userStats['total_points'] ?? 0) }}</strong><small>Your running total</small></div>
         <div><span>GLOBAL RANK</span><strong>{{ ($userStats['rank'] ?? 0) > 0 ? '#'.number_format($userStats['rank']) : '—' }}</strong><small>All-time table</small></div>
         <div><span>ACCURACY</span><strong>{{ number_format($userStats['accuracy_percentage'] ?? 0, 0) }}%</strong><small>{{ $userStats['correct_predictions'] ?? 0 }} correct calls</small></div>
-        <div><span>CALLS MADE</span><strong>{{ number_format($userStats['total_predictions'] ?? 0) }}</strong><small>Across all challenges</small></div>
+        <div><span>CALLS MADE</span><strong>{{ number_format($userStats['total_predictions'] ?? 0) }}</strong><small>Across all prediction rounds</small></div>
     </div>
 </section>
 

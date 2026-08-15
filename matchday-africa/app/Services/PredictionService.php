@@ -23,7 +23,10 @@ class PredictionService
         if (!$predictionSet->isActive() || $predictionSet->isDeadlinePassed()) {
             return [
                 'success' => false,
-                'message' => 'Prediction set is not available for submissions'
+                'submitted_count' => 0,
+                'total_predictions' => count($predictions),
+                'errors' => ['This prediction round is closed.'],
+                'message' => 'Prediction round is not available for submissions'
             ];
         }
 
@@ -420,24 +423,22 @@ class PredictionService
             throw new \Exception('Match is no longer eligible for predictions');
         }
 
-        // Update existing prediction
-        $userPrediction = UserPrediction::where([
+        // Update the call or create it when an admin added a new prediction
+        // type after the user's original submission.
+        $userPrediction = UserPrediction::firstOrNew([
             'user_id' => $user->id,
             'prediction_set_id' => $predictionSet->id,
             'match_id' => $prediction['match_id'],
             'prediction_type' => $prediction['prediction_type'],
-        ])->first();
+        ]);
 
-        if (!$userPrediction) {
-            throw new \Exception('Prediction not found to update');
-        }
-
-        $userPrediction->update([
+        $userPrediction->fill([
             'prediction_value' => $prediction['prediction_value'],
             'submitted_at' => now(),
             'is_correct' => null,
+            'is_scored' => false,
             'points_earned' => 0,
-        ]);
+        ])->save();
 
         return $userPrediction;
     }

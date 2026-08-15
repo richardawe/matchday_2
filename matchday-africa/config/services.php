@@ -60,6 +60,11 @@ return [
         'max_requests_per_minute' => env('FOOTBALL_DATA_MAX_REQUESTS_PER_MINUTE', 10), // Free tier limit
     ],
 
+    'api_football' => [
+        'key' => env('API_FOOTBALL_KEY'),
+        'url' => env('API_FOOTBALL_URL', 'https://v3.football.api-sports.io'),
+    ],
+
     'giphy' => [
         'api_key' => env('GIPHY_API_KEY'),
         'base_url' => 'https://api.giphy.com/v1',

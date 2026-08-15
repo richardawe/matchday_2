@@ -7,7 +7,7 @@
 
 <section class="md-pred-ledger"><div class="md-wrap">
     <form method="GET" class="md-pred-filters">
-        <label><span>Challenge</span><select name="prediction_set_id"><option value="">All challenges</option>@foreach($predictionSets as $set)<option value="{{ $set->id }}" @selected(($filters['prediction_set_id'] ?? '') == $set->id)>{{ $set->name }}</option>@endforeach</select></label>
+        <label><span>Prediction round</span><select name="prediction_set_id"><option value="">All rounds</option>@foreach($predictionSets as $set)<option value="{{ $set->id }}" @selected(($filters['prediction_set_id'] ?? '') == $set->id)>{{ $set->name }}</option>@endforeach</select></label>
         <label><span>Submitted from</span><input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}"></label>
         <label><span>Submitted to</span><input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}"></label>
         <label><span>Outcome</span><select name="is_correct"><option value="">All outcomes</option><option value="1" @selected(($filters['is_correct'] ?? '') === '1')>Correct</option><option value="0" @selected(($filters['is_correct'] ?? '') === '0')>Incorrect</option></select></label>

@@ -126,6 +126,26 @@ class PredictionSystemTest extends TestCase
             ->assertSee('Global standings');
     }
 
+    public function test_one_round_accepts_multiple_prediction_types_for_the_same_match(): void
+    {
+        [$user,$set,$match]=$this->scenario();
+        $user->forceFill(['email_verified_at'=>now()])->save();
+        $match->update(['match_date'=>now()->addDay(),'status'=>'SCHEDULED','is_prediction_eligible'=>true]);
+        $resultItem=PredictionSetMatch::create(['prediction_set_id'=>$set->id,'match_id'=>$match->id,'prediction_type'=>'result','points_value'=>1]);
+        $scoreItem=PredictionSetMatch::create(['prediction_set_id'=>$set->id,'match_id'=>$match->id,'prediction_type'=>'score','points_value'=>3]);
+
+        $this->actingAs($user)->get(route('predictions.show',$set))
+            ->assertOk()
+            ->assertSee('predictions['.$resultItem->id.'][prediction_value]',false)
+            ->assertSee('predictions['.$scoreItem->id.'][prediction_value]',false);
+
+        $this->actingAs($user)->post(route('predictions.submit',$set),['predictions'=>[
+            $resultItem->id=>['match_id'=>$match->id,'prediction_type'=>'result','prediction_value'=>'Home Win'],
+            $scoreItem->id=>['match_id'=>$match->id,'prediction_type'=>'score','prediction_value'=>'2-1'],
+        ]])->assertRedirect(route('predictions.show',$set));
+        $this->assertSame(2,UserPrediction::where('user_id',$user->id)->count());
+    }
+
     private function scenario(): array
     {
         $user = User::factory()->create();
