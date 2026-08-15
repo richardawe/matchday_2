@@ -172,7 +172,7 @@ Format the response in HTML with proper paragraphs and emphasis.";
                         'max_tokens' => 1800,
                         'temperature' => 0.4,
                         'reasoning' => [
-                            'effort' => 'minimal',
+                            'effort' => 'none',
                             'exclude' => true,
                         ],
                     ]);

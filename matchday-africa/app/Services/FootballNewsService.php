@@ -45,14 +45,43 @@ class FootballNewsService {
     }
 
     private function turnIntoPost(NewsCandidate $candidate): Blog {
-        $prompt="You are the copy editor for Matchday Africa. Write an original, accurate football news brief using ONLY the supplied facts. Do not invent quotes, statistics, context, player details or conclusions. If the facts are insufficient, return REJECT. Use a confident African football publication voice. Return exactly: TITLE: one line; EXCERPT: one line under 180 characters; BODY: 3 to 5 concise HTML <p> paragraphs, 140-240 words. Paraphrase; do not copy phrases from the source. End the BODY with: <p><a href=\"{$candidate->source_url}\" rel=\"nofollow noopener\" target=\"_blank\">Read the original report at {$candidate->source}</a></p>\n\nSOURCE: {$candidate->source}\nHEADLINE: {$candidate->title}\nPUBLISHED: {$candidate->source_published_at?->toIso8601String()}\nFACT SUMMARY: {$candidate->summary}";
+        $sourceFacts=$this->sourceFacts($candidate);
+        $prompt="You are the copy editor for Matchday Africa. Write an original, accurate football news brief using ONLY the supplied facts. Do not invent quotes, statistics, context, player details or conclusions. If the facts are insufficient, return REJECT. Use a confident African football publication voice. Return exactly: TITLE: one line; EXCERPT: one line under 180 characters; BODY: 3 to 5 concise HTML <p> paragraphs, 140-240 words. Do not use Markdown or code fences. Paraphrase; do not copy phrases from the source. End the BODY with: <p><a href=\"{$candidate->source_url}\" rel=\"nofollow noopener\" target=\"_blank\">Read the original report at {$candidate->source}</a></p>\n\nSOURCE: {$candidate->source}\nHEADLINE: {$candidate->title}\nPUBLISHED: {$candidate->source_published_at?->toIso8601String()}\nVERIFIED SOURCE FACTS: {$sourceFacts}";
         $edited=$this->editor->editFootballArticle($prompt);
         if(!$edited||str_contains(Str::upper($edited),'REJECT')) throw new \RuntimeException('Editorial model rejected insufficient facts.');
-        if(!preg_match('/TITLE:\s*(.+)\R+EXCERPT:\s*(.+)\R+BODY:\s*(.+)/s',$edited,$m)) throw new \RuntimeException('Editorial response failed structure validation.');
+        $edited=trim(preg_replace('/^```(?:html|text)?\s*|\s*```$/i','',trim($edited)));
+        $edited=str_replace('**','',$edited);
+        if(!preg_match('/TITLE:\s*(.*?)\s+EXCERPT:\s*(.*?)\s+BODY:\s*(.+)/is',$edited,$m)) throw new \RuntimeException('Editorial response failed structure validation.');
         $title=trim(strip_tags($m[1]));$excerpt=trim(strip_tags($m[2]));$body=trim($m[3]);
         if(Str::length($title)<12||Str::length($title)>180||Str::length($excerpt)>200||substr_count($body,'<p>')<3||!str_contains($body,$candidate->source_url)) throw new \RuntimeException('Article failed publication validation.');
         $blog=Blog::create(['title'=>$title,'slug'=>Str::slug($title).'-'.$candidate->id,'excerpt'=>$excerpt,'content'=>$body,'status'=>'published','published_at'=>now(),'author_name'=>'Matchday Africa News Desk','metadata'=>['category'=>'Football News','automated'=>true,'source'=>$candidate->source,'source_url'=>$candidate->source_url,'source_published_at'=>$candidate->source_published_at?->toIso8601String(),'editor_model'=>config('services.openrouter.model')]]);
         $candidate->update(['status'=>'published','blog_id'=>$blog->id]);
         return $blog;
+    }
+
+    private function sourceFacts(NewsCandidate $candidate): string {
+        $fallback=trim((string)$candidate->summary);
+        try {
+            $response=Http::timeout(20)->withHeaders(['User-Agent'=>'MatchdayAfrica/1.0'])->get($candidate->source_url);
+            if(!$response->successful())return $fallback;
+            $html=$response->body();
+            $dom=new \DOMDocument();
+            libxml_use_internal_errors(true);
+            $loaded=$dom->loadHTML($html,LIBXML_NOERROR|LIBXML_NOWARNING);
+            libxml_clear_errors();
+            if(!$loaded)return $fallback;
+            $xpath=new \DOMXPath($dom);
+            $paragraphs=[];
+            foreach($xpath->query('//article//p | //main//p')?:[] as $node){
+                $text=trim(preg_replace('/\s+/u',' ',$node->textContent));
+                if(Str::length($text)>=40)$paragraphs[]=$text;
+                if(Str::length(implode(' ',$paragraphs))>=6000)break;
+            }
+            $facts=trim(implode("\n",array_unique($paragraphs)));
+            return $facts!==''?Str::limit($facts,6500,''):$fallback;
+        } catch(\Throwable $e){
+            Log::notice('Could not enrich football news candidate',['candidate_id'=>$candidate->id,'error'=>$e->getMessage()]);
+            return $fallback;
+        }
     }
 }

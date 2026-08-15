@@ -19,7 +19,7 @@ class DiagnoseMatchday extends Command {
                 'model'=>config('services.openrouter.model'),
                 'messages'=>[['role'=>'user','content'=>'Reply with exactly MATCHDAY_OK and nothing else.']],
                 'max_tokens'=>128,'temperature'=>0,
-                'reasoning'=>['effort'=>'minimal','exclude'=>true],
+                'reasoning'=>['effort'=>'none','exclude'=>true],
             ]);
             $reply=trim((string)($r->json('choices.0.message.content')??''));
             $routedModel=(string)($r->json('model')??'unknown');
