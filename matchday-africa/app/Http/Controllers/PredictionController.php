@@ -206,8 +206,11 @@ class PredictionController extends Controller
         $filters = $request->only(['prediction_set_id', 'date_from', 'date_to', 'is_correct']);
         $predictions = $this->predictionService->getUserPredictionHistory(auth()->user(), $filters);
         $userStats = $this->predictionService->getUserStats(auth()->user());
+        $predictionSets = PredictionSet::whereHas('userPredictions', fn ($query) => $query->where('user_id', auth()->id()))
+            ->orderBy('name')
+            ->get();
 
-        return view('predictions.history', compact('predictions', 'userStats', 'filters'));
+        return view('predictions.history', compact('predictions', 'userStats', 'filters', 'predictionSets'));
     }
 
     /**
@@ -215,12 +218,18 @@ class PredictionController extends Controller
      */
     public function leaderboard(Request $request)
     {
-        $filters = $request->only(['prediction_set_id', 'period', 'limit']);
-        $filters['limit'] = $filters['limit'] ?? 50;
+        $filters = $request->only(['prediction_set_id', 'limit']);
+        $filters['period'] = 'all_time';
+        $filters['limit'] = in_array((int) ($filters['limit'] ?? 50), [10, 25, 50, 100], true)
+            ? (int) $filters['limit']
+            : 50;
         
         $predictionSet = null;
         if (!empty($filters['prediction_set_id'] ?? null)) {
             $predictionSet = PredictionSet::find($filters['prediction_set_id']);
+            if (!$predictionSet) {
+                unset($filters['prediction_set_id']);
+            }
         }
         
         try {
@@ -251,7 +260,7 @@ class PredictionController extends Controller
         }
         
         // Get available prediction sets for filter dropdown
-        $predictionSets = PredictionSet::where('status', 'active')
+        $predictionSets = PredictionSet::whereHas('leaderboards', fn ($query) => $query->where('period', 'all_time'))
             ->orderBy('name')
             ->get();
 

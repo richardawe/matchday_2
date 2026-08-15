@@ -99,6 +99,22 @@ class PredictionSystemTest extends TestCase
         $this->assertSame(0, $result['submitted_count']);
     }
 
+    public function test_history_ignores_blank_filters_and_includes_the_full_end_date(): void
+    {
+        [$user, $set, $match] = $this->scenario();
+        UserPrediction::create([
+            'user_id' => $user->id, 'prediction_set_id' => $set->id, 'match_id' => $match->id,
+            'prediction_type' => 'result', 'prediction_value' => 'Home Win',
+            'is_correct' => true, 'is_scored' => true, 'submitted_at' => now()->setTime(22, 30),
+        ]);
+
+        $history = app(PredictionService::class)->getUserPredictionHistory($user, [
+            'prediction_set_id' => '', 'date_from' => '', 'date_to' => now()->toDateString(), 'is_correct' => '',
+        ]);
+
+        $this->assertSame(1, $history->total());
+    }
+
     private function scenario(): array
     {
         $user = User::factory()->create();

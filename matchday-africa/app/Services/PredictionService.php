@@ -175,20 +175,20 @@ class PredictionService
         $query = $user->predictions()
             ->with(['predictionSet', 'match.homeTeam', 'match.awayTeam', 'match.league']);
 
-        if (isset($filters['prediction_set_id'])) {
+        if (!empty($filters['prediction_set_id'])) {
             $query->where('prediction_set_id', $filters['prediction_set_id']);
         }
 
-        if (isset($filters['date_from'])) {
-            $query->where('submitted_at', '>=', Carbon::parse($filters['date_from']));
+        if (!empty($filters['date_from'])) {
+            $query->where('submitted_at', '>=', Carbon::parse($filters['date_from'])->startOfDay());
         }
 
-        if (isset($filters['date_to'])) {
-            $query->where('submitted_at', '<=', Carbon::parse($filters['date_to']));
+        if (!empty($filters['date_to'])) {
+            $query->where('submitted_at', '<=', Carbon::parse($filters['date_to'])->endOfDay());
         }
 
-        if (isset($filters['is_correct']) && $filters['is_correct'] !== null) {
-            $query->where('is_correct', $filters['is_correct']);
+        if (array_key_exists('is_correct', $filters) && in_array($filters['is_correct'], ['0', '1', 0, 1], true)) {
+            $query->where('is_correct', (bool) $filters['is_correct']);
         }
 
         return $query->orderBy('submitted_at', 'desc')->paginate($perPage);
