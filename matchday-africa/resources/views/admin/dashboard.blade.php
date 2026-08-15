@@ -123,6 +123,13 @@
                                     </div>
                                 </div>
                             </a>
+
+                            <a href="{{ route('admin.predictions.season.index') }}" class="bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg p-4 transition-colors">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center mr-3"><span class="text-white text-lg">↻</span></div>
+                                    <div><h4 class="font-semibold text-gray-900">Start New Season</h4><p class="text-sm text-gray-600">Archive challenges and reset predictions</p></div>
+                                </div>
+                            </a>
                         </div>
                     </div>
 

@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\BlogController;
 use App\Http\Controllers\Admin\MatchController;
 use App\Http\Controllers\Admin\MatchPreviewController;
 use App\Http\Controllers\Admin\PredictionController;
+use App\Http\Controllers\Admin\PredictionSeasonController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\CreatorController;
 use App\Http\Controllers\Admin\CommerceController;
@@ -84,6 +85,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::get('/', [PredictionController::class, 'index'])->name('index');
         Route::get('/create', [PredictionController::class, 'create'])->name('create');
         Route::post('/', [PredictionController::class, 'store'])->name('store');
+        Route::get('/season', [PredictionSeasonController::class, 'index'])->name('season.index');
+        Route::post('/season', [PredictionSeasonController::class, 'store'])->name('season.store');
         
         // Specific routes (must come before parameterized routes)
         Route::get('/analytics', [PredictionController::class, 'analyticsDashboard'])->name('analytics');
