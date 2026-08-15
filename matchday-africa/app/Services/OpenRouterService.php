@@ -18,8 +18,8 @@ class OpenRouterService
     {
         $this->apiKey = config('services.openrouter.api_key');
         $this->baseUrl = config('services.openrouter.base_url', 'https://openrouter.ai/api/v1');
-        $this->model = config('services.openrouter.model', 'openai/gpt-oss-120b:free');
-        $this->fallbackModels = config('services.openrouter.fallback_models', ['openai/gpt-oss-20b:free']);
+        $this->model = config('services.openrouter.model', 'openrouter/free');
+        $this->fallbackModels = config('services.openrouter.fallback_models', []);
         $this->maxRetries = 3;
     }
 
