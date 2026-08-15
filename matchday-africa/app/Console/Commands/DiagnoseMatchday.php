@@ -14,7 +14,18 @@ class DiagnoseMatchday extends Command {
         try{$r=Http::timeout(15)->withHeaders(['X-Auth-Token'=>$footballKey])->get(rtrim(config('services.football_data.url'),'/').'/matches',['dateFrom'=>now()->toDateString(),'dateTo'=>now()->toDateString()]);$checks[]=['Football API HTTP',$r->status(),$r->successful()?'Reachable':$this->safeError($r)];}catch(\Throwable $e){$checks[]=['Football API HTTP','ERROR',$e->getMessage()];}
         foreach(config('news.sources',[]) as $source){try{$r=Http::timeout(15)->withHeaders(['User-Agent'=>'MatchdayAfrica/1.0'])->get($source['url']);$checks[]=['Feed: '.$source['name'],$r->status(),$r->successful()?'Reachable':$this->safeError($r)];}catch(\Throwable $e){$checks[]=['Feed: '.$source['name'],'ERROR',$e->getMessage()];}}
         try{$r=Http::timeout(15)->withToken($openRouterKey)->get(rtrim(config('services.openrouter.base_url'),'/').'/models');$checks[]=['OpenRouter HTTP',$r->status(),$r->successful()?'Reachable':$this->safeError($r)];}catch(\Throwable $e){$checks[]=['OpenRouter HTTP','ERROR',$e->getMessage()];}
+        try{
+            $r=Http::timeout(45)->withHeaders(['Authorization'=>'Bearer '.$openRouterKey,'Content-Type'=>'application/json','HTTP-Referer'=>config('app.url'),'X-Title'=>'Matchday Africa Diagnostics'])->post(rtrim(config('services.openrouter.base_url'),'/').'/chat/completions',[
+                'model'=>config('services.openrouter.model'),
+                'messages'=>[['role'=>'user','content'=>'Reply with exactly MATCHDAY_OK and nothing else.']],
+                'max_tokens'=>20,'temperature'=>0,
+            ]);
+            $reply=trim((string)($r->json('choices.0.message.content')??''));
+            $checks[]=['OpenRouter completion',$r->status(),$r->successful()?($reply==='MATCHDAY_OK'?'Model replied correctly':'Unexpected reply: '.substr($reply,0,80)):$this->safeError($r)];
+            $checks[]=['OpenRouter model',config('services.openrouter.model'),''];
+        }catch(\Throwable $e){$checks[]=['OpenRouter completion','ERROR',$e->getMessage()];}
         $checks[]=['News candidates',NewsCandidate::count(),NewsCandidate::where('status','failed')->count().' failed'];
+        foreach(NewsCandidate::where('status','failed')->latest('updated_at')->limit(3)->get() as $candidate){$checks[]=['Rejected: '.substr($candidate->title,0,34),'FAILED',substr((string)$candidate->failure_reason,0,180)];}
         $this->table(['Check','Result','Detail'],$checks);return self::SUCCESS;
     }
     private function safeError($response):string{$json=$response->json();return substr((string)($json['message']??$json['error']['message']??$json['error']??'Request rejected'),0,180);}

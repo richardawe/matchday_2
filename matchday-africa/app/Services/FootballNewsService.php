@@ -19,7 +19,7 @@ class FootballNewsService {
         $candidates=NewsCandidate::where('status','discovered')->where('source_published_at','>=',now()->subHours(config('news.max_age_hours',36)))->orderByDesc('selection_score')->orderByDesc('source_published_at')->limit(max(1,min($limit,2)))->get();
         foreach($candidates as $candidate){
             try { $this->turnIntoPost($candidate); $published++; }
-            catch(\Throwable $e){$errors++;$candidate->update(['status'=>'failed','failure_reason'=>Str::limit($e->getMessage(),1000)]);}
+            catch(\Throwable $e){$errors++;$candidate->update(['status'=>'failed','failure_reason'=>Str::limit($e->getMessage(),1000)]);Log::warning('Automated football article rejected',['candidate_id'=>$candidate->id,'source'=>$candidate->source,'reason'=>$e->getMessage()]);}
         }
         return ['success'=>$published,'errors'=>$errors,'discovered'=>$discovered,'eligible'=>$candidates->count(),'message'=>"Discovered {$discovered}; eligible {$candidates->count()}; published {$published}; failed {$errors}"];
     }
