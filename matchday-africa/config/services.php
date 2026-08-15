@@ -70,7 +70,11 @@ return [
     'openrouter' => [
         'api_key' => env('OPENROUTER_API_KEY'),
         'base_url' => env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'),
-        'model' => env('OPENROUTER_MODEL', 'meta-llama/llama-3.3-70b-instruct:free'),
+        'model' => env('OPENROUTER_MODEL', 'openai/gpt-oss-120b:free'),
+        'fallback_models' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', env('OPENROUTER_FALLBACK_MODELS', 'openai/gpt-oss-20b:free'))
+        ))),
         'max_daily_requests' => env('OPENROUTER_MAX_DAILY_REQUESTS', 2000),
     ],
 

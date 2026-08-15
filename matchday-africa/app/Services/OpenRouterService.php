@@ -11,13 +11,15 @@ class OpenRouterService
     protected $apiKey;
     protected $baseUrl;
     protected $model;
+    protected $fallbackModels;
     protected $maxRetries;
 
     public function __construct()
     {
         $this->apiKey = config('services.openrouter.api_key');
         $this->baseUrl = config('services.openrouter.base_url', 'https://openrouter.ai/api/v1');
-        $this->model = config('services.openrouter.model', 'anthropic/claude-3-haiku');
+        $this->model = config('services.openrouter.model', 'openai/gpt-oss-120b:free');
+        $this->fallbackModels = config('services.openrouter.fallback_models', ['openai/gpt-oss-20b:free']);
         $this->maxRetries = 3;
     }
 
@@ -143,53 +145,73 @@ Format the response in HTML with proper paragraphs and emphasis.";
      */
     protected function makeApiRequest($prompt)
     {
-        $retries = 0;
-        
-        while ($retries < $this->maxRetries) {
-            try {
-                $response = Http::withHeaders([
-                    'Authorization' => 'Bearer ' . $this->apiKey,
-                    'Content-Type' => 'application/json',
-                    'HTTP-Referer' => config('app.url'),
-                    'X-Title' => 'Matchday Africa'
-                ])->post($this->baseUrl . '/chat/completions', [
-                    'model' => $this->model,
-                    'messages' => [
-                        [
-                            'role' => 'user',
-                            'content' => $prompt
-                        ]
-                    ],
-                    'max_tokens' => 800,
-                    'temperature' => 0.7
-                ]);
+        $models = array_values(array_unique(array_filter([
+            $this->model,
+            ...$this->fallbackModels,
+        ])));
+        $lastError = null;
 
-                if ($response->successful()) {
-                    return $response->json();
-                }
+        foreach ($models as $model) {
+            $retries = 0;
 
-                // Handle rate limiting
-                if ($response->status() === 429) {
+            while ($retries < $this->maxRetries) {
+                try {
+                    $response = Http::withHeaders([
+                        'Authorization' => 'Bearer ' . $this->apiKey,
+                        'Content-Type' => 'application/json',
+                        'HTTP-Referer' => config('app.url'),
+                        'X-Title' => 'Matchday Africa'
+                    ])->post($this->baseUrl . '/chat/completions', [
+                        'model' => $model,
+                        'messages' => [
+                            [
+                                'role' => 'user',
+                                'content' => $prompt
+                            ]
+                        ],
+                        'max_tokens' => 800,
+                        'temperature' => 0.7
+                    ]);
+
+                    if ($response->successful()) {
+                        Log::info('OpenRouter request completed', ['model' => $model]);
+                        return $response->json();
+                    }
+
+                    // Handle rate limiting
+                    if ($response->status() === 429) {
+                        $retries++;
+                        $waitTime = pow(2, $retries) * 1000; // Exponential backoff
+                        usleep($waitTime * 1000);
+                        continue;
+                    }
+
+                    $detail = $response->json('error.message') ?: $response->body();
+                    $lastError = new \Exception("OpenRouter model {$model} failed ({$response->status()}): {$detail}");
+                    Log::warning('OpenRouter model unavailable; trying fallback', [
+                        'model' => $model,
+                        'error' => $lastError->getMessage(),
+                    ]);
+                    break;
+
+                } catch (\Exception $e) {
+                    $lastError = $e;
                     $retries++;
-                    $waitTime = pow(2, $retries) * 1000; // Exponential backoff
+                    if ($retries >= $this->maxRetries) {
+                        Log::warning('OpenRouter model unavailable; trying fallback', [
+                            'model' => $model,
+                            'error' => $e->getMessage(),
+                        ]);
+                        break;
+                    }
+
+                    $waitTime = pow(2, $retries) * 1000;
                     usleep($waitTime * 1000);
-                    continue;
                 }
-
-                throw new \Exception('API request failed: ' . $response->status());
-
-            } catch (\Exception $e) {
-                $retries++;
-                if ($retries >= $this->maxRetries) {
-                    throw $e;
-                }
-                
-                $waitTime = pow(2, $retries) * 1000;
-                usleep($waitTime * 1000);
             }
         }
 
-        throw new \Exception('Max retries exceeded');
+        throw $lastError ?? new \Exception('No OpenRouter model is configured');
     }
 
     /**

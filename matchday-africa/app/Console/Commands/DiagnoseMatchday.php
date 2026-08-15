@@ -22,7 +22,8 @@ class DiagnoseMatchday extends Command {
             ]);
             $reply=trim((string)($r->json('choices.0.message.content')??''));
             $checks[]=['OpenRouter completion',$r->status(),$r->successful()?($reply==='MATCHDAY_OK'?'Model replied correctly':'Unexpected reply: '.substr($reply,0,80)):$this->safeError($r)];
-            $checks[]=['OpenRouter model',config('services.openrouter.model'),''];
+            $checks[]=['OpenRouter model',config('services.openrouter.model'),'Primary'];
+            $checks[]=['OpenRouter fallbacks',implode(', ',config('services.openrouter.fallback_models', [])),'Automatic'];
         }catch(\Throwable $e){$checks[]=['OpenRouter completion','ERROR',$e->getMessage()];}
         $checks[]=['News candidates',NewsCandidate::count(),NewsCandidate::where('status','failed')->count().' failed'];
         foreach(NewsCandidate::where('status','failed')->latest('updated_at')->limit(3)->get() as $candidate){$checks[]=['Rejected: '.substr($candidate->title,0,34),'FAILED',substr((string)$candidate->failure_reason,0,180)];}
