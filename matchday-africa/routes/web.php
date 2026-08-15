@@ -29,6 +29,7 @@ use App\Http\Controllers\SponsorController;
 
 // Home page
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/api/matchday-pulse', [HomeController::class, 'pulse'])->name('home.pulse');
 
 // Matchday War — native subdirectory experience
 Route::prefix('war')->name('war.')->group(function () {

@@ -58,6 +58,20 @@ class OpenRouterService
         }
     }
 
+    public function editFootballArticle(string $prompt): ?string
+    {
+        try {
+            if (!$this->apiKey || $this->isRateLimited()) return null;
+            $response = $this->makeApiRequest($prompt);
+            $content = $response['choices'][0]['message']['content'] ?? null;
+            if ($content) $this->incrementRequestCount();
+            return $content;
+        } catch (\Throwable $e) {
+            Log::error('OpenRouter article edit failed', ['error'=>$e->getMessage()]);
+            return null;
+        }
+    }
+
     /**
      * Build the match preview prompt
      */
@@ -227,4 +241,4 @@ Format the response in HTML with proper paragraphs and emphasis.";
             return false;
         }
     }
-} 
+}

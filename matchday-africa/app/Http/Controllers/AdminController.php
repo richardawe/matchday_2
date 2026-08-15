@@ -20,6 +20,9 @@ use App\Models\FootballMatch;
 use App\Models\Standing;
 use App\Models\Player;
 use App\Models\MatchPreview;
+use App\Models\SyncRun;
+use App\Models\MatchEvent;
+use App\Models\NewsCandidate;
 
 class AdminController extends Controller
 {
@@ -42,8 +45,17 @@ class AdminController extends Controller
         $stats = $this->getDashboardStats();
         $apiStatus = $this->footballDataService->getApiStatus();
         $recentLogs = $this->getRecentSyncLogs();
+        $syncRuns = SyncRun::latest('started_at')->limit(12)->get();
+        $operations = [
+            'last_success' => SyncRun::where('status', 'success')->max('finished_at'),
+            'stale_live' => FootballMatch::whereIn('status', FootballMatch::LIVE_STATUSES)->where(fn($q)=>$q->whereNull('last_api_update')->orWhere('last_api_update','<',now()->subMinutes(5)))->count(),
+            'finished_missing_score' => FootballMatch::whereIn('status',['FINISHED','FT'])->where(fn($q)=>$q->whereNull('home_score')->orWhereNull('away_score'))->count(),
+            'finished_missing_events' => FootballMatch::whereIn('status',['FINISHED','FT'])->where('match_date','>=',now()->subDays(7))->whereDoesntHave('events')->count(),
+            'news_today' => NewsCandidate::where('status','published')->whereDate('updated_at',now())->count(),
+            'events_today' => MatchEvent::whereDate('updated_at',now())->count(),
+        ];
         
-        return view('admin.dashboard', compact('stats', 'apiStatus', 'recentLogs'));
+        return view('admin.dashboard', compact('stats', 'apiStatus', 'recentLogs', 'syncRuns', 'operations'));
     }
 
     /**
@@ -286,7 +298,7 @@ class AdminController extends Controller
             'matches' => [
                 'total' => FootballMatch::count(),
                 'today' => FootballMatch::whereDate('match_date', now())->count(),
-                'live' => FootballMatch::whereIn('status', ['LIVE', '1H', '2H', 'HT'])->count(),
+                'live' => FootballMatch::whereIn('status', FootballMatch::LIVE_STATUSES)->count(),
                 'this_week' => FootballMatch::whereBetween('match_date', [
                     now()->startOfWeek(),
                     now()->endOfWeek()

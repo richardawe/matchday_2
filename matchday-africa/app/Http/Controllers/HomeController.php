@@ -11,9 +11,19 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use App\Models\Team;
 use App\Models\PredictionSet;
+use Illuminate\Http\JsonResponse;
 
 class HomeController extends Controller
 {
+    public function pulse(): JsonResponse
+    {
+        $now=now();$relations=['homeTeam','awayTeam','league'];
+        $live=FootballMatch::with($relations)->crediblyLive($now)->orderBy('match_date')->take(4)->get();
+        $upcoming=FootballMatch::with($relations)->whereIn('status',['SCHEDULED','TIMED'])->whereBetween('match_date',[$now,$now->copy()->addDays(7)])->orderBy('match_date')->take(4)->get();
+        $results=FootballMatch::with($relations)->whereIn('status',['FINISHED','AWARDED'])->whereBetween('match_date',[$now->copy()->subDays(2),$now])->orderByDesc('match_date')->take(4)->get();
+        return response()->json(['html'=>view('partials.home-pulse',['liveMatches'=>$live,'upcomingMatches'=>$upcoming,'recentResults'=>$results])->render(),'has_live'=>$live->isNotEmpty(),'updated_at'=>$now->toIso8601String()]);
+    }
+
     public function index()
     {
         try {

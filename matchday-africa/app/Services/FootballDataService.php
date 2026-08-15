@@ -28,7 +28,7 @@ class FootballDataService
     public function get(string $endpoint, array $params = []): ?array
     {
         // Check if we should use cache based on endpoint type
-        $cacheDuration = $this->getCacheDurationForEndpoint($endpoint);
+        $cacheDuration = $this->getCacheDurationForEndpoint($endpoint, $params);
         $cacheKey = $this->generateCacheKey($endpoint, $params);
         
         // For real-time data, reduce cache or skip cache entirely
@@ -264,7 +264,7 @@ class FootballDataService
     /**
      * Get appropriate cache duration based on endpoint type
      */
-    private function getCacheDurationForEndpoint(string $endpoint): int
+    private function getCacheDurationForEndpoint(string $endpoint, array $params = []): int
     {
         // Match events change very frequently - shorter cache
         if (str_contains($endpoint, 'events')) {
@@ -272,8 +272,8 @@ class FootballDataService
         }
         
         // Live matches should have shorter cache
-        if (str_contains($endpoint, 'matches') && $this->isLiveMatchRequest()) {
-            return 60; // 1 minute for live matches
+        if (str_contains($endpoint, 'matches') && (($params['status'] ?? null) === 'LIVE')) {
+            return 0;
         }
         
         // Match data changes frequently during match days

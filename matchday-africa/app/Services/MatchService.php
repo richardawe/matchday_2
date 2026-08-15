@@ -21,6 +21,27 @@ class MatchService
         return $this->syncMatchesByDate(now()->toDateString());
     }
 
+    public function syncLiveMatches(): array
+    {
+        try {
+            $response = $this->footballDataService->get('matches', ['status' => 'LIVE']);
+            if (!$response || !isset($response['matches'])) {
+                return ['success' => 0, 'errors' => 1, 'message' => 'No live response from API'];
+            }
+            $success = 0; $errors = 0;
+            foreach ($response['matches'] as $matchData) {
+                try {
+                    $league = $this->findOrCreateLeague($matchData['competition']);
+                    $this->createOrUpdateMatch($matchData, $league->id, $league->football_data_id);
+                    $success++;
+                } catch (Exception $e) { $errors++; Log::error('Live match sync failed', ['error'=>$e->getMessage()]); }
+            }
+            return ['success'=>$success,'errors'=>$errors,'message'=>"Refreshed {$success} live matches"];
+        } catch (Exception $e) {
+            return ['success'=>0,'errors'=>1,'message'=>$e->getMessage()];
+        }
+    }
+
     public function syncUpcomingMatches(int $days = 7): array
     {
         try {

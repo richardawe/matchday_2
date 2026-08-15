@@ -20,11 +20,7 @@
 
 <section class="md-pulse"><div class="md-wrap">
     <div class="md-home-heading"><div><p class="md-eyebrow">MATCHDAY PULSE</p><h2>Now, next and just finished.</h2></div><a href="{{ route('matches.index') }}">Full match centre →</a></div>
-    <div class="md-pulse-grid">
-        <div class="md-pulse-column md-live-column"><div class="md-pulse-title"><span class="md-pulse-dot"></span><b>LIVE NOW</b><small>Provider verified</small></div>@forelse($liveMatches as $match) @include('partials.home-match-card', ['match' => $match, 'mode' => 'live']) @empty <div class="md-pulse-empty"><strong>No live matches right now.</strong><span>We only show a live badge when the score provider has recently confirmed it.</span></div> @endforelse</div>
-        <div class="md-pulse-column"><div class="md-pulse-title"><b>COMING UP</b><small>Next 7 days</small></div>@forelse($upcomingMatches->take(4) as $match) @include('partials.home-match-card', ['match' => $match, 'mode' => 'upcoming']) @empty <div class="md-pulse-empty"><strong>Nothing scheduled yet.</strong><span>Check the full match centre for more competitions.</span></div> @endforelse</div>
-        <div class="md-pulse-column"><div class="md-pulse-title"><b>RESULTS</b><small>Last 24 hours</small></div>@forelse($recentResults->take(4) as $match) @include('partials.home-match-card', ['match' => $match, 'mode' => 'result']) @empty <div class="md-pulse-empty"><strong>No recent results.</strong><span>Finished matches will appear here as they are confirmed.</span></div> @endforelse</div>
-    </div>
+    <div id="matchday-pulse" data-pulse-url="{{ route('home.pulse') }}">@include('partials.home-pulse')</div>
 </div></section>
 
 <section class="md-home-features"><div class="md-wrap"><div class="md-home-heading"><div><p class="md-eyebrow">MORE THAN SCORES</p><h2>Follow the game. Join the conversation.</h2></div></div><div class="md-feature-grid">

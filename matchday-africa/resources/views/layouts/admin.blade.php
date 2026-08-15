@@ -30,17 +30,12 @@
     <x-admin.navigation />
 
     <div class="flex">
-        <!-- Sidebar (Optional - can be added later) -->
-        <div class="hidden lg:block w-64 bg-gray-900 text-white admin-sidebar">
-            <!-- Sidebar content can be added here if needed -->
-        </div>
-
         <!-- Main Content -->
         <div class="flex-1 admin-content">
             <!-- Page Header -->
             @hasSection('header')
                 <div class="matchday-page-header bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                <div class="md-wrap py-6">
                         @yield('header')
                     </div>
                 </div>
@@ -73,7 +68,7 @@
 
             <!-- Page Content -->
             <main class="py-6">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="md-wrap">
                     @yield('content')
                 </div>
             </main>
