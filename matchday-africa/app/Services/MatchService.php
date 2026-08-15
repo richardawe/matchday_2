@@ -78,7 +78,8 @@ class MatchService
     {
         try {
             $response = $this->footballDataService->get('matches', [
-                'date' => $date
+                'dateFrom' => $date,
+                'dateTo' => $date,
             ]);
 
             if (!$response || !isset($response['matches'])) {

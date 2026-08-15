@@ -5,31 +5,32 @@ use App\Models\NewsCandidate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class FootballNewsService {
     public function __construct(private OpenRouterService $editor){}
 
     public function publish(int $limit=1): array {
-        $this->discover();
+        $discovered=$this->discover();
         $alreadyPublished=NewsCandidate::where('status','published')->whereDate('updated_at',now())->count();
         $limit=min(max(0,2-$alreadyPublished),max(1,min($limit,2)));
-        if($limit===0)return ['success'=>0,'errors'=>0,'message'=>'Daily target of two football articles is already complete'];
+        if($limit===0)return ['success'=>0,'errors'=>0,'message'=>'Daily target of two football articles is already complete','discovered'=>$discovered];
         $published=0;$errors=0;
         $candidates=NewsCandidate::where('status','discovered')->where('source_published_at','>=',now()->subHours(config('news.max_age_hours',36)))->orderByDesc('selection_score')->orderByDesc('source_published_at')->limit(max(1,min($limit,2)))->get();
         foreach($candidates as $candidate){
             try { $this->turnIntoPost($candidate); $published++; }
             catch(\Throwable $e){$errors++;$candidate->update(['status'=>'failed','failure_reason'=>Str::limit($e->getMessage(),1000)]);}
         }
-        return ['success'=>$published,'errors'=>$errors,'message'=>"Published {$published} football news article(s)"];
+        return ['success'=>$published,'errors'=>$errors,'discovered'=>$discovered,'eligible'=>$candidates->count(),'message'=>"Discovered {$discovered}; eligible {$candidates->count()}; published {$published}; failed {$errors}"];
     }
 
     public function discover(): int {
         $count=0;
         foreach(config('news.sources',[]) as $source){
             $response=Http::timeout(20)->withHeaders(['User-Agent'=>'MatchdayAfrica/1.0'])->get($source['url']);
-            if(!$response->successful()) continue;
+            if(!$response->successful()){Log::warning('Football news feed request failed',['source'=>$source['name'],'status'=>$response->status()]);continue;}
             $xml=@simplexml_load_string($response->body(),'SimpleXMLElement',LIBXML_NOCDATA);
-            if(!$xml) continue;
+            if(!$xml){Log::warning('Football news feed XML was invalid',['source'=>$source['name']]);continue;}
             foreach($xml->channel->item??[] as $item){
                 $title=trim((string)$item->title);$url=trim((string)$item->link);if(!$title||!filter_var($url,FILTER_VALIDATE_URL))continue;
                 $summary=Str::limit(trim(strip_tags((string)$item->description)),1200,'');
