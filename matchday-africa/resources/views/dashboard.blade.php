@@ -1,136 +1,91 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <!-- Welcome Section -->
-            <div class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-900">Welcome back, {{ auth()->user()->name }}!</h1>
-                <p class="text-gray-600 mt-2">Stay updated with the latest football matches and make your predictions</p>
-            </div>
+@php
+    $firstName = explode(' ', trim(auth()->user()->name))[0];
+    $nextMatch = $recentMatches->first(fn ($match) => $match->match_date->isFuture()) ?? $recentMatches->first();
+@endphp
 
-            <!-- Quick Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="bg-blue-50 rounded-lg p-6">
-                    <div class="flex items-center">
-                        <div class="p-2 bg-blue-100 rounded-lg">
-                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-blue-600">Total Predictions</p>
-                            <p class="text-2xl font-bold text-blue-900">{{ $userStats['total_predictions'] ?? 0 }}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-green-50 rounded-lg p-6">
-                    <div class="flex items-center">
-                        <div class="p-2 bg-green-100 rounded-lg">
-                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-green-600">Correct Predictions</p>
-                            <p class="text-2xl font-bold text-green-900">{{ $userStats['correct_predictions'] ?? 0 }}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-purple-50 rounded-lg p-6">
-                    <div class="flex items-center">
-                        <div class="p-2 bg-purple-100 rounded-lg">
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-purple-600">Accuracy Rate</p>
-                            <p class="text-2xl font-bold text-purple-900">{{ $userStats['accuracy_percentage'] ?? 0 }}%</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-orange-50 rounded-lg p-6">
-                    <div class="flex items-center">
-                        <div class="p-2 bg-orange-100 rounded-lg">
-                            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-orange-600">Total Points</p>
-                            <p class="text-2xl font-bold text-orange-900">{{ $userStats['total_points'] ?? 0 }}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                <!-- Predictions Card -->
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900">🎯 Predictions</h3>
-                            <a href="{{ route('predictions.index') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
-                        </div>
-                        <p class="text-gray-600 mb-4">Make predictions on upcoming matches and compete with other users</p>
-                        <div class="flex space-x-3">
-                            <a href="{{ route('predictions.index') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">
-                                Make Predictions
-                            </a>
-                            <a href="{{ route('predictions.history') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-sm">
-                                View History
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Leaderboard Card -->
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900">🏆 Leaderboard</h3>
-                            <a href="{{ route('predictions.leaderboard') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
-                        </div>
-                        <p class="text-gray-600 mb-4">See how you rank against other prediction experts</p>
-                        <div class="flex space-x-3">
-                            <a href="{{ route('predictions.leaderboard') }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded text-sm">
-                                View Leaderboard
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Matches -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">⚽ Recent Matches</h3>
-                        <a href="{{ route('matches.index') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
-                    </div>
-                    <div class="space-y-3">
-                        @forelse($recentMatches as $match)
-                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center space-x-4">
-                                    <div class="text-sm font-medium text-gray-900">{{ $match->homeTeam->name }}</div>
-                                    <div class="text-sm text-gray-500">vs</div>
-                                    <div class="text-sm font-medium text-gray-900">{{ $match->awayTeam->name }}</div>
-                                </div>
-                                <div class="text-sm text-gray-500">
-                                    {{ $match->match_date->format('M d, Y') }}
-                                </div>
-                            </div>
-                        @empty
-                            <p class="text-gray-500 text-center py-4">No recent matches found</p>
-                        @endforelse
-                    </div>
-                </div>
+<section class="md-dash-hero">
+    <div class="md-wrap md-dash-hero-grid">
+        <div>
+            <p class="md-eyebrow">YOUR MATCHDAY · {{ now()->format('D, d M') }}</p>
+            <h1>Welcome back,<br><em>{{ $firstName }}.</em></h1>
+            <p>Your football world in one place — fixtures to follow, calls to make, and your form across the season.</p>
+            <div class="md-home-actions">
+                <a class="md-primary" href="{{ route('matches.index') }}">Explore fixtures</a>
+                <a class="md-secondary" href="{{ route('predictions.index') }}">Make a prediction</a>
             </div>
         </div>
+
+        @if($nextMatch)
+            <a class="md-dash-next" href="{{ route('matches.show', $nextMatch) }}">
+                <span>NEXT ON YOUR RADAR</span>
+                <small>{{ $nextMatch->league?->name ?? 'Football' }} · {{ $nextMatch->match_date->format('D, H:i') }}</small>
+                <div>
+                    <strong>{{ $nextMatch->homeTeam?->name ?? 'TBC' }}</strong>
+                    <i>V</i>
+                    <strong>{{ $nextMatch->awayTeam?->name ?? 'TBC' }}</strong>
+                </div>
+                <b>Enter match room →</b>
+            </a>
+        @else
+            <div class="md-dash-next md-dash-next-empty">
+                <span>MATCH CENTRE</span>
+                <strong>The next fixtures are being prepared.</strong>
+                <a href="{{ route('matches.index') }}">Browse all matches →</a>
+            </div>
+        @endif
     </div>
+</section>
+
+<section class="md-dash-scorecard">
+    <div class="md-wrap">
+        <div><span>SEASON POINTS</span><strong>{{ number_format($userStats['total_points'] ?? 0) }}</strong><small>Your running total</small></div>
+        <div><span>GLOBAL RANK</span><strong>{{ ($userStats['rank'] ?? 0) > 0 ? '#'.number_format($userStats['rank']) : '—' }}</strong><small>All-time table</small></div>
+        <div><span>ACCURACY</span><strong>{{ number_format($userStats['accuracy_percentage'] ?? 0, 0) }}%</strong><small>{{ $userStats['correct_predictions'] ?? 0 }} correct calls</small></div>
+        <div><span>CALLS MADE</span><strong>{{ number_format($userStats['total_predictions'] ?? 0) }}</strong><small>Across all challenges</small></div>
+    </div>
+</section>
+
+<section class="md-dash-body">
+    <div class="md-wrap md-dash-layout">
+        <div>
+            <header class="md-dash-heading">
+                <div><p class="md-eyebrow">THE FIXTURE DESK</p><h2>Matches to watch</h2></div>
+                <a href="{{ route('matches.index') }}">Full fixture list →</a>
+            </header>
+            <div class="md-dash-fixtures">
+                @forelse($recentMatches as $match)
+                    <a href="{{ route('matches.show', $match) }}" class="md-dash-fixture">
+                        <div>
+                            <small>{{ $match->league?->name ?? 'Football' }}</small>
+                            <time>{{ $match->match_date->isToday() ? 'TODAY · '.$match->match_date->format('H:i') : $match->match_date->format('D d M · H:i') }}</time>
+                        </div>
+                        <p><strong>{{ $match->homeTeam?->name ?? 'TBC' }}</strong><i>vs</i><strong>{{ $match->awayTeam?->name ?? 'TBC' }}</strong></p>
+                        <span>Match room →</span>
+                    </a>
+                @empty
+                    <div class="md-dash-fixture-empty"><strong>No matches on the board yet.</strong><p>Check the full fixture centre for the latest schedule.</p></div>
+                @endforelse
+            </div>
+        </div>
+
+        <aside class="md-dash-rail">
+            <p class="md-eyebrow">QUICK PLAY</p>
+            <h2>What will you do next?</h2>
+            <a href="{{ route('predictions.index') }}"><span>01</span><div><strong>Call the score</strong><small>Make your picks before kickoff.</small></div><b>→</b></a>
+            <a href="{{ route('predictions.leaderboard') }}"><span>02</span><div><strong>Check your rank</strong><small>See who is reading the game best.</small></div><b>→</b></a>
+            <a href="{{ route('groups.index') }}"><span>03</span><div><strong>Join your people</strong><small>Compete in a private prediction league.</small></div><b>→</b></a>
+            <a href="{{ url('/war') }}"><span>04</span><div><strong>Enter The War</strong><small>Rank kits, play and claim your warrior.</small></div><b>→</b></a>
+        </aside>
+    </div>
+</section>
+
+<section class="md-dash-cta">
+    <div class="md-wrap">
+        <div><p class="md-eyebrow">BUILD YOUR TABLE</p><h2>Football is better with rivals.</h2><p>Create a prediction league, invite your friends and settle the debate every matchweek.</p></div>
+        <a class="md-primary" href="{{ route('groups.index') }}">Start a league</a>
+    </div>
+</section>
 @endsection
