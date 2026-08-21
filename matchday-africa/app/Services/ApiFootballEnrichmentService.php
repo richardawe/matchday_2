@@ -48,7 +48,7 @@ class ApiFootballEnrichmentService
                     || str_contains($this->normalize($candidate->name),$this->normalize($name))
                 );
                 if(!$player)continue;
-                $metadata=$player->metadata??[];
+                $metadata=$this->metadataArray($player->metadata);
                 $metadata['api_football_player_id']=data_get($row,'player.id');
                 $metadata['api_football_stats']=[
                     'date'=>$match->match_date?->toDateString(),'match_id'=>$match->id,
@@ -73,7 +73,7 @@ class ApiFootballEnrichmentService
     private function store(FootballMatch $match,array $fixture): int
     {
         $providerId=(int)data_get($fixture,'fixture.id');
-        $metadata=$match->metadata??[];$metadata['api_football_fixture_id']=$providerId;$metadata['event_provider']='api-football';
+        $metadata=$this->metadataArray($match->metadata);$metadata['api_football_fixture_id']=$providerId;$metadata['event_provider']='api-football';
         $updates=['metadata'=>$metadata];
         foreach(data_get($fixture,'statistics',[]) as $side){
             $prefix=(int)data_get($side,'team.id')===(int)data_get($fixture,'teams.home.id')?'home':'away';
@@ -102,6 +102,14 @@ class ApiFootballEnrichmentService
     }
 
     private function normalize(string $value): string{return trim(preg_replace('/[^a-z0-9]+/',' ',Str::lower(Str::ascii($value))));}
+    private function metadataArray(mixed $value): array
+    {
+        if(is_array($value))return $value;
+        if(!is_string($value)||trim($value)==='')return [];
+        $decoded=json_decode($value,true);
+        if(is_string($decoded))$decoded=json_decode($decoded,true);
+        return is_array($decoded)?$decoded:[];
+    }
     private function number($value): ?int{return $value===null?null:(int)preg_replace('/[^0-9-]/','',(string)$value);}
     private function stableId(string $value): int{return (int)hexdec(substr(hash('sha256','api-football|'.$value),0,15));}
 }

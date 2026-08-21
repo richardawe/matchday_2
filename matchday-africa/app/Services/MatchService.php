@@ -188,7 +188,7 @@ class MatchService
                 'is_featured' => false,
                 'has_live_coverage' => $matchData['live'] ?? false,
                 'last_api_update' => now(),
-                'metadata' => json_encode($matchData)
+                'metadata' => $matchData
             ]
         );
 
