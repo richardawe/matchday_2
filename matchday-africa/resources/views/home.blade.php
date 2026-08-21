@@ -3,6 +3,13 @@
 @section('content')
 <x-sponsor-slot slot="home" />
 
+@if($premierLeagueMatches->isNotEmpty())
+<section class="md-pl-takeover"><div class="md-wrap"><div class="md-home-heading"><div><p class="md-eyebrow">PREMIER LEAGUE · TODAY</p><h1>Today’s battles start here.</h1></div><a href="{{ route('war.index') }}">Open Matchday War →</a></div><div class="md-pl-grid">@foreach($premierLeagueMatches as $fixture)<article class="md-pl-card"><small>{{ $fixture->match_date->format('H:i') }} · {{ $fixture->status_display }}</small><div><strong>{{ $fixture->homeTeam?->display_name }}</strong><b>{{ $fixture->home_score !== null ? $fixture->home_score.' — '.$fixture->away_score : 'VS' }}</b><strong>{{ $fixture->awayTeam?->display_name }}</strong></div><div class="md-pl-actions"><a href="{{ route('matches.show',$fixture) }}">Match centre</a><a class="md-primary" href="{{ route('war.match',$fixture) }}">Kick off</a></div></article>@endforeach</div></div></section>
+@elseif($hasFeaturedBlogs)
+@php($hasFeaturedBlogs = false)
+<section class="md-home-stories md-home-stories-first"><div class="md-wrap"><div class="md-home-heading"><div><p class="md-eyebrow">LATEST NEWS</p><h1>Football stories worth your time.</h1></div><a href="{{ route('blogs.index') }}">All stories →</a></div><div class="md-story-grid">@foreach($featuredBlogs as $blog)<article class="md-story-card {{ $loop->first ? 'md-story-lead' : '' }}"><a href="{{ route('blogs.show', $blog) }}" class="md-story-image">@if($blog->featured_image)<img src="{{ $blog->featured_image_url }}" alt="{{ $blog->title }}">@else<span>MATCHDAY<br>AFRICA</span>@endif</a><div><small>{{ $blog->formatted_published_date }} · {{ $blog->reading_time }}</small><h3><a href="{{ route('blogs.show', $blog) }}">{{ $blog->title }}</a></h3><p>{{ Str::limit($blog->excerpt, $loop->first ? 190 : 110) }}</p><a href="{{ route('blogs.show', $blog) }}">Read story →</a></div></article>@endforeach</div></div></section>
+@endif
+
 @auth
 <section class="md-command"><div class="md-wrap">
     <div class="md-command-head"><div><p class="md-eyebrow">YOUR MATCHDAY</p><h1>Welcome back, {{ Str::before(auth()->user()->name, ' ') }}.</h1><p>Fixtures, predictions and stories from the clubs you follow.</p></div><a class="md-secondary" href="{{ route('onboarding') }}">{{ $followedTeams->isEmpty()?'Choose clubs':'Edit clubs' }}</a></div>
@@ -22,6 +29,8 @@
     <div class="md-home-heading"><div><p class="md-eyebrow">MATCHDAY PULSE</p><h2>Now, next and just finished.</h2></div><a href="{{ route('matches.index') }}">Full match centre →</a></div>
     <div id="matchday-pulse" data-pulse-url="{{ route('home.pulse') }}">@include('partials.home-pulse')</div>
 </div></section>
+
+@if($africanPlayersInFocus->isNotEmpty())<section class="md-player-focus"><div class="md-wrap"><div class="md-home-heading"><div><p class="md-eyebrow">AFRICAN PLAYERS IN FOCUS</p><h2>African talent playing today.</h2></div><a href="{{ route('discovery.index') }}">Explore all players →</a></div><div class="md-player-focus-grid">@foreach($africanPlayersInFocus as $player)<a href="{{ route('discovery.show',$player) }}"><span>@if($player->photo_url)<img src="{{ $player->photo_url }}" alt="">@else{{ Str::upper(Str::substr($player->name,0,1)) }}@endif</span><div><strong>{{ $player->name }}</strong><small>{{ $player->nationality_flag }} {{ $player->nationality }} · {{ $player->team?->display_name }}</small><em>Playing today</em></div></a>@endforeach</div></div></section>@endif
 
 <section class="md-home-features"><div class="md-wrap"><div class="md-home-heading"><div><p class="md-eyebrow">MORE THAN SCORES</p><h2>Follow the game. Join the conversation.</h2></div></div><div class="md-feature-grid">
     <a class="md-feature-card md-feature-war" href="{{ route('war.index') }}"><span>01 · MATCHDAY WAR</span><h3>Turn the fixture into a battle.</h3><p>Choose your side, rally supporters and experience football rivalry in real time.</p><b>Enter the arena →</b></a>

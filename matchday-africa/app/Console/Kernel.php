@@ -23,6 +23,10 @@ class Kernel extends ConsoleKernel
             }
         })->everyFifteenMinutes()->name('sync-todays-matches');
 
+        $schedule->call(function () {
+            app(\App\Services\ApiFootballEnrichmentService::class)->syncDate(now()->toDateString());
+        })->everyFifteenMinutes()->withoutOverlapping()->name('enrich-todays-matches-api-football');
+
         // Keep the coming weekend and midweek programme populated in advance.
         $schedule->call(function () {
             try {

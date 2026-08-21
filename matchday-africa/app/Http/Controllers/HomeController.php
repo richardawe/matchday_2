@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Team;
 use App\Models\PredictionSet;
 use Illuminate\Http\JsonResponse;
+use App\Models\Player;
 
 class HomeController extends Controller
 {
@@ -114,6 +115,16 @@ class HomeController extends Controller
             $hasMatchPreviews = $matchPreviews->count() > 0;
             $hasFeaturedPreviews = $featuredPreviews->count() > 0;
 
+            $premierLeagueMatches = $todaysMatches->filter(fn ($match) =>
+                strtoupper((string) $match->league?->short_code) === 'PL'
+                || (strtolower((string) $match->league?->name) === 'premier league'
+                    && in_array(strtoupper((string) $match->league?->country_code), ['GB', 'GBR', 'ENG'], true))
+            )->values();
+            $todayTeamIds = $todaysMatches->flatMap(fn ($match) => [$match->home_team_id, $match->away_team_id])->filter()->unique();
+            $africanPlayersInFocus = Player::with('team')->active()
+                ->whereIn('team_id', $todayTeamIds)->whereIn('nationality_code', DiscoveryController::AFRICA)
+                ->orderBy('name')->take(18)->get();
+
             $followedTeams = collect();
             $personalMatches = collect();
             $openPredictionSets = collect();
@@ -140,7 +151,8 @@ class HomeController extends Controller
                 'hasLiveMatches',
                 'hasFeaturedBlogs',
                 'hasMatchPreviews',
-                'hasFeaturedPreviews','followedTeams','personalMatches','openPredictionSets'
+                'hasFeaturedPreviews','followedTeams','personalMatches','openPredictionSets',
+                'premierLeagueMatches','africanPlayersInFocus'
             ));
         } catch (\Exception $e) {
             // Log the error and return a simple view
@@ -161,7 +173,8 @@ class HomeController extends Controller
                 'hasFeaturedBlogs' => false,
                 'hasMatchPreviews' => false,
                 'hasFeaturedPreviews' => false,
-                'followedTeams' => collect(), 'personalMatches' => collect(), 'openPredictionSets' => collect()
+                'followedTeams' => collect(), 'personalMatches' => collect(), 'openPredictionSets' => collect(),
+                'premierLeagueMatches' => collect(), 'africanPlayersInFocus' => collect()
             ]);
         }
     }
