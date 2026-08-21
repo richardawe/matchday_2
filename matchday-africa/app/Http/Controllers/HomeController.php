@@ -13,6 +13,7 @@ use App\Models\Team;
 use App\Models\PredictionSet;
 use Illuminate\Http\JsonResponse;
 use App\Models\Player;
+use Illuminate\Support\Str;
 
 class HomeController extends Controller
 {
@@ -120,10 +121,23 @@ class HomeController extends Controller
                 || (strtolower((string) $match->league?->name) === 'premier league'
                     && in_array(strtoupper((string) $match->league?->country_code), ['GB', 'GBR', 'ENG'], true))
             )->values();
+            $premierLeagueMatches->each(function($match){
+                $match->setAttribute('war_home',$this->warriorFor($match->homeTeam?->name));
+                $match->setAttribute('war_away',$this->warriorFor($match->awayTeam?->name));
+            });
             $todayTeamIds = $todaysMatches->flatMap(fn ($match) => [$match->home_team_id, $match->away_team_id])->filter()->unique();
             $africanPlayersInFocus = Player::with('team')->active()
                 ->whereIn('team_id', $todayTeamIds)->whereIn('nationality_code', DiscoveryController::AFRICA)
                 ->orderBy('name')->take(18)->get();
+            $matchByTeam=$todaysMatches->mapWithKeys(fn($match)=>[$match->home_team_id=>$match,$match->away_team_id=>$match]);
+            $africanPlayersInFocus->each(function($player)use($matchByTeam,$today){
+                $player->setAttribute('focus_match',$matchByTeam->get($player->team_id));
+                $fresh=data_get($player->metadata,'api_football_stats.date')===$today;
+                $stats=$fresh?data_get($player->metadata,'api_football_stats.statistics',[]):[];
+                $player->setAttribute('focus_stats',$stats);
+                $rows=collect($stats)->flatMap(fn($values,$group)=>is_array($values)?collect($values)->filter(fn($value)=>$value!==null&&$value!=='')->map(fn($value,$label)=>['label'=>Str::headline($group).' · '.Str::headline($label),'value'=>is_bool($value)?($value?'Yes':'No'):$value]):[])->values();
+                $player->setAttribute('focus_stat_rows',$rows);
+            });
 
             $followedTeams = collect();
             $personalMatches = collect();
@@ -177,5 +191,26 @@ class HomeController extends Controller
                 'premierLeagueMatches' => collect(), 'africanPlayersInFocus' => collect()
             ]);
         }
+    }
+
+    private function warriorFor(?string $name): array
+    {
+        $key=strtolower(preg_replace('/ FC$/i','',(string)$name));
+        $roster=[
+            'arsenal'=>['arsenal.png','Roman Legion'],'coventry city'=>['coventry.png','Zulu Impi'],
+            'aston villa'=>['aston-villa.png','Anglo-Saxon Housecarls'],'afc bournemouth'=>['bournemouth.png','Barbary Corsairs'],
+            'bournemouth'=>['bournemouth.png','Barbary Corsairs'],'brentford'=>['brentford.png','Prussian Line Infantry'],
+            'brighton & hove albion'=>['brighton.png','Byzantine Cataphracts'],'chelsea'=>['chelsea.png','Ottoman Janissaries'],
+            'crystal palace'=>['crystal-palace.png','Saxon Fyrd'],'everton'=>['everton.png','Norman Knights'],
+            'fulham'=>['fulham.png','Venetian Marines'],'hull city'=>['hull.png','Numidian Cavalry'],
+            'ipswich town'=>['ipswich.png','Rus’ Varangian Guard'],'leeds united'=>['leeds.png','White Rose Yorkist Army'],
+            'liverpool'=>['liverpool.png','Norse Vikings'],'manchester city'=>['manchester-city.png','Mongol Horde'],
+            'manchester united'=>['manchester-united.png','Napoleonic Grenadiers'],'newcastle united'=>['newcastle.png','Norse-Northumbrian Raiders'],
+            'nottingham forest'=>['nottingham-forest.png','Robin Hood’s Outlaws'],'sunderland'=>['sunderland.png','Northern Rebel Clans'],
+            'tottenham hotspur'=>['tottenham.png','Spartan Hoplites'],'west ham united'=>['west-ham.png','Rebel Irons'],
+            'wolverhampton wanderers'=>['wolves.png','Wolf Guard'],
+        ];
+        $entry=$roster[$key]??[null,'The Home Army'];
+        return ['image'=>$entry[0]?asset('war/warriors/'.$entry[0]):null,'faction'=>$entry[1]];
     }
 }

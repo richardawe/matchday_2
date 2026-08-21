@@ -7,6 +7,7 @@ use App\Models\MatchEvent;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use App\Models\Player;
 
 class ApiFootballEnrichmentService
 {
@@ -22,8 +23,40 @@ class ApiFootballEnrichmentService
         foreach($response->json('response',[]) as $fixture){
             $match=$this->matchLocal($local,$fixture); if(!$match)continue;
             $matched++;$events+=$this->store($match,$fixture);
+            $this->storePlayerStats($match,(int)data_get($fixture,'fixture.id'));
         }
         return ['configured'=>true,'fixtures'=>count($response->json('response',[])),'matched'=>$matched,'events'=>$events,'remaining'=>$response->header('x-ratelimit-requests-remaining')];
+    }
+
+    private function storePlayerStats(FootballMatch $match,int $fixtureId): void
+    {
+        if($fixtureId<=0)return;
+        $teamIds=[$match->home_team_id,$match->away_team_id];
+        $players=Player::whereIn('team_id',$teamIds)->active()->get();
+        if($players->isEmpty())return;
+        $response=Http::timeout(35)->withHeaders(['x-apisports-key'=>config('services.api_football.key')])
+            ->get(rtrim(config('services.api_football.url'),'/').'/fixtures/players',['fixture'=>$fixtureId]);
+        if(!$response->successful()||!empty($response->json('errors')))return;
+        foreach($response->json('response',[]) as $side){
+            $providerTeam=$this->normalize((string)data_get($side,'team.name'));
+            $localTeam=$providerTeam===$this->normalize($match->homeTeam?->name??'')?$match->homeTeam:$match->awayTeam;
+            if(!$localTeam)continue;
+            foreach(data_get($side,'players',[]) as $row){
+                $name=(string)data_get($row,'player.name');
+                $player=$players->where('team_id',$localTeam->id)->first(fn($candidate)=>
+                    $this->normalize($candidate->name)===$this->normalize($name)
+                    || str_contains($this->normalize($candidate->name),$this->normalize($name))
+                );
+                if(!$player)continue;
+                $metadata=$player->metadata??[];
+                $metadata['api_football_player_id']=data_get($row,'player.id');
+                $metadata['api_football_stats']=[
+                    'date'=>$match->match_date?->toDateString(),'match_id'=>$match->id,
+                    'fixture_id'=>$fixtureId,'statistics'=>data_get($row,'statistics.0',[]),
+                ];
+                $player->update(['photo_url'=>data_get($row,'player.photo')?:$player->photo_url,'metadata'=>$metadata,'last_api_update'=>now()]);
+            }
+        }
     }
 
     private function matchLocal($matches,array $fixture): ?FootballMatch
