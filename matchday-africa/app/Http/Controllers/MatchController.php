@@ -200,6 +200,12 @@ class MatchController extends Controller
             $predictionSet = \App\Models\PredictionSet::where('status','active')->where('prediction_deadline','>',now())
                 ->whereHas('matches',fn($q)=>$q->where('match_id',$match->id))->first();
             $mythStory = app(MythGrammarService::class)->tell($match);
+            $warImage = function (?string $name): ?string {
+                $aliases = ['coventry city' => 'coventry', 'afc bournemouth' => 'bournemouth', 'brighton & hove albion' => 'brighton', 'hull city' => 'hull', 'ipswich town' => 'ipswich', 'leeds united' => 'leeds', 'newcastle united' => 'newcastle', 'nottingham forest' => 'nottingham-forest', 'tottenham hotspur' => 'tottenham', 'west ham united' => 'west-ham', 'wolverhampton wanderers' => 'wolves'];
+                $slug = $aliases[strtolower((string) $name)] ?? \Illuminate\Support\Str::slug(preg_replace('/ FC$/i', '', (string) $name));
+                return is_file(public_path("war/warriors/{$slug}.png")) ? asset("war/warriors/{$slug}.png") : null;
+            };
+            $warTeams = ['home' => $warImage($match->homeTeam?->name), 'away' => $warImage($match->awayTeam?->name)];
 
             return view('matches.show', compact(
                 'match', 
@@ -208,7 +214,7 @@ class MatchController extends Controller
                 'upcomingMatches', 
                 'recentChats',
                 'matchPreview',
-                'featuredPreviews','momentum','predictionSet','mythStory'
+                'featuredPreviews','momentum','predictionSet','mythStory','warTeams'
             ))->with('content', $match);
 
         } catch (\Exception $e) {
@@ -221,7 +227,7 @@ class MatchController extends Controller
                 'upcomingMatches' => collect([]),
                 'recentChats' => collect([]),
                 'matchPreview' => null, 'momentum' => 50, 'predictionSet' => null, 'mythStory' => null,
-                'featuredPreviews' => collect([])
+                'featuredPreviews' => collect([]), 'warTeams' => ['home' => null, 'away' => null]
             ])->with('content', $match);
         }
     }

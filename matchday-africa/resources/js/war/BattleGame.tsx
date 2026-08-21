@@ -11,9 +11,9 @@ const actions:{id:Move;name:string;icon:string;desc:string}[]=[
  {id:"shoot",name:"SHOOT",icon:"●",desc:"Take a shot at goal"}
 ];
 const label=(m:Move)=>actions.find(a=>a.id===m)!.name;
-export default function BattleGame({units}:{units:Unit[]}){
+export default function BattleGame({units,initialTeams}:{units:Unit[];initialTeams?:[number,number]}){
  const [online,setOnline]=useState(false);
- const [screen,setScreen]=useState<"mode"|"select"|"battle">("mode"),[p1,setP1]=useState(0),[p2,setP2]=useState(1),[picker,setPicker]=useState<1|2>(1),[kickedOff,setKickedOff]=useState(false);
+ const [screen,setScreen]=useState<"mode"|"select"|"battle">(initialTeams?"battle":"mode"),[p1,setP1]=useState(initialTeams?.[0]??0),[p2,setP2]=useState(initialTeams?.[1]??1),[picker,setPicker]=useState<1|2>(1),[kickedOff,setKickedOff]=useState(false);
  const [time,setTime]=useState(60),[score,setScore]=useState<[number,number]>([0,0]),[ball,setBall]=useState(50),[possession,setPossession]=useState<Side>(0),[formation,setFormation]=useState<[number,number]>([2,2]);
  const [commentaryOn,setCommentaryOn]=useState(false),[settingsOpen,setSettingsOpen]=useState(false);
  const [phase,setPhase]=useState<"player"|"cpu"|"result">("player"),[lastMoves,setLastMoves]=useState<[Move|null,Move|null]>([null,null]),[tick,setTick]=useState(0),[log,setLog]=useState("Kick off and take the ball forward."),[goal,setGoal]=useState<string|null>(null),[event,setEvent]=useState("KICK OFF");
