@@ -13,7 +13,8 @@ class RefreshMatchData extends Command {
         $mode=$this->argument('mode');
         if(!in_array($mode,['upcoming','today','live','results'],true)){ $this->error('Invalid refresh mode.'); return self::INVALID; }
         $result=$runs->run('matches:'.$mode,function()use($mode,$matches,$scoring){
-            if($mode==='upcoming') return $matches->syncUpcomingMatches(14);
+            // football-data.org rejects date ranges longer than 10 days.
+            if($mode==='upcoming') return $matches->syncUpcomingMatches(10);
             if($mode==='live') return $matches->syncLiveMatches();
             $result=$matches->syncTodaysMatches();
             if($mode==='results'){
