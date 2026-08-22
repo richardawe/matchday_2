@@ -63,6 +63,7 @@ return [
     'api_football' => [
         'key' => env('API_FOOTBALL_KEY'),
         'url' => env('API_FOOTBALL_URL', 'https://v3.football.api-sports.io'),
+        'daily_budget' => (int) env('API_FOOTBALL_DAILY_BUDGET', 95),
     ],
 
     'giphy' => [
