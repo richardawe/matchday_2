@@ -10,6 +10,13 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\PredictionController;
 use App\Http\Controllers\SocialSharingController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/images/social-default.png', function () {
+    return response()->file(public_path('images/social-default.png'), [
+        'Cache-Control' => 'public, max-age=86400',
+        'Content-Type' => 'image/png',
+    ]);
+})->name('images.social-default');
 use App\Http\Controllers\War\WarController;
 use App\Http\Controllers\War\WarFixtureController;
 use App\Http\Controllers\War\WarRoomController;
