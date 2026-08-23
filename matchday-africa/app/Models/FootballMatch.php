@@ -290,4 +290,11 @@ class FootballMatch extends Model
                $this->home_score !== null && 
                $this->away_score !== null;
     }
+
+    public function predictionsAreOpen(): bool
+    {
+        $closed = array_merge(self::LIVE_STATUSES, ['FINISHED', 'FT', 'AWARDED', 'CANCELLED', 'POSTPONED']);
+
+        return !in_array(strtoupper((string) $this->status), $closed, true);
+    }
 }

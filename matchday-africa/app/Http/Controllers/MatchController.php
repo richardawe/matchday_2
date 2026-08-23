@@ -217,7 +217,7 @@ class MatchController extends Controller
             $warTeams = ['home' => $warImage($match->homeTeam?->name), 'away' => $warImage($match->awayTeam?->name)];
             $predictions=$match->userPredictions()->with('user')->where('prediction_type','score')->latest('submitted_at')->get()->unique('user_id')->sortBy('submitted_at')->values();
             $currentPrediction=auth()->check()?$predictions->firstWhere('user_id',auth()->id()):null;
-            $predictionOpen=now()->lt($match->match_date)&&!in_array($match->status,['CANCELLED','POSTPONED','FINISHED','FT'],true);
+            $predictionOpen=$match->predictionsAreOpen();
             $sponsor=$match->sponsor?->active?$match->sponsor:null;
             $winnerIds=$sponsor?->awards->pluck('user_id')??collect();
             $africanPlayers=Player::with('team')->active()->whereIn('team_id',[$match->home_team_id,$match->away_team_id])->whereIn('nationality_code',DiscoveryController::AFRICA)->get()->filter(fn($player)=>data_get($player->metadata,'api_football_lineup.match_id')===$match->id||data_get($player->metadata,'api_football_stats.match_id')===$match->id)->values();
