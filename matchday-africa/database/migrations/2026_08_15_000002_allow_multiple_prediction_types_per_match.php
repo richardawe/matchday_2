@@ -8,17 +8,53 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('prediction_set_matches', function (Blueprint $table) {
-            $table->dropUnique(['prediction_set_id', 'match_id']);
-            $table->unique(['prediction_set_id', 'match_id', 'prediction_type'], 'prediction_round_match_type_unique');
-        });
+        $indexes = collect(Schema::getIndexes('prediction_set_matches'));
+
+        if ($name = $this->uniqueName($indexes, ['prediction_set_id', 'match_id'])) {
+            Schema::table('prediction_set_matches', fn (Blueprint $table) =>
+                $table->dropUnique($name)
+            );
+        }
+
+        $indexes = collect(Schema::getIndexes('prediction_set_matches'));
+        if (!$this->hasUnique($indexes, ['prediction_set_id', 'match_id', 'prediction_type'])) {
+            Schema::table('prediction_set_matches', fn (Blueprint $table) =>
+                $table->unique(['prediction_set_id', 'match_id', 'prediction_type'], 'prediction_round_match_type_unique')
+            );
+        }
     }
 
     public function down(): void
     {
-        Schema::table('prediction_set_matches', function (Blueprint $table) {
-            $table->dropUnique('prediction_round_match_type_unique');
-            $table->unique(['prediction_set_id', 'match_id']);
-        });
+        $indexes = collect(Schema::getIndexes('prediction_set_matches'));
+
+        if ($name = $this->uniqueName($indexes, ['prediction_set_id', 'match_id', 'prediction_type'])) {
+            Schema::table('prediction_set_matches', fn (Blueprint $table) =>
+                $table->dropUnique($name)
+            );
+        }
+
+        $indexes = collect(Schema::getIndexes('prediction_set_matches'));
+        if (!$this->hasUnique($indexes, ['prediction_set_id', 'match_id'])) {
+            Schema::table('prediction_set_matches', fn (Blueprint $table) =>
+                $table->unique(['prediction_set_id', 'match_id'])
+            );
+        }
+    }
+
+    private function hasUnique($indexes, array $columns): bool
+    {
+        return $indexes->contains(fn (array $index) =>
+            ($index['unique'] ?? false) && array_values($index['columns'] ?? []) === $columns
+        );
+    }
+
+    private function uniqueName($indexes, array $columns): ?string
+    {
+        $index = $indexes->first(fn (array $index) =>
+            ($index['unique'] ?? false) && array_values($index['columns'] ?? []) === $columns
+        );
+
+        return $index['name'] ?? null;
     }
 };
