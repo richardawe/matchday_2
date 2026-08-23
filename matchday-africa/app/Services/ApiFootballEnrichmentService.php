@@ -35,8 +35,7 @@ class ApiFootballEnrichmentService
             $this->storeLineups($match,$id,$this->fetch('fixtures/lineups',['fixture'=>$id],43200,1200));
             if ($this->live($match)||$this->finished($match)) {
                 $events=$this->fetch('fixtures/events',['fixture'=>$id],$this->live($match)?1500:43200,900);
-                $stats=($this->finished($match)||(int)$match->minute>=40)
-                    ?$this->fetch('fixtures/statistics',['fixture'=>$id],$this->live($match)?4200:43200,1200):[];
+                $stats=$this->fetch('fixtures/statistics',['fixture'=>$id],$this->live($match)?4200:43200,1200);
                 $saved+=$this->storeMatch($match,$fixture,$events,$stats);
                 if($this->finished($match))$this->storePlayers($match,$id,$this->fetch('fixtures/players',['fixture'=>$id],43200,1800));
             }
@@ -82,15 +81,19 @@ class ApiFootballEnrichmentService
 
     private function link(FootballMatch $match,int $id): void
     {
-        $meta=$this->meta($match->metadata); $meta['api_football_fixture_id']=$id; $meta['event_provider']='api-football';
+        $meta=$this->meta($match->metadata); $meta['api_football_fixture_id']=$id; $meta['event_provider']='api-football';$meta['api_football_linked_at']=now()->toIso8601String();
         $match->update(['metadata'=>$meta]);
     }
 
     private function storeLineups(FootballMatch $match,int $id,array $sides): void
     {
         $players=$this->africanPlayers($match);
+        $visible=[];
         foreach($sides as $side){$team=$this->localTeam($match,(string)data_get($side,'team.name'));if(!$team)continue;
             $starters=collect(data_get($side,'startXI',[]))->pluck('player.id');
+            $visible[]=['team'=>data_get($side,'team.name'),'formation'=>data_get($side,'formation'),'coach'=>data_get($side,'coach.name'),
+                'starters'=>collect(data_get($side,'startXI',[]))->map(fn($row)=>['name'=>data_get($row,'player.name'),'number'=>data_get($row,'player.number'),'position'=>data_get($row,'player.pos')])->values()->all(),
+                'substitutes'=>collect(data_get($side,'substitutes',[]))->map(fn($row)=>['name'=>data_get($row,'player.name'),'number'=>data_get($row,'player.number'),'position'=>data_get($row,'player.pos')])->values()->all()];
             foreach(array_merge(data_get($side,'startXI',[]),data_get($side,'substitutes',[])) as $row){$p=data_get($row,'player',[]);$player=$this->findPlayer($players,$team->id,(string)data_get($p,'name'));if(!$player)continue;
                 $meta=$this->meta($player->metadata);$meta['api_football_player_id']=data_get($p,'id');$meta['api_football_lineup']=[
                     'date'=>$match->match_date?->toDateString(),'match_id'=>$match->id,'fixture_id'=>$id,'starter'=>$starters->contains(data_get($p,'id')),
@@ -98,6 +101,7 @@ class ApiFootballEnrichmentService
                 $player->update(['metadata'=>$meta,'last_api_update'=>now()]);
             }
         }
+        if($visible){$meta=$this->meta($match->fresh()->metadata);$meta['api_football_lineups']=$visible;$meta['api_football_lineups_at']=now()->toIso8601String();$match->update(['metadata'=>$meta]);}
     }
 
     private function storePlayers(FootballMatch $match,int $id,array $sides): void
@@ -131,7 +135,7 @@ class ApiFootballEnrichmentService
     {
         $id=(int)data_get($fixture,'fixture.id');$updates=[];
         foreach($statistics as $side){$prefix=(int)data_get($side,'team.id')===(int)data_get($fixture,'teams.home.id')?'home':'away';foreach(data_get($side,'statistics',[])as$stat){$column=match(data_get($stat,'type')){'Ball Possession'=>'possession','Total Shots'=>'shots','Shots on Goal'=>'shots_on_target','Corner Kicks'=>'corners','Fouls'=>'fouls','Yellow Cards'=>'yellow_cards','Red Cards'=>'red_cards',default=>null};if($column)$updates[$prefix.'_'.$column]=$this->number(data_get($stat,'value'));}}
-        if($updates)$match->update($updates);
+        $meta=$this->meta($match->fresh()->metadata);$meta['api_football_last_enriched_at']=now()->toIso8601String();$meta['api_football_event_count']=count($events);$meta['api_football_statistics_received']=!empty($statistics);$updates['metadata']=$meta;$match->update($updates);
         foreach($events as $index=>$event){$type=match(data_get($event,'type')){'Goal'=>'goal','Card'=>str_contains((string)data_get($event,'detail'),'Red')?'red_card':'yellow_card','subst'=>'substitution',default=>Str::snake((string)data_get($event,'type','event'))};$team=(int)data_get($event,'team.id')===(int)data_get($fixture,'teams.home.id')?$match->homeTeam:$match->awayTeam;if(!$team)continue;
             $eventKey=$id.'|'.$index.'|'.data_get($event,'time.elapsed').'|'.data_get($event,'player.id').'|'.$type;
             MatchEvent::updateOrCreate(['football_data_id'=>$this->stableId($eventKey)],[
