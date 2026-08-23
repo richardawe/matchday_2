@@ -1,0 +1,3 @@
+<?php
+namespace App\Services;use App\Models\FootballMatch;use App\Models\MatchPrizeAward;
+class PrizeAllocationService{public function allocate(FootballMatch $match):int{$sponsor=$match->sponsor;if(!$sponsor?->active)return 0;$score=$match->home_score.'-'.$match->away_score;$winners=$match->userPredictions()->where('prediction_type','score')->where('prediction_value',$score)->where('is_scored',true)->oldest('submitted_at')->limit($sponsor->prize_quantity)->get();foreach($winners as$p)MatchPrizeAward::firstOrCreate(['match_sponsor_id'=>$sponsor->id,'user_id'=>$p->user_id],['user_prediction_id'=>$p->id,'status'=>'selected']);return$winners->count();}}

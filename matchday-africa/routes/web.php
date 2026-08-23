@@ -62,6 +62,7 @@ Route::get('/leagues/{league}/standings', [LeagueController::class, 'standings']
 // Match routes
 Route::get('/matches', [MatchController::class, 'index'])->name('matches.index');
 Route::get('/matches/{match}/chronicle', [MatchController::class, 'chronicle'])->name('matches.chronicle');
+Route::get('/matches/{match}/sponsor-logo', [MatchController::class, 'sponsorLogo'])->name('matches.sponsor-logo');
 Route::get('/matches/{match}', [MatchController::class, 'show'])->name('matches.show');
 Route::get('/matches/enhanced', [App\Http\Controllers\EnhancedMatchController::class, 'index'])->name('matches.enhanced');
 Route::get('/matches/enhanced/{match}', [App\Http\Controllers\EnhancedMatchController::class, 'show'])->name('matches.enhanced.show');
@@ -78,6 +79,7 @@ Route::get('/media/blog/{filename}', [\App\Http\Controllers\BlogController::clas
     ->name('blogs.image');
 Route::get('/blogs/{blog:slug}', [\App\Http\Controllers\BlogController::class, 'show'])->name('blogs.show');
 Route::get('/african-players', [DiscoveryController::class, 'index'])->name('discovery.index');
+Route::get('/african-players/history', [DiscoveryController::class, 'history'])->name('discovery.history');
 Route::get('/african-players/{player}', [DiscoveryController::class, 'show'])->name('discovery.show');
 Route::get('/supporters/{user}', [SupporterController::class, 'show'])->name('supporters.show');
 Route::get('/creators/{creator:slug}', [CreatorController::class, 'show'])->name('creators.show');
@@ -105,6 +107,7 @@ Route::get('/api/popular-content', [SocialSharingController::class, 'getPopularC
 // ============================================================================
 
 Route::middleware('auth')->group(function () {
+    Route::post('/matches/{match}/prediction', [App\Http\Controllers\MatchPredictionController::class, 'store'])->name('matches.prediction.store');
     Route::get('/checkout/success', [CommerceController::class, 'success'])->name('commerce.success');
     Route::post('/checkout/{product:slug}', [CommerceController::class, 'checkout'])->name('commerce.checkout');
     Route::get('/library', [CommerceController::class, 'library'])->name('library.index');

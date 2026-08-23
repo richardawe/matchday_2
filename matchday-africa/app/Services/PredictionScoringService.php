@@ -50,6 +50,7 @@ class PredictionScoringService
                 // Send match finished notifications
                 $this->sendMatchFinishedNotifications($match);
             });
+            app(PrizeAllocationService::class)->allocate($match->fresh());
 
             return [
                 'success' => true,

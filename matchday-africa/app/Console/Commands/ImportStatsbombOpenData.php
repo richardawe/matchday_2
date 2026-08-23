@@ -1,0 +1,3 @@
+<?php
+namespace App\Console\Commands;use App\Services\StatsbombOpenDataService;use Illuminate\Console\Command;
+class ImportStatsbombOpenData extends Command{protected $signature='statsbomb:import-open {--competition=1267} {--season=107} {--limit=0}';protected $description='Import attributed StatsBomb Open Data player match history';public function handle(StatsbombOpenDataService $s):int{$r=$s->import((int)$this->option('competition'),(int)$this->option('season'),(int)$this->option('limit'));$this->info("Imported {$r['matches']} matches and {$r['player_matches']} player records.");return self::SUCCESS;}}

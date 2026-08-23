@@ -26,19 +26,19 @@ class ApiFootballEnrichmentService
 
         $fixtures = $this->fetch('fixtures',['date'=>$date,'timezone'=>config('app.timezone','UTC')],10800);
         $matched=0; $saved=0;
-        foreach ($fixtures as $fixture) {
-            $match=$this->matchLocal($eligible,$fixture);
-            if (!$match) continue;
+        foreach ($eligible as $match) {
+            $fixture=collect($fixtures)->first(fn($candidate)=>$this->matchLocal(collect([$match]),$candidate)!==null);
+            if (!$fixture) continue;
             $matched++; $id=(int)data_get($fixture,'fixture.id'); $this->link($match,$id);
             if (!$match->match_date?->between(now()->subHours(6),now()->addMinutes(90))) continue;
 
             $this->storeLineups($match,$id,$this->fetch('fixtures/lineups',['fixture'=>$id],43200,1200));
             if ($this->live($match)||$this->finished($match)) {
-                $ttl=$this->live($match)?4200:43200;
-                $events=$this->fetch('fixtures/events',['fixture'=>$id],$ttl,1200);
-                $stats=$this->fetch('fixtures/statistics',['fixture'=>$id],$ttl,1200);
+                $events=$this->fetch('fixtures/events',['fixture'=>$id],$this->live($match)?1500:43200,900);
+                $stats=($this->finished($match)||(int)$match->minute>=40)
+                    ?$this->fetch('fixtures/statistics',['fixture'=>$id],$this->live($match)?4200:43200,1200):[];
                 $saved+=$this->storeMatch($match,$fixture,$events,$stats);
-                $this->storePlayers($match,$id,$this->fetch('fixtures/players',['fixture'=>$id],$this->live($match)?7200:43200,1800));
+                if($this->finished($match))$this->storePlayers($match,$id,$this->fetch('fixtures/players',['fixture'=>$id],43200,1800));
             }
         }
         return $this->result(count($fixtures),$eligible->count(),$matched,$saved);

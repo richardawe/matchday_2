@@ -11,6 +11,9 @@ use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\Services\MythGrammarService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Models\Player;
 
 class MatchController extends Controller
 {
@@ -31,6 +34,12 @@ class MatchController extends Controller
             'fresh' => $fresh,
             'updated_at' => $match->last_api_update?->toIso8601String(),
         ])->header('Cache-Control', 'no-store, no-cache, must-revalidate');
+    }
+
+    public function sponsorLogo(FootballMatch $match): StreamedResponse
+    {
+        abort_unless($match->sponsor?->logo_path&&Storage::disk('public')->exists($match->sponsor->logo_path),404);
+        return Storage::disk('public')->response($match->sponsor->logo_path,null,['Cache-Control'=>'public, max-age=86400']);
     }
 
     public function index(Request $request)
@@ -137,7 +146,7 @@ class MatchController extends Controller
     public function show(FootballMatch $match)
     {
         try {
-            $match->load(['homeTeam', 'awayTeam', 'league', 'events']);
+            $match->load(['homeTeam', 'awayTeam', 'league', 'events.team', 'sponsor.awards.user']);
 
             // Get head-to-head matches
             $headToHead = FootballMatch::where(function($query) use ($match) {
@@ -206,6 +215,12 @@ class MatchController extends Controller
                 return is_file(public_path("war/warriors/{$slug}.png")) ? asset("war/warriors/{$slug}.png") : null;
             };
             $warTeams = ['home' => $warImage($match->homeTeam?->name), 'away' => $warImage($match->awayTeam?->name)];
+            $predictions=$match->userPredictions()->with('user')->where('prediction_type','score')->latest('submitted_at')->get()->unique('user_id')->sortBy('submitted_at')->values();
+            $currentPrediction=auth()->check()?$predictions->firstWhere('user_id',auth()->id()):null;
+            $predictionOpen=now()->lt($match->match_date)&&!in_array($match->status,['CANCELLED','POSTPONED','FINISHED','FT'],true);
+            $sponsor=$match->sponsor?->active?$match->sponsor:null;
+            $winnerIds=$sponsor?->awards->pluck('user_id')??collect();
+            $africanPlayers=Player::with('team')->active()->whereIn('team_id',[$match->home_team_id,$match->away_team_id])->whereIn('nationality_code',DiscoveryController::AFRICA)->get()->filter(fn($player)=>data_get($player->metadata,'api_football_lineup.match_id')===$match->id||data_get($player->metadata,'api_football_stats.match_id')===$match->id)->values();
 
             return view('matches.show', compact(
                 'match', 
@@ -214,7 +229,7 @@ class MatchController extends Controller
                 'upcomingMatches', 
                 'recentChats',
                 'matchPreview',
-                'featuredPreviews','momentum','predictionSet','mythStory','warTeams'
+                'featuredPreviews','momentum','predictionSet','mythStory','warTeams','predictions','currentPrediction','predictionOpen','sponsor','winnerIds','africanPlayers'
             ))->with('content', $match);
 
         } catch (\Exception $e) {
@@ -227,7 +242,8 @@ class MatchController extends Controller
                 'upcomingMatches' => collect([]),
                 'recentChats' => collect([]),
                 'matchPreview' => null, 'momentum' => 50, 'predictionSet' => null, 'mythStory' => null,
-                'featuredPreviews' => collect([]), 'warTeams' => ['home' => null, 'away' => null]
+                'featuredPreviews' => collect([]), 'warTeams' => ['home' => null, 'away' => null],
+                'predictions'=>collect([]),'currentPrediction'=>null,'predictionOpen'=>false,'sponsor'=>null,'winnerIds'=>collect([]),'africanPlayers'=>collect([])
             ])->with('content', $match);
         }
     }

@@ -138,6 +138,75 @@
         </div>
     </div>
 
+    <section class="bg-white rounded-xl border border-gray-200 p-6">
+        <p class="text-xs font-bold tracking-widest text-purple-700">MATCH SPONSOR & PRIZE</p><h3 class="text-xl font-semibold mt-1">Reward prediction winners</h3><p class="text-sm text-gray-500 mb-5">If exact-score winners exceed the prize quantity, earliest submissions receive the prizes.</p>
+        <form method="POST" enctype="multipart/form-data" action="{{ route('admin.matches.sponsor.store',$match) }}" class="grid grid-cols-1 md:grid-cols-2 gap-4">@csrf
+            <label class="text-sm font-medium">Sponsor name<input name="name" required value="{{ old('name',$match->sponsor?->name) }}" class="mt-1 w-full border-gray-300 rounded-lg"></label>
+            <label class="text-sm font-medium">Sponsor website<input name="website_url" type="url" value="{{ old('website_url',$match->sponsor?->website_url) }}" class="mt-1 w-full border-gray-300 rounded-lg"></label>
+            <label class="text-sm font-medium">Prize<input name="prize_title" required value="{{ old('prize_title',$match->sponsor?->prize_title) }}" placeholder="Signed shirt" class="mt-1 w-full border-gray-300 rounded-lg"></label>
+            <label class="text-sm font-medium">Prize value<input name="prize_value" value="{{ old('prize_value',$match->sponsor?->prize_value) }}" placeholder="£100" class="mt-1 w-full border-gray-300 rounded-lg"></label>
+            <label class="text-sm font-medium">Number of prizes<input name="prize_quantity" required type="number" min="1" max="100" value="{{ old('prize_quantity',$match->sponsor?->prize_quantity??1) }}" class="mt-1 w-full border-gray-300 rounded-lg"></label>
+            <label class="text-sm font-medium">Claim deadline<input name="claim_deadline" type="datetime-local" value="{{ old('claim_deadline',$match->sponsor?->claim_deadline?->format('Y-m-d\TH:i')) }}" class="mt-1 w-full border-gray-300 rounded-lg"></label>
+            <label class="text-sm font-medium">Logo<input name="logo" type="file" accept="image/png,image/jpeg,image/webp" class="mt-1 w-full border border-gray-300 rounded-lg p-2"></label>
+            <label class="text-sm font-medium flex items-center gap-2 pt-7"><input name="active" type="checkbox" value="1" {{ old('active',$match->sponsor?->active??true)?'checked':'' }} class="rounded"> Show sponsor and prize</label>
+            <label class="text-sm font-medium md:col-span-2">Terms<textarea name="terms" maxlength="2000" rows="3" class="mt-1 w-full border-gray-300 rounded-lg">{{ old('terms',$match->sponsor?->terms) }}</textarea></label>
+            <button class="md:col-span-2 bg-purple-700 hover:bg-purple-800 text-white font-bold py-3 rounded-lg">Save sponsor and prize</button>
+        </form>
+        @if($match->sponsor)<div class="mt-6 border-t pt-5"><div class="flex justify-between"><h4 class="font-bold">Prize winners</h4><form method="POST" action="{{ route('admin.matches.sponsor.destroy',$match) }}" onsubmit="return confirm('Remove sponsor and prize?')">@csrf @method('DELETE')<button class="text-red-700 text-sm">Remove sponsor</button></form></div><div class="mt-3 space-y-2">@forelse($match->sponsor->awards as $award)<form method="POST" action="{{ route('admin.matches.awards.update',[$match,$award]) }}" class="flex items-center gap-3 border rounded-lg p-3">@csrf @method('PATCH')<strong class="flex-1">{{ $award->user?->name }}</strong><select name="status" class="rounded-lg border-gray-300"><option value="selected" @selected($award->status==='selected')>Selected</option><option value="contacted" @selected($award->status==='contacted')>Contacted</option><option value="claimed" @selected($award->status==='claimed')>Claimed</option><option value="fulfilled" @selected($award->status==='fulfilled')>Fulfilled</option></select><button class="text-purple-700 font-bold">Update</button></form>@empty<p class="text-sm text-gray-500">Winners appear after the match is scored.</p>@endforelse</div></div>@endif
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section class="bg-white rounded-xl border border-gray-200 p-6">
+            <p class="text-xs font-bold tracking-widest text-red-700">LIVE REPORTER</p>
+            <h3 class="text-xl font-semibold text-gray-900 mt-1 mb-1">Publish a verified event</h3>
+            <p class="text-sm text-gray-500 mb-5">Use an official club or competition link as evidence.</p>
+            <form method="POST" action="{{ route('admin.matches.events.store', $match) }}" class="space-y-4">
+                @csrf
+                <div class="grid grid-cols-2 gap-4">
+                    <label class="text-sm font-medium text-gray-700">Team
+                        <select name="team_id" required class="mt-1 w-full border-gray-300 rounded-lg">
+                            <option value="{{ $match->home_team_id }}">{{ $match->homeTeam->name }}</option>
+                            <option value="{{ $match->away_team_id }}">{{ $match->awayTeam->name }}</option>
+                        </select>
+                    </label>
+                    <label class="text-sm font-medium text-gray-700">Event
+                        <select name="type" required class="mt-1 w-full border-gray-300 rounded-lg">
+                            <option value="goal">Goal</option><option value="yellow_card">Yellow card</option>
+                            <option value="red_card">Red card</option><option value="substitution">Substitution</option><option value="var">VAR</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <label class="text-sm font-medium text-gray-700">Minute<input name="minute" type="number" min="0" max="130" required class="mt-1 w-full border-gray-300 rounded-lg"></label>
+                    <label class="text-sm font-medium text-gray-700">Added<input name="extra_minute" type="number" min="0" max="30" class="mt-1 w-full border-gray-300 rounded-lg"></label>
+                    <label class="text-sm font-medium text-gray-700 flex items-end gap-2 pb-2"><input name="is_penalty" type="checkbox" value="1" class="rounded"> Penalty</label>
+                </div>
+                <label class="block text-sm font-medium text-gray-700">Player<input name="player_name" maxlength="150" class="mt-1 w-full border-gray-300 rounded-lg" placeholder="Scorer, booked player or player on"></label>
+                <label class="block text-sm font-medium text-gray-700">Assist / player off<input name="assist_player_name" maxlength="150" class="mt-1 w-full border-gray-300 rounded-lg"></label>
+                <label class="block text-sm font-medium text-gray-700">Source link<input name="source_url" type="url" required class="mt-1 w-full border-gray-300 rounded-lg" placeholder="https://official-club-site.example/update"></label>
+                <label class="block text-sm font-medium text-gray-700">Note<textarea name="description" maxlength="500" rows="2" class="mt-1 w-full border-gray-300 rounded-lg"></textarea></label>
+                <button class="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3 px-4 rounded-lg">Publish verified event</button>
+            </form>
+        </section>
+        <section class="bg-white rounded-xl border border-gray-200 p-6">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">Event timeline</h3>
+            <div class="space-y-3">
+                @forelse($match->events->sortBy([['minute','desc'],['sort_order','desc']]) as $event)
+                    <div class="border border-gray-200 rounded-lg p-3 flex gap-3 items-start">
+                        <strong class="text-lg text-gray-900">{{ $event->minute }}{{ $event->extra_minute ? "+{$event->extra_minute}" : '' }}′</strong>
+                        <div class="flex-1"><b>{{ Str::headline($event->type) }}</b><p class="text-sm text-gray-600">{{ $event->player_name ?: $event->team?->name }}{{ $event->assist_player_name ? ' · '.$event->assist_player_name : '' }}</p>
+                            <small class="text-gray-500">{{ data_get($event->metadata,'provider','provider') }}</small>
+                            @if(data_get($event->metadata,'source_url')) · <a class="text-blue-700 text-xs" target="_blank" rel="noopener noreferrer" href="{{ data_get($event->metadata,'source_url') }}">source ↗</a>@endif
+                        </div>
+                        @if(data_get($event->metadata,'provider')==='matchday-reporter')
+                            <form method="POST" action="{{ route('admin.matches.events.destroy',[$match,$event]) }}" onsubmit="return confirm('Remove this event?')">@csrf @method('DELETE')<button class="text-xs text-red-700">Remove</button></form>
+                        @endif
+                    </div>
+                @empty <p class="text-sm text-gray-500">No events published yet.</p> @endforelse
+            </div>
+        </section>
+    </div>
+
     <!-- Prediction Sets -->
     @if($predictionSets->count() > 0)
         <div class="bg-white rounded-xl border border-gray-200 p-6">

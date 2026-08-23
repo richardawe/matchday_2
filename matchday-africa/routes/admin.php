@@ -65,6 +65,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Match Management
     Route::prefix('matches')->name('matches.')->group(function () {
         Route::get('/', [MatchController::class, 'index'])->name('index');
+        Route::post('/{match}/events', [MatchController::class, 'storeEvent'])->name('events.store');
+        Route::delete('/{match}/events/{event}', [MatchController::class, 'destroyEvent'])->name('events.destroy');
+        Route::post('/{match}/sponsor', [MatchController::class, 'storeSponsor'])->name('sponsor.store');
+        Route::delete('/{match}/sponsor', [MatchController::class, 'destroySponsor'])->name('sponsor.destroy');
+        Route::patch('/{match}/awards/{award}', [MatchController::class, 'updateAward'])->name('awards.update');
         Route::get('/{match}', [MatchController::class, 'show'])->name('show');
         Route::post('/{match}/update-score', [MatchController::class, 'updateScore'])->name('update-score');
         Route::post('/{match}/force-score', [MatchController::class, 'forceScore'])->name('force-score');
