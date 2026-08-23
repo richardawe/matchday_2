@@ -1,29 +1,26 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 @section('title','X Post Scheduler')
+@section('header')
+<div class="md-admin-heading"><div><p class="md-eyebrow">GROWTH DESK</p><h1>X post scheduler.</h1><p>Create match-led posts, pair them with site artwork and hand them to X.</p></div><form method="POST" action="{{ route('admin.twitter.generate') }}">@csrf<button class="md-primary">Generate fresh posts</button></form></div>
+@endsection
 @section('content')
-<div class="max-w-6xl mx-auto px-4 py-8">
- <div class="flex justify-between items-start mb-6"><div><h1 class="text-3xl font-bold">X Post Scheduler</h1><p class="text-gray-600 mt-1">Generate, edit and publish media-rich posts for @matchdayafrica.</p></div><form method="POST" action="{{ route('admin.twitter.generate') }}">@csrf<button class="bg-black text-white px-5 py-3 rounded-lg">Generate fresh posts</button></form></div>
- @if(session('success'))<div class="bg-green-50 text-green-800 p-3 rounded mb-5">{{ session('success') }}</div>@endif
- <div class="bg-amber-50 border border-amber-200 p-4 rounded-lg mb-6"><strong>Free workflow:</strong> Download the image, click Open in X, attach the image, then publish or use X’s calendar to schedule it.</div>
- <details class="bg-white border rounded-lg p-5 mb-6"><summary class="font-semibold cursor-pointer">Create custom post</summary><form method="POST" action="{{ route('admin.twitter.posts.store') }}" class="grid gap-3 mt-4">@csrf<textarea name="message" maxlength="280" required class="border rounded p-3" placeholder="Post text"></textarea><input name="image_url" type="url" required class="border rounded p-3" placeholder="Required app image URL"><input name="destination_url" type="url" class="border rounded p-3" placeholder="Page URL"><input name="scheduled_at" type="datetime-local" required value="{{ now()->addHour()->format('Y-m-d\TH:i') }}" class="border rounded p-3"><button class="bg-blue-700 text-white rounded p-3">Save draft</button></form></details>
- <div class="grid md:grid-cols-2 gap-5">
- @forelse($posts as $post)<article class="bg-white border rounded-xl overflow-hidden {{ $post->status==='published'?'opacity-60':'' }}">
-  <img src="{{ $post->image_url }}" alt="Post media" class="w-full h-56 object-cover" onerror="this.src='{{ asset('images/social-default.png') }}'">
-  <form method="POST" action="{{ route('admin.twitter.posts.update',$post) }}" class="p-5 grid gap-3">@csrf @method('PUT')
-   <div class="flex justify-between text-xs uppercase text-gray-500"><span>{{ $post->type }}</span><span>{{ $post->status }}</span></div>
-   <textarea name="message" maxlength="280" required rows="7" class="border rounded p-3">{{ $post->message }}</textarea>
-   <input name="image_url" type="url" required value="{{ $post->image_url }}" class="border rounded p-2">
-   <input name="destination_url" type="url" value="{{ $post->destination_url }}" class="border rounded p-2">
-   <input name="scheduled_at" type="datetime-local" required value="{{ optional($post->scheduled_at)->format('Y-m-d\TH:i') }}" class="border rounded p-2">
-   <button class="border rounded p-2">Save changes</button>
+<div class="md-xdesk">
+ <section class="md-xguide"><span>FREE PUBLISHING FLOW</span><ol><li><b>01</b> Review the copy</li><li><b>02</b> Download its image</li><li><b>03</b> Open X and schedule</li></ol><p>X requires the final media upload and confirmation.</p></section>
+ <details class="md-xcreate"><summary>Create a custom post <b>＋</b></summary><form method="POST" action="{{ route('admin.twitter.posts.store') }}">@csrf<label><span>POST COPY</span><textarea name="message" maxlength="280" required placeholder="Write the post…"></textarea></label><label><span>APP IMAGE URL</span><input name="image_url" type="url" required placeholder="https://matchday.africa/…"></label><label><span>DESTINATION</span><input name="destination_url" type="url" placeholder="https://matchday.africa/…"></label><label><span>SCHEDULE FOR</span><input name="scheduled_at" type="datetime-local" required value="{{ now()->addHour()->format('Y-m-d\TH:i') }}"></label><button class="md-primary">Save draft</button></form></details>
+ <header class="md-xsection"><div><p class="md-eyebrow">CONTENT QUEUE</p><h2>Ready for the timeline.</h2></div><span>{{ $posts->total() }} POSTS</span></header>
+ <div class="md-xgrid">
+ @forelse($posts as $post)<article class="md-xcard {{ $post->status==='published'?'is-published':'' }}">
+  <a class="md-xmedia" href="{{ $post->destination_url ?: '#' }}" target="_blank">@if($post->image_url)<img src="{{ $post->image_url }}" alt="Post artwork" onerror="this.src='{{ asset('images/social-default.png') }}'">@else<img src="{{ asset('images/social-default.png') }}" alt="Matchday Africa artwork">@endif<span>{{ strtoupper($post->type) }}</span></a>
+  <form method="POST" action="{{ route('admin.twitter.posts.update',$post) }}" class="md-xform">@csrf @method('PUT')
+   <header><span class="md-xstatus {{ $post->status }}">{{ strtoupper($post->status) }}</span><time>{{ optional($post->scheduled_at)->format('D, d M · H:i') ?: 'Not scheduled' }}</time></header>
+   <label><span>POST COPY</span><textarea name="message" maxlength="280" required>{{ $post->message }}</textarea></label>
+   <label><span>IMAGE</span><input name="image_url" type="url" required value="{{ $post->image_url ?: asset('images/social-default.png') }}"></label>
+   <label><span>LINK</span><input name="destination_url" type="url" value="{{ $post->destination_url }}"></label>
+   <label><span>TIME</span><input name="scheduled_at" type="datetime-local" required value="{{ optional($post->scheduled_at)->format('Y-m-d\TH:i') ?: now()->format('Y-m-d\TH:i') }}"></label>
+   <button class="md-xsave">Save changes</button>
   </form>
-  <div class="px-5 pb-5 grid grid-cols-2 gap-2">
-   <a href="{{ $post->image_url }}" download target="_blank" class="text-center bg-gray-100 rounded p-2">Download image</a>
-   <a href="https://twitter.com/intent/tweet?text={{ urlencode($post->message) }}" target="_blank" rel="noopener" class="text-center bg-black text-white rounded p-2">Open in X</a>
-   @if($post->status!=='published')<form method="POST" action="{{ route('admin.twitter.posts.posted',$post) }}">@csrf<button class="w-full bg-green-700 text-white rounded p-2">Mark posted</button></form>@endif
-   <form method="POST" action="{{ route('admin.twitter.posts.destroy',$post) }}">@csrf @method('DELETE')<button class="w-full text-red-700 border border-red-200 rounded p-2">Delete</button></form>
-  </div>
- </article>@empty<p>No drafts yet. Generate fresh posts.</p>@endforelse
- </div><div class="mt-6">{{ $posts->links() }}</div>
+  <footer><a href="{{ $post->image_url ?: asset('images/social-default.png') }}" download target="_blank">Download image</a><a class="md-xopen" href="https://twitter.com/intent/tweet?text={{ urlencode($post->message) }}" target="_blank" rel="noopener">Open in X ↗</a>@if($post->status!=='published')<form method="POST" action="{{ route('admin.twitter.posts.posted',$post) }}">@csrf<button>Mark posted</button></form>@endif<form method="POST" action="{{ route('admin.twitter.posts.destroy',$post) }}">@csrf @method('DELETE')<button class="danger">Delete</button></form></footer>
+ </article>@empty<div class="md-ops-empty">No drafts yet. Generate the first set above.</div>@endforelse
+ </div><div class="md-xpages">{{ $posts->links() }}</div>
 </div>
 @endsection
