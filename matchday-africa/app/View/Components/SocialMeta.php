@@ -43,14 +43,16 @@ class SocialMeta extends Component
         return [
             'title' => 'Matchday Africa - Football Match Tracking & Predictions',
             'description' => 'Your ultimate destination for football match tracking, live scores, predictions, and more! Follow your favorite teams and leagues.',
-            'image' => asset('images/social-default.png'),
+            'image' => route('images.social-default', ['v' => '20260823']),
             'url' => config('app.url'),
             'open_graph' => [
                 'og:type' => 'website',
                 'og:site_name' => config('app.name', 'Matchday Africa'),
                 'og:title' => 'Matchday Africa - Football Match Tracking & Predictions',
                 'og:description' => 'Your ultimate destination for football match tracking, live scores, predictions, and more!',
-                'og:image' => asset('images/social-default.png'),
+                'og:image' => route('images.social-default', ['v' => '20260823']),
+                'og:image:width' => '1200',
+                'og:image:height' => '630',
                 'og:url' => config('app.url'),
             ],
             'twitter_card' => [
@@ -58,7 +60,7 @@ class SocialMeta extends Component
                 'twitter:site' => '@matchdayafrica',
                 'twitter:title' => 'Matchday Africa - Football Match Tracking & Predictions',
                 'twitter:description' => 'Your ultimate destination for football match tracking, live scores, predictions, and more!',
-                'twitter:image' => asset('images/social-default.png'),
+                'twitter:image' => route('images.social-default', ['v' => '20260823']),
             ],
         ];
     }

@@ -33,11 +33,13 @@
 <!-- Additional Open Graph Tags -->
 <meta property="og:locale" content="en_US">
 <meta property="og:image:type" content="image/png">
-<meta property="og:image:secure_url" content="{{ $metaData['image'] ?? asset('images/social-default.png') }}">
+<meta property="og:image:secure_url" content="{{ $metaData['image'] ?? route('images.social-default') }}">
+<meta property="og:image:url" content="{{ $metaData['image'] ?? route('images.social-default') }}">
 
 <!-- Additional Twitter Tags -->
 <meta name="twitter:creator" content="@matchdayafrica">
 <meta name="twitter:image:alt" content="{{ $metaData['title'] ?? 'Matchday Africa' }}">
+<meta name="twitter:image:src" content="{{ $metaData['image'] ?? route('images.social-default') }}">
 
 <!-- Mobile App Meta Tags -->
 <meta name="mobile-web-app-capable" content="yes">

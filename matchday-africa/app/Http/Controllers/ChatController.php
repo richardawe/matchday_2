@@ -52,7 +52,7 @@ class ChatController extends Controller
     /**
      * Store a new chat message
      */
-    public function storeMessage(Request $request, FootballMatch $match): JsonResponse
+    public function storeMessage(Request $request, FootballMatch $match): JsonResponse|\Illuminate\Http\RedirectResponse
     {
         $validator = Validator::make($request->all(), [
             'message' => 'required_without:gif_url|string|max:500',
@@ -61,6 +61,9 @@ class ChatController extends Controller
         ]);
 
         if ($validator->fails()) {
+            if (!$request->expectsJson()) {
+                return back()->withErrors($validator)->withInput()->withFragment('fan-discussion');
+            }
             return response()->json([
                 'success' => false,
                 'errors' => $validator->errors()
@@ -107,6 +110,10 @@ class ChatController extends Controller
             'created_at' => $chat->created_at->format('H:i'),
             'time_ago' => $chat->created_at->diffForHumans(),
         ];
+
+        if (!$request->expectsJson()) {
+            return back()->with('success', 'Your message is live.')->withFragment('fan-discussion');
+        }
 
         return response()->json([
             'success' => true,

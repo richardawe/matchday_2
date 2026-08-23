@@ -144,7 +144,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
     // Chat posting (requires auth)
-    Route::post('/matches/{match}/chats', [ChatController::class, 'storeMessage'])->name('matches.chats.store');
+    Route::post('/matches/{match}/chats', [ChatController::class, 'storeMessage'])->middleware('throttle:10,1')->name('matches.chats.store');
     
     // User prediction routes
     Route::prefix('predictions')->name('predictions.')->group(function () {

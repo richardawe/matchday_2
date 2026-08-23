@@ -76,7 +76,7 @@ class SocialMetaService
         }
 
         // Default social image
-        return asset('images/social-default.png');
+        return route('images.social-default', ['v' => '20260823']);
     }
 
     /**
@@ -257,12 +257,7 @@ class SocialMetaService
      */
     protected function getMatchSocialImage(FootballMatch $match): string
     {
-        // Use team logos or generate a match image
-        if ($match->homeTeam && $match->awayTeam) {
-            return asset('images/social-match-default.png');
-        }
-        
-        return asset('images/social-default.png');
+        return route('images.social-default', ['v' => '20260823']);
     }
 
     /**
@@ -274,7 +269,7 @@ class SocialMetaService
             return $blog->featured_image_url;
         }
         
-        return asset('images/social-blog-default.png');
+        return route('images.social-default', ['v' => '20260823']);
     }
 
     /**
@@ -282,6 +277,6 @@ class SocialMetaService
      */
     protected function getPredictionSocialImage(PredictionSet $prediction): string
     {
-        return asset('images/social-prediction-default.png');
+        return route('images.social-default', ['v' => '20260823']);
     }
 }
