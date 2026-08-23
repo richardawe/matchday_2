@@ -6,6 +6,7 @@ use App\Services\TwitterService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
+use App\Models\TwitterToken;
 
 class TwitterOAuthController extends Controller
 {
@@ -73,6 +74,7 @@ class TwitterOAuthController extends Controller
             'twitter_pkce_code_verifier',
             'twitter_pkce_state'
         ]);
+        TwitterToken::whereNull('user_id')->delete();
 
         return redirect()->route('admin.twitter.index')
             ->with('success', 'Twitter authorization revoked successfully.');

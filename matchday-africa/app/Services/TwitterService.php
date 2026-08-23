@@ -38,7 +38,17 @@ class TwitterService
      */
     private function isConfigured(): bool
     {
-        return !empty($this->clientId) && !empty($this->accessToken);
+        return $this->storedToken() !== null || !empty($this->accessToken);
+    }
+
+    private function oauthClientConfigured(): bool
+    {
+        return !empty($this->clientId) && !empty($this->clientSecret);
+    }
+
+    private function storedToken(): ?TwitterToken
+    {
+        return TwitterToken::whereNull('user_id')->latest()->first();
     }
 
     /**
@@ -60,7 +70,7 @@ class TwitterService
      */
     public function getAuthorizationUrl(): array
     {
-        if (!$this->isConfigured()) {
+        if (!$this->oauthClientConfigured()) {
             return [
                 'success' => false,
                 'error' => 'Twitter OAuth 2.0 credentials not configured'
@@ -80,7 +90,7 @@ class TwitterService
             'response_type' => 'code',
             'client_id' => $this->clientId,
             'redirect_uri' => route('twitter.oauth.callback'),
-            'scope' => 'tweet.read tweet.write users.read',
+            'scope' => 'tweet.read tweet.write users.read offline.access',
             'state' => $state,
             'code_challenge' => $pkce['code_challenge'],
             'code_challenge_method' => 'S256'
@@ -100,7 +110,7 @@ class TwitterService
      */
     public function exchangeCodeForToken(string $code, string $state): array
     {
-        if (!$this->isConfigured()) {
+        if (!$this->oauthClientConfigured()) {
             return [
                 'success' => false,
                 'error' => 'Twitter OAuth 2.0 credentials not configured'
@@ -134,7 +144,7 @@ class TwitterService
                     'access_token' => $data['access_token'],
                     'refresh_token' => $data['refresh_token'] ?? null,
                     'expires_at' => now()->addSeconds($data['expires_in'] ?? 7200),
-                    'scope' => $data['scope'] ?? 'tweet.read tweet.write users.read',
+                    'scope' => $data['scope'] ?? 'tweet.read tweet.write users.read offline.access',
                 ]);
                 
                 // Store tokens (in production, store in database)
@@ -167,9 +177,11 @@ class TwitterService
     /**
      * Refresh access token
      */
-    public function refreshAccessToken(): array
+    public function refreshAccessToken(?TwitterToken $storedToken = null): array
     {
-        if (!$this->refreshToken) {
+        $storedToken ??= $this->storedToken();
+        $refreshToken = $storedToken?->refresh_token ?: $this->refreshToken;
+        if (!$refreshToken) {
             return [
                 'success' => false,
                 'error' => 'No refresh token available'
@@ -181,7 +193,8 @@ class TwitterService
                 ->asForm()
                 ->post('https://api.twitter.com/2/oauth2/token', [
                     'grant_type' => 'refresh_token',
-                    'refresh_token' => $this->refreshToken
+                    'refresh_token' => $refreshToken,
+                    'client_id' => $this->clientId,
                 ]);
 
             if ($response->successful()) {
@@ -190,14 +203,21 @@ class TwitterService
                 // Update stored tokens
                 session([
                     'twitter_access_token' => $data['access_token'],
-                    'twitter_refresh_token' => $data['refresh_token'] ?? $this->refreshToken,
+                    'twitter_refresh_token' => $data['refresh_token'] ?? $refreshToken,
                     'twitter_token_expires_at' => now()->addSeconds($data['expires_in'] ?? 7200)
+                ]);
+
+                $storedToken?->update([
+                    'access_token' => $data['access_token'],
+                    'refresh_token' => $data['refresh_token'] ?? $refreshToken,
+                    'expires_at' => now()->addSeconds($data['expires_in'] ?? 7200),
+                    'scope' => $data['scope'] ?? $storedToken->scope,
                 ]);
 
                 return [
                     'success' => true,
                     'access_token' => $data['access_token'],
-                    'refresh_token' => $data['refresh_token'] ?? $this->refreshToken,
+                    'refresh_token' => $data['refresh_token'] ?? $refreshToken,
                     'expires_in' => $data['expires_in'] ?? 7200
                 ];
             } else {
@@ -230,7 +250,14 @@ class TwitterService
         try {
             // Scheduled commands have no browser session, so prefer the persisted
             // account token and fall back to a long-lived environment token.
-            $storedToken = TwitterToken::whereNull('user_id')->latest()->first();
+            $storedToken = $this->storedToken();
+            if ($storedToken?->expires_at && $storedToken->expires_at->lte(now()->addMinute())) {
+                $refresh = $this->refreshAccessToken($storedToken);
+                if (!($refresh['success'] ?? false)) {
+                    return $refresh;
+                }
+                $storedToken->refresh();
+            }
             $accessToken = $storedToken?->access_token ?: $this->accessToken ?: session('twitter_access_token');
             if (!$accessToken) {
                 return [
@@ -317,9 +344,10 @@ class TwitterService
         }
 
         try {
+            $accessToken = $this->storedToken()?->access_token ?: $this->accessToken;
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->bearerToken,
-            ])->get('https://api.twitter.com/2/users/by/username/' . $this->username);
+                'Authorization' => 'Bearer ' . $accessToken,
+            ])->get('https://api.twitter.com/2/users/me');
 
             if ($response->successful()) {
                 return [

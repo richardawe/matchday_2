@@ -14,6 +14,7 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @include('partials.clarity')
     </head>
     <body class="font-sans antialiased matchday-shell">
         <div class="min-h-screen matchday-canvas">

@@ -4,10 +4,10 @@ namespace App\Console\Commands;
 
 use App\Models\Blog;
 use App\Models\FootballMatch;
+use App\Models\GrowthPost;
 use App\Models\PredictionSet;
 use App\Services\TwitterService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class PostHourlyEngagement extends Command
@@ -17,30 +17,46 @@ class PostHourlyEngagement extends Command
 
     public function handle(TwitterService $twitter): int
     {
-        $candidates = collect([
-            $this->liveMatchPost(),
-            $this->newsPost(),
-            $this->predictionPost(),
-            $this->warPost(),
-            $this->upcomingPost(),
-        ])->filter();
+        if (GrowthPost::where('status', 'published')->where('published_at', '>=', today())->count() >= config('services.growth.x_daily_limit', 8)) {
+            $this->info('Daily X post limit reached.');
+            return self::SUCCESS;
+        }
 
-        $post = $candidates->first(fn (string $text) => !Cache::has($this->cacheKey($text)));
-        if (!$post) {
+        $candidates = collect([
+            ['type' => 'live', 'text' => $this->liveMatchPost()],
+            ['type' => 'news', 'text' => $this->newsPost()],
+            ['type' => 'prediction', 'text' => $this->predictionPost()],
+            ['type' => 'upcoming', 'text' => $this->upcomingPost()],
+            ['type' => 'war', 'text' => $this->warPost()],
+        ])->filter(fn (array $item) => filled($item['text']));
+
+        $candidate = $candidates->first(fn (array $item) => !GrowthPost::where('content_key', $this->contentKey($item['text']))
+            ->whereIn('status', ['pending', 'published'])->exists());
+        if (!$candidate) {
             $this->info('No fresh engagement post is available.');
             return self::SUCCESS;
         }
+        $post = $candidate['text'];
         if ($this->option('dry-run')) {
             $this->line($post);
             return self::SUCCESS;
         }
 
+        $record = GrowthPost::updateOrCreate(
+            ['content_key' => $this->contentKey($post)],
+            ['type' => $candidate['type'], 'message' => $post, 'status' => 'pending', 'last_error' => null]
+        );
         $result = $twitter->postTweet($post);
         if (!($result['success'] ?? false)) {
+            $record->update(['status' => 'failed', 'last_error' => Str::limit($result['error'] ?? 'X rejected the post.', 1000)]);
             $this->error($result['error'] ?? 'X rejected the post.');
             return self::FAILURE;
         }
-        Cache::put($this->cacheKey($post), true, now()->addDays(7));
+        $record->update([
+            'status' => 'published',
+            'provider_post_id' => $result['tweet_id'] ?? null,
+            'published_at' => now(),
+        ]);
         $this->info('Engagement post sent: '.($result['tweet_id'] ?? 'accepted'));
         return self::SUCCESS;
     }
@@ -75,5 +91,5 @@ class PostHourlyEngagement extends Command
         return $match ? "NEXT: {$match->homeTeam?->name} v {$match->awayTeam?->name}\n{$match->league?->name} · {$match->match_date->format('D H:i')}\n\nStats, predictions and match room: ".route('matches.show',$match)."\n\n#Football #MatchdayAfrica" : null;
     }
 
-    private function cacheKey(string $text): string { return 'x-engagement:'.sha1($text); }
+    private function contentKey(string $text): string { return sha1($text); }
 }

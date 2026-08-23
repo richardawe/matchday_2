@@ -14,6 +14,7 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @include('partials.clarity')
         
         <!-- Google Sign-In JavaScript SDK -->
         <script src="https://accounts.google.com/gsi/client" async defer></script>

@@ -66,6 +66,14 @@ return [
         'daily_budget' => (int) env('API_FOOTBALL_DAILY_BUDGET', 95),
     ],
 
+    'clarity' => [
+        'project_id' => env('CLARITY_PROJECT_ID', 'y6xi1c2mjp'),
+    ],
+
+    'growth' => [
+        'x_daily_limit' => (int) env('GROWTH_X_DAILY_LIMIT', 8),
+    ],
+
     'giphy' => [
         'api_key' => env('GIPHY_API_KEY'),
         'base_url' => 'https://api.giphy.com/v1',
