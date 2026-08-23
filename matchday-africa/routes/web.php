@@ -220,8 +220,9 @@ Route::post('/twitter/oauth/revoke', [App\Http\Controllers\TwitterOAuthControlle
 // Twitter admin routes (admin only)
 Route::middleware(['auth', 'admin'])->prefix('admin/twitter')->group(function () {
     Route::get('/', [App\Http\Controllers\Admin\TwitterController::class, 'index'])->name('admin.twitter.index');
-    Route::post('/tweet-matches', [App\Http\Controllers\Admin\TwitterController::class, 'tweetMatches'])->name('admin.twitter.tweet-matches');
-    Route::post('/test-connection', [App\Http\Controllers\Admin\TwitterController::class, 'testConnection'])->name('admin.twitter.test-connection');
-    Route::post('/send-test-tweet', [App\Http\Controllers\Admin\TwitterController::class, 'sendTestTweet'])->name('admin.twitter.send-test-tweet');
-    Route::post('/authorize', [App\Http\Controllers\Admin\TwitterController::class, 'authorize'])->name('admin.twitter.authorize');
+    Route::post('/generate', [App\Http\Controllers\Admin\TwitterController::class, 'generate'])->name('admin.twitter.generate');
+    Route::post('/posts', [App\Http\Controllers\Admin\TwitterController::class, 'store'])->name('admin.twitter.posts.store');
+    Route::put('/posts/{post}', [App\Http\Controllers\Admin\TwitterController::class, 'update'])->name('admin.twitter.posts.update');
+    Route::post('/posts/{post}/posted', [App\Http\Controllers\Admin\TwitterController::class, 'posted'])->name('admin.twitter.posts.posted');
+    Route::delete('/posts/{post}', [App\Http\Controllers\Admin\TwitterController::class, 'destroy'])->name('admin.twitter.posts.destroy');
 });
