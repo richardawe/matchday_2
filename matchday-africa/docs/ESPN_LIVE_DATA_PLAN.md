@@ -6,7 +6,7 @@ Status: **draft, awaiting approval**. Researched 18 October 2026 against the liv
 
 ESPN runs an undocumented JSON feed for its own apps and website. It needs no key and covers the Premier League, the big European leagues, AFCON, CAF Champions League, CAF Confederation Cup, World Cup qualifying (CAF) and the South African Premiership. We would read it from the server on a schedule, save the results to our own database, and keep football-data.org and API-Football as backups.
 
-**The main risk is legal, not technical** (section 3). ESPN's terms explicitly ban automated access and commercial use, and Matchday Africa is commercial. Please read that section before approving.
+**The main risk is legal, not technical** (section 3). ESPN's terms explicitly ban automated access, for any purpose, and commercial use. Matchday Africa doesn't take payments, which helps, but automated polling still breaks the terms. Please read that section before approving.
 
 ## 2. What the research found
 
@@ -49,7 +49,7 @@ So ESPN fixes our **European leagues and CAF competitions** (scores at least), b
 
 ## 3. Legal and terms risk (please read)
 
-1. **ESPN's terms ban this use.** The Disney terms of use that cover ESPN limit use to "personal, noncommercial use only" and forbid accessing or extracting content "using a robot, spider, script, or other automated means", plus "any commercial or business-related use". Matchday Africa takes payments (Stripe) and has sponsors, so this is a clear breach of the terms. The practical consequences range from being blocked (likeliest) to a cease-and-desist letter.
+1. **ESPN's terms ban this use.** The Disney terms of use that cover ESPN limit use to "personal, noncommercial use only" and forbid accessing or extracting content "using a robot, spider, script, or other automated means", plus "any commercial or business-related use". Matchday Africa doesn't take payments, which lowers the risk. But the ban on automated access applies to anyone, commercial or not, so polling the feed from our server still breaks the terms. Two things would make the site count as "commercial or business-related" if they go live: the code already includes a shop, premium checkout (Stripe) and sponsor slots, and advertising would too. The practical consequences range from being blocked (likeliest) to a cease-and-desist letter.
 2. **Scores themselves are facts.** In the US, *NBA v Motorola* (1997) allowed a company to send real-time scores it collected itself by watching games. Facts aren't copyrightable, but the terms are a contract question, separate from copyright.
 3. **UK/EU database right is a real risk.** In *Football Dataco v Sportradar* (2013), the Court of Appeal found that copying a substantial part of a live football database infringed database right, and that a foreign website serving UK users could be liable in the UK. ESPN's soccer data is almost certainly licensed from a commercial supplier, and copying it at scale could fall into this.
 4. **What lowers the risk:**
