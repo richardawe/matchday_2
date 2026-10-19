@@ -10,7 +10,7 @@ on:
       action:
         description: What to run
         type: choice
-        options: [status, buffer-channels, configure-buffer, plan-posts, reel-check, configure-reel, reel-render]
+        options: [status, buffer-channels, configure-buffer, plan-posts, reel-check, configure-reel, reel-render, configure-espn, espn-sync]
         default: status
       channel_x:
         description: "configure-buffer: Buffer channel ID for X (blank = leave as is)"
@@ -40,6 +40,11 @@ on:
       match_id:
         description: "reel-render: match ID to render now"
         required: false
+      espn_mode:
+        description: "configure-espn: live (primary live source), shadow (compare only) or off"
+        type: choice
+        options: [live, shadow, "off"]
+        default: live
 
 permissions:
   contents: read
@@ -78,4 +83,5 @@ jobs:
           INPUT_REEL_RENDERER: ${{ inputs.reel_renderer }}
           INPUT_REEL_NODE: ${{ inputs.reel_node }}
           INPUT_MATCH_ID: ${{ inputs.match_id }}
+          INPUT_ESPN_MODE: ${{ inputs.espn_mode }}
         run: bash scripts/ci/deploy-ssh.sh "$ACTION"
