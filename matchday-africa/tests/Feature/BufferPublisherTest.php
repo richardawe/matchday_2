@@ -136,6 +136,28 @@ class BufferPublisherTest extends TestCase
         $this->assertSame([], $this->bufferPosts());
     }
 
+    public function test_a_second_sender_waits_for_the_first(): void
+    {
+        $this->fakeBuffer();
+        $lock = \Illuminate\Support\Facades\Cache::lock('buffer:publish', 600);
+        $lock->get();
+
+        $this->artisan('buffer:publish')->expectsOutput('Another buffer:publish is running; nothing sent.');
+        $this->assertSame([], $this->bufferPosts());
+        $lock->release();
+    }
+
+    public function test_a_reel_from_an_older_match_is_still_planned_when_it_becomes_ready(): void
+    {
+        config(['buffer.x.auto' => true]);
+        $this->match->update(['status' => 'FINISHED', 'match_date' => now('UTC')->subDays(3),
+            'metadata' => ['reel' => ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]]]);
+
+        $this->artisan('twitter:engage');
+
+        $this->assertSame(['instagram', 'tiktok', 'x'], \App\Models\GrowthPost::where('type', 'reel')->orderBy('channel')->pluck('channel')->all());
+    }
+
     public function test_posting_stops_at_the_monthly_request_limit(): void
     {
         $this->fakeBuffer();
