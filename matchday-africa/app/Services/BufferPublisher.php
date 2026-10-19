@@ -36,8 +36,10 @@ class BufferPublisher
         $count = function (?bool $sent) use (&$done) { if ($sent !== null) { $sent ? $done[0]++ : $done[1]++; } };
 
         $chapters = MatchMoment::with('match.homeTeam', 'match.awayTeam', 'match.league')
-            ->whereIn('type', array_keys(array_diff_key(config('buffer.routes'), ['reel' => 1])))
+            ->whereIn('type', array_keys(config('buffer.routes')))
             ->where('created_at', '>=', now()->subMinutes(config('buffer.max_age_minutes')))
+            // Live means the match itself is recent: chapters rebuilt for an old match are not news.
+            ->whereHas('match', fn ($q) => $q->where('match_date', '>=', now('UTC')->subHours(4)))
             ->get();
         foreach ($chapters as $chapter) {
             [$headline, $line] = $this->griot->tell($chapter);
