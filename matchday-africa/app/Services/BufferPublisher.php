@@ -13,16 +13,16 @@ use Throwable;
 
 /**
  * Hands posts to Buffer:
- *   - the Griot's live chapter cards and full-time reels, to X, Instagram and TikTok as they
- *     happen, when the channel's slot is free (each subject to each channel once, social_posts);
- *   - the planned timeline in growth_posts (GrowthPostGenerator).
+ *   - the Griot's live chapter cards to X and Instagram as they happen, when the channel's slot
+ *     is free (each subject to each channel once, social_posts);
+ *   - the planned timeline in growth_posts (GrowthPostGenerator), full-time reels included.
  * Every channel posts at most once per daily slot (config buffer.slots), live posts included.
  */
 class BufferPublisher
 {
     private const MAX_ATTEMPTS = 3;
 
-    public function __construct(private MatchStoryService $stories, private ReelService $reels, private Griot $griot, private BufferClient $buffer) {}
+    public function __construct(private Griot $griot, private BufferClient $buffer) {}
 
     public function configured(): bool
     {
@@ -44,19 +44,6 @@ class BufferPublisher
             $text = $this->caption($chapter->match, "{$headline} {$line}", ['moment' => $chapter->id]);
             foreach ($this->channelsFor($chapter->type) as $channel => $id) {
                 $count($this->send("moment:{$chapter->id}", $channel, $id, $chapter->match, $text, image: $chapter->cardUrl('en', 'feed')));
-            }
-        }
-
-        $finished = FootballMatch::with(['homeTeam', 'awayTeam'])->where('match_date', '>=', now('UTC')->subDays(1))->get()
-            ->filter(fn ($match) => data_get($match->metadata, 'reel.status') === 'ready'
-                && now()->diffInMinutes(data_get($match->metadata, 'reel.ready_at')) <= config('buffer.max_age_minutes'));
-        foreach ($finished as $match) {
-            $final = $this->stories->chapters($match)->firstWhere('type', 'full_time');
-            $verdict = $final ? implode(' ', $this->griot->tell($final)) : '';
-            $text = $this->caption($match, "The whole match in 20 seconds. {$verdict}");
-            $video = route('matches.reel', ['match' => $match, 'v' => data_get($match->metadata, 'reel.ready_at')]);
-            foreach ($this->channelsFor('reel') as $channel => $id) {
-                $count($this->send("reel:{$match->id}", $channel, $id, $match, $text, video: $video));
             }
         }
 
@@ -95,10 +82,12 @@ class BufferPublisher
             // The claim above bypassed the model; without this, putting it back to queued is a no-op.
             $post->forceFill(['status' => 'sending'])->syncOriginal();
 
-            $image = $post->image_url && $this->reachableImage($post->image_url) ? $post->image_url : null;
-            $result = $post->image_url && !$image && $channel !== 'x'
-                ? ['error' => "The image did not load ({$post->image_url}); {$channel} needs one."]
-                : $this->buffer->createPost($channelId, $channel, $post->message, image: $image);
+            $image = $post->image_url && $this->reachable($post->image_url, 'image/') ? $post->image_url : null;
+            $video = $post->video_url && $this->reachable($post->video_url, 'video/') ? $post->video_url : null;
+            $missing = ($post->video_url && !$video) ? $post->video_url : (($post->image_url && !$image && $channel !== 'x') ? $post->image_url : null);
+            $result = $missing
+                ? ['error' => "The media did not load ({$missing}); Buffer fetches it from there."]
+                : $this->buffer->createPost($channelId, $channel, $post->message, image: $image, video: $video);
             $attempts = $post->attempts + 1;
 
             if ($result['ok'] ?? false) {
@@ -171,13 +160,14 @@ class BufferPublisher
         return (bool) $postId;
     }
 
-    /** Buffer fetches media itself; a URL that doesn't load fails at X later, so check it first. */
-    private function reachableImage(string $url): bool
+    /** Buffer fetches media itself; a URL that doesn't load fails at the platform later, so check it first. */
+    private function reachable(string $url, string $type): bool
     {
         try {
-            $response = Http::timeout(20)->get($url);
+            // A single byte is enough to prove the file is there (reels support ranges).
+            $response = Http::timeout(30)->withHeaders(['Range' => 'bytes=0-0'])->get($url);
 
-            return $response->successful() && str_starts_with((string) $response->header('Content-Type'), 'image/');
+            return $response->successful() && str_starts_with((string) $response->header('Content-Type'), $type);
         } catch (Throwable) {
             return false;
         }

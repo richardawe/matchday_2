@@ -61,22 +61,43 @@ class BufferPublisherTest extends TestCase
         $this->artisan('buffer:publish')->expectsOutput('Buffer: 1 sent, 0 failed');
     }
 
-    public function test_full_time_reel_goes_to_all_three_including_tiktok(): void
+    public function test_full_time_reel_waits_in_the_queue_and_goes_to_all_three(): void
     {
+        config(['buffer.x.auto' => true]);
         $this->fakeBuffer();
         // Past the goal card's 30 minutes, so the reel has the slots to itself.
         $this->travel(31)->minutes();
         $this->match->update(['status' => 'FINISHED', 'metadata' => ['reel' => ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]]]);
+        app(MatchStoryService::class)->sync($this->match->fresh());
         File::ensureDirectoryExists(storage_path('app/reels'));
         File::put(storage_path("app/reels/{$this->match->id}.mp4"), 'mp4');
+        $video = route('matches.reel', ['match' => $this->match, 'v' => now()->timestamp]);
+        Http::fake([$video => Http::response('m', 206, ['Content-Type' => 'video/mp4'])]);
 
-        $this->artisan('buffer:publish')->assertSuccessful();
+        $this->artisan('twitter:engage');
+        $this->assertSame(['instagram', 'tiktok', 'x'], \App\Models\GrowthPost::where('type', 'reel')->orderBy('channel')->pluck('channel')->all());
+        $this->artisan('buffer:publish')->expectsOutput('Buffer: 3 sent, 0 failed');
 
         $posts = collect($this->bufferPosts())->keyBy('channelId');
-        $this->assertStringStartsWith(url("/matches/{$this->match->id}/reel.mp4"), $posts['chan-tt']['assets'][0]['video']['url']);
+        $this->assertSame($video, $posts['chan-tt']['assets'][0]['video']['url']);
         $this->assertSame('reel', $posts['chan-ig']['metadata']['instagram']['type']);
-        $this->assertSame(['instagram', 'tiktok', 'x'], DB::table('social_posts')->where('subject', "reel:{$this->match->id}")->orderBy('channel')->pluck('channel')->all());
+        $this->assertStringContainsString('Arsenal 1–0 Chelsea: the whole match in 20 seconds', $posts['chan-x']['text']);
         File::delete(storage_path("app/reels/{$this->match->id}.mp4"));
+    }
+
+    public function test_a_reel_whose_video_does_not_load_is_not_sent(): void
+    {
+        config(['buffer.x.auto' => true]);
+        $this->fakeBuffer();
+        $this->travel(31)->minutes();
+        $this->match->update(['status' => 'FINISHED', 'metadata' => ['reel' => ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]]]);
+        Http::fake([url('/matches').'/*' => Http::response('', 404)]);
+
+        $this->artisan('twitter:engage');
+        $this->artisan('buffer:publish')->expectsOutput('Buffer: 0 sent, 3 failed');
+
+        $this->assertSame([], $this->bufferPosts());
+        $this->assertStringContainsString('The media did not load', \App\Models\GrowthPost::first()->last_error);
     }
 
     public function test_live_cards_wait_for_a_free_slot(): void

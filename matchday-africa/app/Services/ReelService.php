@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\FootballMatch;
 use App\Models\MatchMoment;
 use App\Support\Armies;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -19,6 +20,8 @@ use Throwable;
  */
 class ReelService
 {
+    private const MAX_ATTEMPTS = 3;
+
     public function __construct(private MatchStoryService $stories, private Griot $griot) {}
 
     /** Finished matches whose full-time chapter is old enough and that have no reel yet. */
@@ -30,7 +33,21 @@ class ReelService
             ->whereIn('id', MatchMoment::where('type', 'full_time')->where('created_at', '<=', now()->subMinutes(config('reel.delay_minutes')))->select('match_id'))
             ->orderBy('match_date')
             ->get()
-            ->filter(fn ($match) => $this->stories->tellsStory($match) && !in_array(data_get($match->metadata, 'reel.status'), ['ready', 'rendering', 'dispatched'], true));
+            ->filter(fn ($match) => $this->stories->tellsStory($match) && $this->due($match));
+    }
+
+    /**
+     * Not made yet, or failed fewer than MAX_ATTEMPTS times, or a render that died mid-way
+     * (still "rendering" well past the timeout). A failing match is not retried every minute forever.
+     */
+    private function due(FootballMatch $match): bool
+    {
+        $reel = data_get($match->metadata, 'reel', []);
+        $stale = ($reel['status'] ?? null) === 'rendering' && isset($reel['started_at'])
+            && Carbon::parse($reel['started_at'])->diffInMinutes(now()) > config('reel.timeout') / 60 + 10;
+
+        return ($reel['attempts'] ?? 0) < self::MAX_ATTEMPTS
+            && (!in_array($reel['status'] ?? null, ['ready', 'rendering', 'dispatched'], true) || $stale);
     }
 
     /** The reel's story as Remotion props (see reel/src/sample.json). Art is a file path or a URL. */
@@ -75,6 +92,10 @@ class ReelService
 
     public function make(FootballMatch $match): string
     {
+        if (config('reel.renderer') !== 'off') {
+            $this->mark($match, ['attempts' => data_get($match->fresh()?->metadata, 'reel.attempts', 0) + 1]);
+        }
+
         return match (config('reel.renderer')) {
             'server' => $this->renderHere($match),
             'github' => $this->dispatchToGithub($match),
@@ -142,7 +163,7 @@ class ReelService
             if (is_file($this->publicPath($match))) {
                 $this->mark($match, ['status' => 'ready', 'ready_at' => now()->toIso8601String()]);
                 $found++;
-            } elseif (now()->diffInMinutes(data_get($match->metadata, 'reel.started_at')) > 45) {
+            } elseif (Carbon::parse(data_get($match->metadata, 'reel.started_at'))->diffInMinutes(now()) > 45) {
                 $this->mark($match, ['status' => 'failed', 'error' => 'GitHub render did not arrive within 45 minutes']);
             }
         }

@@ -51,9 +51,9 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Competition ranking (home pulse, match centre) | `config/competitions.php`, `League::competition_rank/region` | n/a | n/a |
 | Griot story chapters (kick-off, goals, red cards, HT, FT) | `app/Services/MatchStoryService.php`, `Griot.php` (captions in en/pcm/sw/za), `app/Models/MatchMoment.php` | `story:sync` 1m (also after each ESPN live pass) | needs `match_moments` migration |
 | Story cards (PNG, GD) | `app/Services/StoryCardRenderer.php`, route `moments.card` | drawn on first request, cached in `storage/app/story-cards` | needs GD with FreeType + WebP |
-| 20-second reel (Remotion) | `reel/`, `app/Services/ReelService.php`, `reel:render` command, `ReelController` | `reel:render` 1m (one reel per run, ~3 min after FT) | `REEL_RENDERER=off\|server\|github` |
-| Buffer → X, Instagram, TikTok (live cards, reels; TikTok gets reels only) | `app/Services/BufferPublisher.php`, `BufferClient.php` (ported from ngr.ltd), `buffer:publish`, `config/buffer.php`, table `social_posts` | `buffer:publish` 1m | `BUFFER_API_KEY` + `BUFFER_CHANNEL_*` |
-| Planned social posts (news, fixture previews with a GD fixture card, morning fixtures, night results; X all, Instagram the carded ones) | `GrowthPostGenerator.php` (`twitter:engage`), `FixtureCardRenderer.php` (route `matches.card`), table `growth_posts` (per channel), admin `/admin/twitter` | `twitter:engage` 10m plans; `buffer:publish` 1m sends when a channel's slot is free | `BUFFER_AUTO` + `BUFFER_CHANNEL_*` |
+| 20-second reel (Remotion) | `reel/`, `app/Services/ReelService.php`, `reel:render` command, `ReelController` | `reel:render` 1m (one reel per run, ~3 min after FT, 3 attempts per match) | `REEL_RENDERER=off\|server\|github` |
+| Buffer → X, Instagram (live goal and red-card cards; reels go through growth_posts) | `app/Services/BufferPublisher.php`, `BufferClient.php` (ported from ngr.ltd), `buffer:publish`, `config/buffer.php`, table `social_posts` | `buffer:publish` 1m | `BUFFER_API_KEY` + `BUFFER_CHANNEL_*` |
+| Planned social posts (reels, news, fixture previews with a GD fixture card, morning fixtures, night results; X all, Instagram image/video, TikTok reels) | `GrowthPostGenerator.php` (`twitter:engage`), `FixtureCardRenderer.php` (route `matches.card`), table `growth_posts` (per channel), admin `/admin/twitter` | `twitter:engage` 10m plans; `buffer:publish` 1m sends when a channel's slot is free | `BUFFER_AUTO` + `BUFFER_CHANNEL_*` |
 | Home arena | `resources/views/partials/home-arena.blade.php`, `resources/js/arena.js` (GSAP), `arena3d.js` (three.js, desktop only) | rides the home pulse refresh | always on when a Premier League match qualifies |
 
 ## 4. CI/CD
@@ -105,7 +105,9 @@ checks: `shellcheck matchday-africa/deploy-production.sh scripts/ci/deploy-ssh.s
 masked, cron, post counts), `buffer-channels` (channel IDs), `configure-buffer` (writes `BUFFER_API_KEY` from
 the production secret of that name plus channel IDs, `BUFFER_AUTO`, `BUFFER_SLOTS` into `.env` through
 `matchday-africa/scripts/set-env.php`, which backs `.env` up first, then `config:cache`), `plan-posts` (plan and
-send once). From a terminal: `gh workflow run server-ops.yml -f action=status`.
+send once), `reel-check` (recent PL matches with events/chapters/reel state, finds Node 18+, `npm ci` + `node check.mjs`
+in `reel/`), `configure-reel` (`REEL_RENDERER`, `REEL_NODE`, `REEL_GITHUB_TOKEN` from the production secret),
+`reel-render` (rebuild one match's chapters and render its reel now). From a terminal: `gh workflow run server-ops.yml -f action=status`.
 
 ## 6. Environment variables added in this round
 See the block at the end of `matchday-africa/.env.example` / `production.env.example`.

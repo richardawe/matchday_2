@@ -26,9 +26,32 @@ class GrowthPostGenerator
 {
     private const NOT_UPCOMING = ['FINISHED', 'AWARDED', 'POSTPONED', 'CANCELLED', 'SUSPENDED', 'IN_PLAY', 'PAUSED', 'LIVE', '1H', 'HT', '2H', 'ET', 'FT'];
 
+    public function __construct(private MatchStoryService $stories, private Griot $griot) {}
+
     public function generate(): int
     {
-        return $this->news() + $this->previews() + $this->fixtures() + $this->results();
+        return $this->reels() + $this->news() + $this->previews() + $this->fixtures() + $this->results();
+    }
+
+    /** Each finished match's 20-second reel, to X, Instagram (as a Reel) and TikTok, within a day. */
+    private function reels(): int
+    {
+        $created = 0;
+        FootballMatch::with(['homeTeam', 'awayTeam', 'league'])->where('match_date', '>=', now('UTC')->subDays(2))->whereNotNull('metadata')->get()
+            ->filter(fn ($m) => data_get($m->metadata, 'reel.status') === 'ready' && data_get($m->metadata, 'reel.ready_at')
+                && Carbon::parse(data_get($m->metadata, 'reel.ready_at'))->gt(now()->subDay()))
+            ->each(function (FootballMatch $match) use (&$created) {
+                $readyAt = Carbon::parse(data_get($match->metadata, 'reel.ready_at'));
+                $final = $this->stories->chapters($match)->firstWhere('type', 'full_time');
+                $verdict = $final ? implode(' ', $this->griot->tell($final)) : '';
+                $body = $this->name($match->homeTeam)." {$match->home_score}–{$match->away_score} ".$this->name($match->awayTeam)
+                    .": the whole match in 20 seconds 🎬\n\n{$verdict}";
+                $link = route('matches.show', $match);
+                $video = route('matches.reel', ['match' => $match, 'v' => $readyAt->timestamp]);
+                $created += $this->plan("reel:{$match->id}", 'reel', XText::compose($body, $link, $this->tags($match)), null, $link, now(), $readyAt->copy()->addDay(), $video);
+            });
+
+        return $created;
     }
 
     private function news(): int
@@ -124,21 +147,22 @@ class GrowthPostGenerator
             ->values();
     }
 
-    /** One row per channel that can carry it: X takes everything, Instagram needs an image. */
-    private function plan(string $subject, string $type, string $text, ?string $image, ?string $url, Carbon $at, Carbon $expires): int
+    /** One row per channel that can carry it: X takes everything, Instagram needs media, TikTok video. */
+    private function plan(string $subject, string $type, string $text, ?string $image, ?string $url, Carbon $at, Carbon $expires, ?string $video = null): int
     {
         if ($expires->isPast()) {
             return 0;
         }
         $appTz = config('app.timezone');
         $created = 0;
-        foreach (['x' => true, 'instagram' => $image && config('buffer.channels.instagram')] as $channel => $carries) {
+        $channels = ['x' => true, 'instagram' => ($image || $video) && config('buffer.channels.instagram'), 'tiktok' => $video && config('buffer.channels.tiktok')];
+        foreach ($channels as $channel => $carries) {
             $key = $channel === 'x' ? $subject : "{$subject}@{$channel}";
             if (!$carries || GrowthPost::where('content_key', $key)->exists()) {
                 continue;
             }
             GrowthPost::create([
-                'content_key' => $key, 'channel' => $channel, 'type' => $type, 'message' => $text, 'image_url' => $image, 'destination_url' => $url,
+                'content_key' => $key, 'channel' => $channel, 'type' => $type, 'message' => $text, 'image_url' => $image, 'video_url' => $video, 'destination_url' => $url,
                 'status' => config('buffer.x.auto') ? 'queued' : 'draft',
                 'scheduled_at' => $at->copy()->setTimezone($appTz), 'expires_at' => $expires->copy()->setTimezone($appTz),
             ]);

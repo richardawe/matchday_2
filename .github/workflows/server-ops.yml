@@ -1,8 +1,8 @@
 name: Server operations
 
 # Run a fixed set of operations on the production server over the deploy key, without anyone
-# needing a shell: check status, list Buffer channels, set the Buffer settings in .env, or run
-# the social planner once. The Buffer API key comes from the production environment's
+# needing a shell: check status, list Buffer channels, set the Buffer settings in .env, run
+# the social planner once, check and configure the reel renderer, or render one match's reel. The Buffer API key comes from the production environment's
 # BUFFER_API_KEY secret and is sent over SSH stdin, never printed.
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ on:
       action:
         description: What to run
         type: choice
-        options: [status, buffer-channels, configure-buffer, plan-posts]
+        options: [status, buffer-channels, configure-buffer, plan-posts, reel-check, configure-reel, reel-render]
         default: status
       channel_x:
         description: "configure-buffer: Buffer channel ID for X (blank = leave as is)"
@@ -29,6 +29,17 @@ on:
       slots:
         description: "configure-buffer: daily Lagos posting slots, e.g. 08:00,13:00,19:00 (blank = leave as is)"
         required: false
+      reel_renderer:
+        description: "configure-reel: where reels render (github needs the REEL_GITHUB_TOKEN secret)"
+        type: choice
+        options: [server, github, "off"]
+        default: server
+      reel_node:
+        description: "configure-reel: absolute path to Node 18+ from reel-check (blank = leave as is)"
+        required: false
+      match_id:
+        description: "reel-render: match ID to render now"
+        required: false
 
 permissions:
   contents: read
@@ -41,7 +52,8 @@ jobs:
   run:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # reel-check installs the renderer and headless Chrome; a reel render takes minutes.
+    timeout-minutes: 40
     environment: production
     env:
       CPANEL_SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
@@ -62,4 +74,8 @@ jobs:
           INPUT_CHANNEL_TIKTOK: ${{ inputs.channel_tiktok }}
           INPUT_AUTO: ${{ inputs.auto }}
           INPUT_SLOTS: ${{ inputs.slots }}
+          REEL_GITHUB_TOKEN: ${{ inputs.action == 'configure-reel' && secrets.REEL_GITHUB_TOKEN || '' }}
+          INPUT_REEL_RENDERER: ${{ inputs.reel_renderer }}
+          INPUT_REEL_NODE: ${{ inputs.reel_node }}
+          INPUT_MATCH_ID: ${{ inputs.match_id }}
         run: bash scripts/ci/deploy-ssh.sh "$ACTION"
