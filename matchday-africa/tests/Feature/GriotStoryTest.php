@@ -41,8 +41,12 @@ class GriotStoryTest extends TestCase
     {
         $this->assertSame('Roman Legion', Armies::for('Arsenal FC')['army']);
         $this->assertSame('Barbary Corsairs', Armies::for('AFC Bournemouth')['army']);
-        $this->assertSame('Wolf Guard', Armies::for('Wolves')['army']);
-        $this->assertNull(Armies::for('Wolves')['cutout_path']);
+        $this->assertSame('Wolf Warband', Armies::for('Wolves')['army']);
+        $this->assertFileExists(Armies::for('Wolverhampton Wanderers FC')['cutout_path']);
+        // Some feeds add "AFC": Hull City AFC and Sunderland AFC are keyed without it.
+        $this->assertSame('hull city', Armies::key('Hull City AFC'));
+        $this->assertSame('Northern Rebel Clans', Armies::for('Sunderland AFC')['army']);
+        $this->assertNull(Armies::for('West Ham United FC')['cutout_path']);
         $this->assertStringContainsString('rights-safe', config('armies.source'));
         $this->assertFileExists(Armies::for('Chelsea FC')['cutout_path']);
     }

@@ -15,9 +15,12 @@
     @if(!empty($reel))
         @php
             $final = $chapters->firstWhere('type', 'full_time');
+            $poster = app(\App\Services\ReelService::class)->posterPath($match)
+                ? route('matches.reel-poster', ['match' => $match, 'v' => data_get($match->metadata, 'reel.ready_at')])
+                : ($final ? $final->cardUrl($voice, 'story') : null);
         @endphp
         <div class="md-reel">
-            <video controls playsinline preload="metadata" @if($final) poster="{{ $final->cardUrl($voice, 'story') }}" @endif src="{{ $reel }}">Your browser can't play this video.</video>
+            <video controls playsinline preload="none" @if($poster) poster="{{ $poster }}" @endif src="{{ $reel }}">Your browser can't play this video.</video>
             <div>
                 <p class="md-eyebrow">THE 20-SECOND REEL</p>
                 <h3>The whole match, told in twenty seconds.</h3>

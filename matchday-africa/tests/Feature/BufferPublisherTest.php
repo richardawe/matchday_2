@@ -61,14 +61,15 @@ class BufferPublisherTest extends TestCase
         $this->artisan('buffer:publish')->expectsOutput('Buffer: 1 sent, 0 failed');
     }
 
-    public function test_full_time_reel_waits_in_the_queue_and_goes_to_all_three(): void
+    public function test_a_reel_goes_to_all_three_in_a_reel_slot_the_day_after(): void
     {
         config(['buffer.x.auto' => true]);
         $this->fakeBuffer();
-        // Past the goal card's 30 minutes, so the reel has the slots to itself.
-        $this->travel(31)->minutes();
-        $this->match->update(['status' => 'FINISHED', 'metadata' => ['reel' => ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]]]);
+        $this->match->update(['status' => 'FINISHED']);
         app(MatchStoryService::class)->sync($this->match->fresh());
+        // The next morning: no Premier League match today, and 08:00 is a reel slot.
+        $this->travelTo(now('Africa/Lagos')->addDay()->setTime(8, 30));
+        $this->match->update(['metadata' => ['reel' => ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]]]);
         File::ensureDirectoryExists(storage_path('app/reels'));
         File::put(storage_path("app/reels/{$this->match->id}.mp4"), 'mp4');
         $video = route('matches.reel', ['match' => $this->match, 'v' => now()->timestamp]);
@@ -82,14 +83,48 @@ class BufferPublisherTest extends TestCase
         $this->assertSame($video, $posts['chan-tt']['assets'][0]['video']['url']);
         $this->assertSame('reel', $posts['chan-ig']['metadata']['instagram']['type']);
         $this->assertStringContainsString('Arsenal 1–0 Chelsea: the whole match in 20 seconds', $posts['chan-x']['text']);
+        $this->assertStringContainsString('Full story, stats and predictions on Matchday Africa', $posts['chan-x']['text']);
         File::delete(storage_path("app/reels/{$this->match->id}.mp4"));
+    }
+
+    public function test_reels_wait_out_matchdays_and_the_afternoon_slot(): void
+    {
+        config(['buffer.x.auto' => true]);
+        $this->fakeBuffer();
+        $this->match->update(['status' => 'FINISHED', 'metadata' => ['reel' => ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]]]);
+        $this->travel(31)->minutes();
+        $this->artisan('twitter:engage');
+        Http::fake([url('/matches').'/*' => Http::response('m', 206, ['Content-Type' => 'video/mp4'])]);
+
+        // 19:31 on the matchday itself: held back.
+        $this->artisan('buffer:publish')->expectsOutput('Buffer: 0 sent, 0 failed');
+        // Next day at 13:30, the afternoon slot belongs to news and previews.
+        $this->travelTo(now('Africa/Lagos')->addDay()->setTime(13, 30));
+        $this->artisan('buffer:publish')->expectsOutput('Buffer: 0 sent, 0 failed');
+        // 19:00 is a reel slot.
+        $this->travelTo(now('Africa/Lagos')->setTime(19, 5));
+        $this->artisan('buffer:publish')->expectsOutput('Buffer: 3 sent, 0 failed');
+        $this->assertSame(['reel'], \App\Models\GrowthPost::where('status', 'sent')->pluck('type')->unique()->values()->all());
+    }
+
+    public function test_a_round_s_reels_stay_in_the_pool_until_the_next_round(): void
+    {
+        config(['buffer.x.auto' => true]);
+        $next = FootballMatch::create(['league_id' => $this->match->league_id, 'home_team_id' => $this->match->away_team_id, 'away_team_id' => $this->match->home_team_id,
+            'match_date' => now('UTC')->addDays(6)->setTime(14, 0), 'status' => 'TIMED']);
+        $this->match->update(['status' => 'FINISHED', 'metadata' => ['reel' => ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]]]);
+
+        $this->artisan('twitter:engage');
+
+        $expires = \App\Models\GrowthPost::where('content_key', "reel:{$this->match->id}")->value('expires_at');
+        $this->assertSame(now('UTC')->addDays(6)->setTime(14, 0)->setTimezone('Africa/Lagos')->format('Y-m-d H:i'), \Carbon\Carbon::parse($expires)->format('Y-m-d H:i'));
     }
 
     public function test_a_reel_whose_video_does_not_load_is_not_sent(): void
     {
         config(['buffer.x.auto' => true]);
         $this->fakeBuffer();
-        $this->travel(31)->minutes();
+        $this->travelTo(now('Africa/Lagos')->addDay()->setTime(8, 30));
         $this->match->update(['status' => 'FINISHED', 'metadata' => ['reel' => ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]]]);
         Http::fake([url('/matches').'/*' => Http::response('', 404)]);
 

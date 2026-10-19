@@ -10,7 +10,7 @@ on:
       action:
         description: What to run
         type: choice
-        options: [status, buffer-channels, configure-buffer, plan-posts, reel-check, configure-reel, reel-render, configure-espn, espn-sync]
+        options: [status, buffer-channels, configure-buffer, plan-posts, reel-check, configure-reel, reel-render, configure-espn, espn-sync, reel-queue]
         default: status
       channel_x:
         description: "configure-buffer: Buffer channel ID for X (blank = leave as is)"
@@ -39,6 +39,12 @@ on:
         required: false
       match_id:
         description: "reel-render: match ID to render now"
+        required: false
+      from_date:
+        description: "reel-queue: first Lagos date, YYYY-MM-DD"
+        required: false
+      to_date:
+        description: "reel-queue: last Lagos date, YYYY-MM-DD"
         required: false
       espn_mode:
         description: "configure-espn: live (primary live source), shadow (compare only) or off"
@@ -84,4 +90,6 @@ jobs:
           INPUT_REEL_NODE: ${{ inputs.reel_node }}
           INPUT_MATCH_ID: ${{ inputs.match_id }}
           INPUT_ESPN_MODE: ${{ inputs.espn_mode }}
+          INPUT_FROM: ${{ inputs.from_date }}
+          INPUT_TO: ${{ inputs.to_date }}
         run: bash scripts/ci/deploy-ssh.sh "$ACTION"

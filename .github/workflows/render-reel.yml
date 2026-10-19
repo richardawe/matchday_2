@@ -49,7 +49,7 @@ jobs:
           # shellcheck disable=SC2016
           node -e 'const u = new URL(process.env.PROPS_URL); if (u.origin !== "https://matchday.africa" || u.pathname !== `/reels/${process.env.MATCH_ID}/props`) process.exit(1);'
           mkdir -p out
-          node render.mjs --props-url "$PROPS_URL" --out "out/$MATCH_ID.mp4"
+          node render.mjs --props-url "$PROPS_URL" --out "out/$MATCH_ID.mp4" --poster "out/$MATCH_ID.jpg"
 
       - name: Publish reel to the actual public root
         working-directory: .

@@ -167,6 +167,20 @@ const Stats = ({ home, away, stats }) => {
     );
 };
 
+// The last second points people home: the full story lives on the match page.
+const EndCard = () => {
+    const frame = useCurrentFrame();
+    const { fps } = useVideoConfig();
+    const u = useUnit();
+    const show = spring({ frame: frame - 18, fps, config: { damping: 14 } });
+    return (
+        <div style={{ position: 'absolute', top: 280 * u, left: 40 * u, right: 40 * u, padding: `${26 * u}px ${24 * u}px`, background: 'rgba(7,8,7,.82)', borderLeft: `${6 * u}px solid ${GOLD}`, opacity: show, transform: `translateY(${interpolate(show, [0, 1], [30, 0])}px)` }}>
+            <div style={{ font: `${30 * u}px PlexMono`, color: PAPER, letterSpacing: 3 * u }}>FULL STORY, STATS &amp; PREDICTIONS</div>
+            <div style={{ font: `${104 * u}px/1.05 Anton`, color: GOLD, marginTop: 10 * u }}>MATCHDAY.AFRICA</div>
+        </div>
+    );
+};
+
 const Final = ({ home, away, final, duration }) => {
     const winner = home.score === away.score ? null : home.score > away.score ? home : away;
     const loser = winner === home ? away : home;
@@ -191,6 +205,7 @@ const Final = ({ home, away, final, duration }) => {
             <Tag>FULL TIME</Tag>
             <div style={{ position: 'absolute', top: 72 * u, left: 64 * u, font: `${26 * u}px PlexMono`, color: '#a39c8f', letterSpacing: 3 * u }}>{home.club.toUpperCase()} {home.score}–{away.score} {away.club.toUpperCase()}</div>
             <Caption headline={final.headline} line={final.line} delay={3} />
+            <EndCard />
             <Footer colours={(winner ?? home).colours} />
         </AbsoluteFill>
     );

@@ -16,6 +16,15 @@ class ReelController extends Controller
         return response()->file($file, ['Content-Type' => 'video/mp4', 'Cache-Control' => 'public, max-age=86400']);
     }
 
+    /** The reel's poster frame (a still from the first big moment). */
+    public function poster(FootballMatch $match, ReelService $reels)
+    {
+        $file = $reels->posterPath($match);
+        abort_unless($file, 404);
+
+        return response()->file($file, ['Content-Type' => 'image/jpeg', 'Cache-Control' => 'public, max-age=86400']);
+    }
+
     /** The reel's story for the GitHub renderer (signed URL, art as public links). */
     public function props(FootballMatch $match, ReelService $reels)
     {

@@ -41,7 +41,12 @@ class Armies
 
     public static function key(string $name): string
     {
-        $key = trim(preg_replace('/\s+/', ' ', preg_replace('/\bfc\b/', '', mb_strtolower($name))));
+        $clean = fn (string $pattern) => trim(preg_replace('/\s+/', ' ', preg_replace($pattern, '', mb_strtolower($name))));
+        $key = $clean('/\bfc\b/');
+        // "Hull City AFC" and "Sunderland AFC" are keyed without the AFC ("AFC Bournemouth" keeps it).
+        if (!isset(config('armies.clubs')[$key]) && !isset(config('armies.aliases')[$key])) {
+            $key = $clean('/\ba?fc\b/');
+        }
 
         return config('armies.aliases')[$key] ?? $key;
     }

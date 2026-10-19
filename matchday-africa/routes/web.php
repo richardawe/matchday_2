@@ -72,6 +72,7 @@ Route::get('/matches/{match}/chronicle', [MatchController::class, 'chronicle'])-
 Route::get('/matches/{match}/live', [MatchController::class, 'live'])->name('matches.live');
 Route::get('/matches/{match}/card.png', [App\Http\Controllers\MomentCardController::class, 'fixture'])->name('matches.card');
 Route::get('/matches/{match}/reel.mp4', [App\Http\Controllers\ReelController::class, 'show'])->name('matches.reel');
+Route::get('/matches/{match}/reel.jpg', [App\Http\Controllers\ReelController::class, 'poster'])->name('matches.reel-poster');
 Route::get('/reels/{match}/props', [App\Http\Controllers\ReelController::class, 'props'])->middleware('signed')->name('reels.props');
 Route::get('/moments/{moment}/card/{voice}/{format}.png', [App\Http\Controllers\MomentCardController::class, 'show'])
     ->where(['voice' => 'en|pcm|sw|za', 'format' => 'story|feed|og'])->name('moments.card');
@@ -229,6 +230,13 @@ Route::prefix('api/odds')->group(function () {
 Route::get('/twitter/oauth/authorize', [App\Http\Controllers\TwitterOAuthController::class, 'authorize'])->name('twitter.oauth.authorize');
 Route::get('/auth/twitter/callback', [App\Http\Controllers\TwitterOAuthController::class, 'callback'])->name('twitter.oauth.callback');
 Route::post('/twitter/oauth/revoke', [App\Http\Controllers\TwitterOAuthController::class, 'revoke'])->name('twitter.oauth.revoke');
+
+// Reel desk (admin only)
+Route::middleware(['auth', 'admin'])->prefix('admin/reels')->group(function () {
+    Route::get('/', [App\Http\Controllers\Admin\ReelController::class, 'index'])->name('admin.reels.index');
+    Route::post('/queue', [App\Http\Controllers\Admin\ReelController::class, 'queueRange'])->name('admin.reels.queue-range');
+    Route::post('/{match}/queue', [App\Http\Controllers\Admin\ReelController::class, 'queue'])->name('admin.reels.queue');
+});
 
 // Twitter admin routes (admin only)
 Route::middleware(['auth', 'admin'])->prefix('admin/twitter')->group(function () {

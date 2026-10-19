@@ -5,8 +5,8 @@ set -Eeuo pipefail
 
 mode=${1:-}
 case "$mode" in
-    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync) ;;
-    *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync"; exit 2 ;;
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue) ;;
+    *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue"; exit 2 ;;
 esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
     [[ -n "${!variable:-}" ]] || { echo "Missing production secret: $variable"; exit 1; }
@@ -65,6 +65,11 @@ elif [[ "$mode" == upload-reel ]]; then
     source="matchday-africa/reel/out/$MATCH_ID.mp4"
     [[ -s "$source" ]] || { echo "Rendered reel is missing or empty."; exit 1; }
     printf -v destination '%q' "$CPANEL_PUBLIC_ROOT/generated/reels/$MATCH_ID"
+    # The poster goes first: the site treats the MP4's arrival as "ready".
+    if [[ -s "matchday-africa/reel/out/$MATCH_ID.jpg" ]]; then
+        ssh "${ssh_options[@]}" "$target" \
+            "umask 022; mkdir -p $destination && cat > $destination/$MATCH_ID.jpg.upload && mv $destination/$MATCH_ID.jpg.upload $destination/$MATCH_ID.jpg" < "matchday-africa/reel/out/$MATCH_ID.jpg"
+    fi
     # Upload one file atomically into the served root, retaining every other reel.
     ssh "${ssh_options[@]}" "$target" \
         "umask 022; mkdir -p $destination && cat > $destination/$MATCH_ID.mp4.upload && mv $destination/$MATCH_ID.mp4.upload $destination/$MATCH_ID.mp4" < "$source"
@@ -174,6 +179,10 @@ elif [[ "$mode" == configure-espn ]]; then
 elif [[ "$mode" == espn-sync ]]; then
     # One fixtures pass now (normally every 6 hours) and today's live/details passes, with unmatched fixtures listed.
     ssh "${ssh_options[@]}" "$target" "cd $root && php artisan espn:sync fixtures --no-ansi && php artisan espn:sync live --no-ansi && php artisan espn:sync details --no-ansi"
+elif [[ "$mode" == reel-queue ]]; then
+    # Backfill: queue reels for finished Premier League matches between two Lagos dates.
+    [[ "${INPUT_FROM:-}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ && "${INPUT_TO:-}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "from_date and to_date must look like 2026-10-17."; exit 1; }
+    ssh "${ssh_options[@]}" "$target" "cd $root && php artisan reel:queue --from=$INPUT_FROM --to=$INPUT_TO --no-ansi"
 else
     [[ "${GITHUB_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || { echo "Missing release commit SHA."; exit 1; }
     ssh "${ssh_options[@]}" "$target" "bash -s -- $root $GITHUB_SHA" <<'REMOTE'

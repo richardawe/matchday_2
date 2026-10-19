@@ -37,7 +37,8 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 6. **Art:** automated outputs (cards, reels, arena, social posts) use only the crest-free statues in
    `public/war/downloads/rights-safe/`, processed by `scripts/build-armies.mjs` into
    `public/war/army/*.webp` (web) and `resources/armies/*.webp` (server cut-outs). Never use
-   `public/war/warriors/` (they show club crests) for anything automated. Club → army mapping: `config/armies.php`.
+   `public/war/warriors/` (they show club crests) for anything automated. One exception, approved by the owner on
+   19 Oct 2026: Wolves' `wolf-warband` statue (from `warriors/wolves.png`, plinth text cropped) whose shield resembles the crest. Club → army mapping: `config/armies.php`.
 7. **Live data:** the ESPN feed is unofficial and its terms ban automated use. The owner accepted that as a
    stopgap. Keep the circuit breaker (`EspnClient`) and the football-data.org fallback working.
 8. **Commit messages** describe the change; don't put model names in them.
@@ -108,7 +109,7 @@ the production secret of that name plus channel IDs, `BUFFER_AUTO`, `BUFFER_SLOT
 send once), `reel-check` (recent PL matches with events/chapters/reel state, finds Node 18+, `npm ci` + `node check.mjs`
 in `reel/`), `configure-reel` (`REEL_RENDERER`, `REEL_NODE`, `REEL_GITHUB_TOKEN` from the production secret),
 `reel-render` (rebuild one match's chapters and render its reel now), `configure-espn` (`live`, `shadow` or `off`),
-`espn-sync` (fixtures, live and details passes now, unmatched fixtures listed). From a terminal: `gh workflow run server-ops.yml -f action=status`.
+`espn-sync` (fixtures, live and details passes now, unmatched fixtures listed), `reel-queue` (backfill reels between two Lagos dates). From a terminal: `gh workflow run server-ops.yml -f action=status`.
 
 ## 6. Environment variables added in this round
 See the block at the end of `matchday-africa/.env.example` / `production.env.example`.
@@ -132,7 +133,7 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 ## 7. Open items and known issues
 - Live `APP_TIMEZONE` was verified as `Africa/Lagos` on 19 October 2026; the production
   template now matches it. Kick-off display formatting remains a separate issue (rule 5).
-- West Ham and Wolves have no crest-free statue (`art => null` in `config/armies.php`); their cards use club colours only.
+- West Ham has no statue (`art => null`); it isn't in the 2026–27 Premier League. Wolves uses the approved `wolf-warband` exception.
 - Native speakers should review the Pidgin, Swahili/Sheng and Mzansi captions in `app/Services/Griot.php`.
 - Buffer's client is the one ngr.ltd and housedata.uk run in production (`api.buffer.com/graphql`, variables,
   Instagram type at `metadata.instagram.type` read from the live schema). Still check the first posts here,
