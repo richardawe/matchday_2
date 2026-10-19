@@ -35,6 +35,15 @@ try {
     ok(`Rendered a 2-second test clip in ${seconds}s (${Math.round((await stat(out)).size / 1024)} KB)`);
     console.log(`  → A full 20-second reel should take roughly ${Math.ceil((seconds * 10 * 2.5) / 60)} minutes here.`);
     console.log('PASS: this server can render the reel. Set REEL_RENDERER=server in .env.');
+    // The voice-over is optional: report on it, but never fail the check over it.
+    try {
+        const { speakBubbles } = await import('./voice.mjs');
+        const started = Date.now();
+        const { bubbles } = await speakBubbles(sample.beats, [{ scene: 'title', side: 'home', text: 'Shields up.' }], { home: 'am_fenrir', away: 'bm_george' });
+        bubbles[0]?.seconds ? ok(`Voice-over (Kokoro) works: ${bubbles[0].seconds}s of speech in ${((Date.now() - started) / 1000).toFixed(1)}s`) : console.log('  ! Voice-over made no speech; keep REEL_VOICEOVER=false.');
+    } catch (e) {
+        console.log(`  ! Voice-over unavailable (${e.message.split('\n')[0]}); keep REEL_VOICEOVER=false.`);
+    }
 } catch (e) {
     const missing = /error while loading shared libraries: ([^:]+)/.exec(e.message);
     fail('Test render failed', missing

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\FootballMatch;
 use App\Models\MatchEvent;
+use App\Services\BanterService;
 use App\Services\ReelService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,6 +37,36 @@ class ReelController extends Controller
 
         return back()->with($queued ? 'success' : 'error',
             $queued ? 'Queued: the scheduler renders it within a few minutes.' : 'This match can\'t have a reel (not finished, or a club has no army art).');
+    }
+
+    /** Save edited bubble lines (same rules as the AI's) and re-render. */
+    public function saveBanter(Request $request, FootballMatch $match, BanterService $banter, ReelService $reels): RedirectResponse
+    {
+        $lines = $request->validate(['lines' => 'required|array', 'lines.*' => 'required|string|max:'.BanterService::MAX_LENGTH])['lines'];
+        $bubbles = data_get($match->metadata, 'reel.banter', []);
+        $facts = $banter->factsFor($match);
+        foreach ($bubbles as $i => $bubble) {
+            $text = trim($lines[$i] ?? $bubble['text']);
+            if ($text !== $bubble['text']) {
+                if (!$banter->check($text, $facts)) {
+                    return back()->with('error', "\"{$text}\" breaks a banter rule: armies only (no other names), real numbers only, nothing on the blocklist, 60 characters at most.");
+                }
+                $bubbles[$i] = ['text' => $text, 'source' => 'edited'] + $bubble;
+            }
+        }
+        $reels->setBanter($match, $bubbles);
+        $reels->queue($match);
+
+        return back()->with('success', 'Lines saved; the reel re-renders within a few minutes.');
+    }
+
+    /** Draw new lines (written and AI) and re-render. */
+    public function newBanter(FootballMatch $match, BanterService $banter, ReelService $reels): RedirectResponse
+    {
+        $reels->setBanter($match, $banter->compose($match));
+        $reels->queue($match);
+
+        return back()->with('success', 'New lines drawn; the reel re-renders within a few minutes.');
     }
 
     public function queueRange(Request $request): RedirectResponse
