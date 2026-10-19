@@ -60,7 +60,8 @@ class MatchController extends Controller
                 'updated_at' => $match->last_api_update?->toIso8601String(),
                 'html' => view('partials.match-live-data', ['match' => $match, 'events' => $events])->render(),
                 'story' => app(MatchStoryService::class)->ready()
-                    ? view('partials.match-story', ['match' => $match, 'chapters' => app(MatchStoryService::class)->chapters($match), 'voice' => $voice])->render()
+                    ? view('partials.match-story', ['match' => $match, 'chapters' => app(MatchStoryService::class)->chapters($match), 'voice' => $voice,
+                        'reel' => app(\App\Services\ReelService::class)->path($match) ? route('matches.reel', ['match' => $match, 'v' => data_get($match->metadata, 'reel.ready_at')]) : null])->render()
                     : '',
             ];
         });
@@ -219,6 +220,7 @@ class MatchController extends Controller
                 Cookie::queue('griot_voice', $voice, 60 * 24 * 365);
             }
             $chapters = app(MatchStoryService::class)->ready() ? app(MatchStoryService::class)->chapters($match) : collect();
+            $reel = app(\App\Services\ReelService::class)->path($match) ? route('matches.reel', ['match' => $match, 'v' => data_get($match->metadata, 'reel.ready_at')]) : null;
 
             return view('matches.show', compact(
                 'match', 
@@ -227,7 +229,7 @@ class MatchController extends Controller
                 'upcomingMatches', 
                 'recentChats',
                 'matchPreview',
-                'featuredPreviews','momentum','predictionSet','mythStory','warTeams','predictions','currentPrediction','predictionOpen','sponsor','winnerIds','africanPlayers','chapters','voice'
+                'featuredPreviews','momentum','predictionSet','mythStory','warTeams','predictions','currentPrediction','predictionOpen','sponsor','winnerIds','africanPlayers','chapters','voice','reel'
             ))->with('content', $match);
 
         } catch (\Exception $e) {
@@ -241,7 +243,7 @@ class MatchController extends Controller
                 'recentChats' => collect([]),
                 'matchPreview' => null, 'momentum' => 50, 'predictionSet' => null, 'mythStory' => null,
                 'featuredPreviews' => collect([]), 'warTeams' => ['home' => null, 'away' => null],
-                'predictions'=>collect([]),'currentPrediction'=>null,'predictionOpen'=>false,'sponsor'=>null,'winnerIds'=>collect([]),'africanPlayers'=>collect([]),'chapters'=>collect([]),'voice'=>'en'
+                'predictions'=>collect([]),'currentPrediction'=>null,'predictionOpen'=>false,'sponsor'=>null,'winnerIds'=>collect([]),'africanPlayers'=>collect([]),'chapters'=>collect([]),'voice'=>'en','reel'=>null
             ])->with('content', $match);
         }
     }

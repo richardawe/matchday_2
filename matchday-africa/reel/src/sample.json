@@ -1,0 +1,19 @@
+{
+  "format": "story",
+  "competition": "PREMIER LEAGUE",
+  "title": { "headline": "Roman Legion v Ottoman Janissaries", "line": "Arsenal v Chelsea" },
+  "home": { "club": "Arsenal", "army": "Roman Legion", "colours": ["#EF0107", "#FFFFFF"], "art": "home.webp", "score": 2 },
+  "away": { "club": "Chelsea", "army": "Ottoman Janissaries", "colours": ["#034694", "#DBA111"], "art": "away.webp", "score": 1 },
+  "beats": [
+    { "type": "goal", "tag": "GOAL · 41′", "side": "home", "home_score": 1, "away_score": 0, "headline": "First blood", "line": "Bukayo Saka strikes for the Roman Legion." },
+    { "type": "goal", "tag": "GOAL · 55′", "side": "away", "home_score": 1, "away_score": 1, "headline": "The Ottoman Janissaries answer", "line": "Cole Palmer levels it. All square." },
+    { "type": "red_card", "tag": "RED CARD · 63′", "side": "away", "home_score": 1, "away_score": 1, "headline": "A warrior falls", "line": "Moisés Caicedo is sent off. The Ottoman Janissaries fight on with ten." },
+    { "type": "goal", "tag": "GOAL · 88′", "side": "home", "home_score": 2, "away_score": 1, "headline": "A late blow", "line": "Gabriel Martinelli at 88′. The Roman Legion strike late." }
+  ],
+  "stats": [
+    { "label": "POSSESSION %", "home": 58, "away": 42 },
+    { "label": "SHOTS", "home": 14, "away": 9 },
+    { "label": "ON TARGET", "home": 6, "away": 3 }
+  ],
+  "final": { "headline": "The Roman Legion prevail", "line": "Full time: Arsenal 2–1 Chelsea." }
+}

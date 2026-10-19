@@ -1,0 +1,58 @@
+name: Render match reel
+
+# Fallback renderer for the Griot's 20-second reel (REEL_RENDERER=github). The site starts this
+# with a signed props URL when a Premier League match finishes; the MP4 is uploaded by FTP to
+# public/generated/reels/<match>/<match>.mp4, where the site's reel:render job picks it up.
+on:
+  workflow_dispatch:
+    inputs:
+      match_id: { description: Match ID, required: true, type: string }
+      props_url: { description: Signed URL for the reel props, required: true, type: string }
+
+concurrency:
+  group: render-reel-${{ inputs.match_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: matchday-africa/reel
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: matchday-africa/reel/package-lock.json
+
+      - name: Install Remotion
+        run: npm ci
+
+      - name: Render reel
+        env:
+          PROPS_URL: ${{ inputs.props_url }}
+          MATCH_ID: ${{ inputs.match_id }}
+        run: |
+          case "$MATCH_ID" in (*[!0-9]*|'') echo "match_id must be numeric"; exit 1;; esac
+          mkdir -p out
+          node render.mjs --props-url "$PROPS_URL" --out "out/$MATCH_ID.mp4"
+
+      - name: Upload to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.CPANEL_FTP_SERVER }}
+          username: ${{ secrets.CPANEL_FTP_USERNAME }}
+          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          protocol: ${{ secrets.CPANEL_FTP_PROTOCOL || 'ftp' }}
+          port: ${{ secrets.CPANEL_FTP_PORT || 21 }}
+          local-dir: ./matchday-africa/reel/out/
+          # One folder per match: the action deletes files it uploaded earlier that are missing
+          # locally, so a shared folder would wipe the previous reels.
+          server-dir: ${{ secrets.CPANEL_FTP_SERVER_DIR }}/public/generated/reels/${{ inputs.match_id }}/

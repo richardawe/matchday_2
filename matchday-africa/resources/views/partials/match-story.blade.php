@@ -12,6 +12,23 @@
             @endforeach
         </nav>
     </header>
+    @if(!empty($reel))
+        @php
+            $final = $chapters->firstWhere('type', 'full_time');
+        @endphp
+        <div class="md-reel">
+            <video controls playsinline preload="metadata" @if($final) poster="{{ $final->cardUrl($voice, 'story') }}" @endif src="{{ $reel }}">Your browser can't play this video.</video>
+            <div>
+                <p class="md-eyebrow">THE 20-SECOND REEL</p>
+                <h3>The whole match, told in twenty seconds.</h3>
+                <p>Every goal and red card with a talking-drum beat, made minutes after the final whistle. Sized for WhatsApp Status.</p>
+                <div class="md-story-share">
+                    <a href="https://wa.me/?text={{ rawurlencode('Watch the 20-second story of '.$match->homeTeam?->name.' v '.$match->awayTeam?->name.' '.route('matches.show', $match)) }}" target="_blank" rel="noopener">Share on WhatsApp</a>
+                    <a href="{{ $reel }}" download>Save the video</a>
+                </div>
+            </div>
+        </div>
+    @endif
     <div class="md-story-strip">
         @foreach($told as $chapter)
             @php
