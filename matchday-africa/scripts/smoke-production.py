@@ -31,7 +31,7 @@ def smoke(base_url, expected_sha):
                     # Redirects to sign-in or another host cannot establish readiness.
                     if urllib.parse.urlsplit(response.url).netloc != parsed.netloc:
                         raise RuntimeError(f"{path}: unexpected redirect host")
-                    if urllib.parse.urlsplit(response.url).path != urllib.parse.urlsplit(path).path:
+                    if urllib.parse.urlsplit(response.url).path.rstrip('/') != urllib.parse.urlsplit(path).path.rstrip('/'):
                         raise RuntimeError(f"{path}: unexpected redirect path")
                     if expected_type and response.headers.get_content_type() not in expected_type:
                         raise RuntimeError(f"{path}: incorrect asset content type")
@@ -50,7 +50,8 @@ def smoke(base_url, expected_sha):
     if get("/deploy-version.txt?release=" + expected_sha).strip() != expected_sha:
         raise RuntimeError("The public document root is not serving the uploaded release")
     get("/up")
-    if '<html' not in get('/war').lower():
+    war = get('/war')
+    if '<html' not in war.lower():
         raise RuntimeError('War landing page did not render')
     home = get("/")
     if "<html" not in home.lower() or "/build/assets/" not in home:
@@ -68,6 +69,7 @@ def smoke(base_url, expected_sha):
 
     assets = Assets()
     assets.feed(home)
+    assets.feed(war)
     extensions = set()
     for url in sorted(assets.urls):
         asset = urllib.parse.urlsplit(urllib.parse.urljoin(base_url, url))

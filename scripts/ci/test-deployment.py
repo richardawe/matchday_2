@@ -236,6 +236,7 @@ class SmokeTests(unittest.TestCase):
         self.module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.module)
         self.sha = 'a' * 40
+        self.redirects = {}
         self.pages = {'/deploy-version.txt': self.sha, '/up': 'ok', '/war': '<html>Matchday War</html>', '/': '<html><link rel="stylesheet" href="/build/assets/app.css"><script src="/build/assets/app.js"></script>Matchday</html>',
                       '/build/assets/app.css': 'body { color: black; }', '/build/assets/app.js': 'console.log("ready")',
                       '/matches': '<html>Matches <a href="/matches/123">fixture</a></html>',
@@ -248,7 +249,7 @@ class SmokeTests(unittest.TestCase):
             path = self.module.urllib.parse.urlsplit(request.full_url).path
             response = io.BytesIO(self.pages[path].encode())
             response.status = 200
-            response.url = request.full_url
+            response.url = self.redirects.get(path, request.full_url)
             response.headers = Message()
             response.headers['Content-Type'] = 'text/css' if path.endswith('.css') else 'application/javascript' if path.endswith('.js') else 'text/html'
             return response
@@ -257,6 +258,15 @@ class SmokeTests(unittest.TestCase):
 
     def test_matching_release_pages_and_live_api_pass(self):
         self.run_smoke()
+
+    def test_canonical_war_directory_slash_is_allowed(self):
+        self.redirects['/war'] = 'https://matchday.africa/war/'
+        self.run_smoke()
+
+    def test_redirect_to_login_cannot_pass_as_war_page(self):
+        self.redirects['/war'] = 'https://matchday.africa/login'
+        with self.assertRaisesRegex(RuntimeError, 'unexpected redirect path'):
+            self.run_smoke()
 
     def test_old_release_fails(self):
         self.pages['/deploy-version.txt'] = 'b' * 40

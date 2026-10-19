@@ -10,7 +10,7 @@
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
     # /war is a Laravel page as well as a physical asset folder.
-    # Route its landing page before Apache redirects or denies the directory.
+    # Serve its landing page through Laravel while keeping asset URLs static.
     RewriteRule ^war/?$ index.php [L]
 
     # Redirect Trailing Slashes If Not A Folder...
