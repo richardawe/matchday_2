@@ -30,6 +30,14 @@ from the application root in cPanel Terminal. Run the same command whenever
 environment approval rule in GitHub if production deployments should require
 manual confirmation.
 
+## Live data, story cards, reels and Buffer (added Oct 2026)
+
+These features are off by default. The setup, go-live order, extra scheduler jobs and the CI/CD steps
+they need are in `AGENTS.md` at the repository root (sections 4 and 5). In short: run migrations, then
+switch on `ESPN_ENABLED` (shadow first), run `cd reel && npm ci && node check.mjs` before setting
+`REEL_RENDERER`, and add the `BUFFER_*` keys. Every `.env` change needs `php artisan optimize:clear`
+(or `bash deploy-production.sh`), because production caches the config.
+
 ## 1. Confirm the hosting package
 
 Before uploading anything, confirm that cPanel provides:
