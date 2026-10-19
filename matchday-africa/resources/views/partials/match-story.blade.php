@@ -36,7 +36,7 @@
                 $link = route('matches.show', ['match' => $match, 'moment' => $chapter->id]);
                 $shareText = "{$headline} {$line}";
             @endphp
-            <figure class="md-story-card">
+            <figure class="md-moment-card">
                 <img src="{{ $chapter->cardUrl($voice, 'feed') }}" alt="{{ $headline }}. {{ $line }}" width="1080" height="1350" loading="{{ $loop->index < 2 ? 'eager' : 'lazy' }}">
                 <figcaption>
                     <span class="sr-only">{{ $headline }}. {{ $line }}</span>
