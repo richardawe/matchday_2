@@ -50,6 +50,8 @@ def smoke(base_url, expected_sha):
     if get("/deploy-version.txt?release=" + expected_sha).strip() != expected_sha:
         raise RuntimeError("The public document root is not serving the uploaded release")
     get("/up")
+    if '<html' not in get('/war').lower():
+        raise RuntimeError('War landing page did not render')
     home = get("/")
     if "<html" not in home.lower() or "/build/assets/" not in home:
         raise RuntimeError("Home page did not render the compiled frontend")

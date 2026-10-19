@@ -199,6 +199,21 @@ class DeployTests(unittest.TestCase):
         self.assertNotEqual(self.run_ssh('deploy', env).returncode, 0)
         self.assertEqual(self.calls(), [])
 
+    def test_reel_upload_targets_served_root_and_rejects_path_injection(self):
+        env = {**self.ssh_env(), 'MATCH_ID': '../7'}
+        self.assertNotEqual(self.run_ssh('upload-reel', env).returncode, 0)
+        self.assertEqual(self.calls(), [])
+        output = APP/'reel/out/987654321.mp4'
+        output.parent.mkdir(exist_ok=True)
+        output.write_text('rendered test clip')
+        self.addCleanup(output.unlink)
+        env['MATCH_ID'] = '987654321'
+        self.assert_success(self.run_ssh('upload-reel', env))
+        command = self.calls()[0][-1]
+        self.assertIn('/home/cpanel/public_html/generated/reels/987654321', command)
+        self.assertIn('mv ', command)
+        self.assertNotIn('rm ', command)
+
     @unittest.skipUnless(REAL_PHP, 'PHP is required')
     def test_real_dotenv_validation_uses_parsed_flags_and_preserves_key(self):
         (self.root / 'vendor').symlink_to(APP / 'vendor')
@@ -221,7 +236,7 @@ class SmokeTests(unittest.TestCase):
         self.module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.module)
         self.sha = 'a' * 40
-        self.pages = {'/deploy-version.txt': self.sha, '/up': 'ok', '/': '<html><link rel="stylesheet" href="/build/assets/app.css"><script src="/build/assets/app.js"></script>Matchday</html>',
+        self.pages = {'/deploy-version.txt': self.sha, '/up': 'ok', '/war': '<html>Matchday War</html>', '/': '<html><link rel="stylesheet" href="/build/assets/app.css"><script src="/build/assets/app.js"></script>Matchday</html>',
                       '/build/assets/app.css': 'body { color: black; }', '/build/assets/app.js': 'console.log("ready")',
                       '/matches': '<html>Matches <a href="/matches/123">fixture</a></html>',
                       '/api/matchday-pulse': json.dumps({'html': '<p>pulse</p>', 'has_live': False}),

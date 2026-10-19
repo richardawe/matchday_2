@@ -4,7 +4,7 @@
 set -Eeuo pipefail
 
 mode=${1:-}
-[[ "$mode" == preflight || "$mode" == maintenance || "$mode" == deploy ]] || { echo "Usage: $0 preflight|maintenance|deploy"; exit 2; }
+[[ "$mode" == preflight || "$mode" == maintenance || "$mode" == deploy || "$mode" == upload-reel ]] || { echo "Usage: $0 preflight|maintenance|deploy|upload-reel"; exit 2; }
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
     [[ -n "${!variable:-}" ]] || { echo "Missing production secret: $variable"; exit 1; }
 done
@@ -57,6 +57,14 @@ REMOTE
     [[ "$configured_public" == "$CPANEL_PUBLIC_ROOT" ]] || { echo "APP_PUBLIC_PATH and CPANEL_PUBLIC_ROOT must match."; exit 1; }
 elif [[ "$mode" == maintenance ]]; then
     ssh "${ssh_options[@]}" "$target" "cd $root && php artisan down --render=errors::503 --retry=60"
+elif [[ "$mode" == upload-reel ]]; then
+    [[ "${MATCH_ID:-}" =~ ^[0-9]+$ ]] || { echo "MATCH_ID must be numeric."; exit 1; }
+    source="matchday-africa/reel/out/$MATCH_ID.mp4"
+    [[ -s "$source" ]] || { echo "Rendered reel is missing or empty."; exit 1; }
+    printf -v destination '%q' "$CPANEL_PUBLIC_ROOT/generated/reels/$MATCH_ID"
+    # Upload one file atomically into the served root, retaining every other reel.
+    ssh "${ssh_options[@]}" "$target" \
+        "umask 022; mkdir -p $destination && cat > $destination/$MATCH_ID.mp4.upload && mv $destination/$MATCH_ID.mp4.upload $destination/$MATCH_ID.mp4" < "$source"
 else
     [[ "${GITHUB_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || { echo "Missing release commit SHA."; exit 1; }
     ssh "${ssh_options[@]}" "$target" "bash -s -- $root $GITHUB_SHA" <<'REMOTE'

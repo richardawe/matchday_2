@@ -1,7 +1,7 @@
 name: Render match reel
 
 # Fallback renderer for the Griot's 20-second reel (REEL_RENDERER=github). The site starts this
-# with a signed props URL when a Premier League match finishes; the MP4 is uploaded by FTP to
+# with a signed props URL when a Premier League match finishes; the MP4 is uploaded by SSH to
 # public/generated/reels/<match>/<match>.mp4, where the site's reel:render job picks it up.
 on:
   workflow_dispatch:
@@ -51,15 +51,15 @@ jobs:
           mkdir -p out
           node render.mjs --props-url "$PROPS_URL" --out "out/$MATCH_ID.mp4"
 
-      - name: Upload to cPanel
-        uses: SamKirkland/FTP-Deploy-Action@8e83cea8672e3fbcbb9fdafff34debf6ae4c5f65 # v4.3.5
-        with:
-          server: ${{ secrets.CPANEL_FTP_SERVER }}
-          username: ${{ secrets.CPANEL_FTP_USERNAME }}
-          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
-          protocol: ${{ secrets.CPANEL_FTP_PROTOCOL || 'ftps' }}
-          port: ${{ secrets.CPANEL_FTP_PORT || 21 }}
-          local-dir: ./matchday-africa/reel/out/
-          # One folder per match: the action deletes files it uploaded earlier that are missing
-          # locally, so a shared folder would wipe the previous reels.
-          server-dir: ${{ secrets.CPANEL_FTP_PUBLIC_DIR || format('{0}/public', secrets.CPANEL_FTP_SERVER_DIR) }}/generated/reels/${{ inputs.match_id }}/
+      - name: Publish reel to the actual public root
+        working-directory: .
+        env:
+          MATCH_ID: ${{ inputs.match_id }}
+          CPANEL_SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
+          CPANEL_SSH_USER: ${{ secrets.CPANEL_SSH_USER }}
+          CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+          CPANEL_SSH_PORT: ${{ secrets.CPANEL_SSH_PORT || '22' }}
+          CPANEL_SSH_KNOWN_HOSTS: ${{ secrets.CPANEL_SSH_KNOWN_HOSTS }}
+          CPANEL_APP_ROOT: ${{ secrets.CPANEL_APP_ROOT }}
+          CPANEL_PUBLIC_ROOT: ${{ secrets.CPANEL_PUBLIC_ROOT }}
+        run: bash scripts/ci/deploy-ssh.sh upload-reel

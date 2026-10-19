@@ -39,14 +39,14 @@ In GitHub → repository Settings → Environments → **production**, configure
 | `CPANEL_SSH_KNOWN_HOSTS` | OpenSSH known_hosts entry verified against the host's trusted fingerprint |
 | `CPANEL_APP_ROOT` | Absolute SSH path, e.g. `/home/CPANELUSER/matchday-africa`; no spaces |
 | `CPANEL_PUBLIC_ROOT` | Absolute served web root; must match server `.env` `APP_PUBLIC_PATH` (or the app's `public` directory when unset) |
-| `CPANEL_FTP_PUBLIC_DIR` | For the GitHub reel fallback with a separate web root: FTP path to that served public directory |
 
 Do not paste credentials into chat, commit them, or put them in a public web
 folder. Obtain the SSH host fingerprint from the host/cPanel over a trusted
 channel; an unverified `ssh-keyscan` result alone is insufficient. For a nonstandard
 port the known_hosts entry uses `[hostname]:port`. The workflow enforces strict
 host-key checking and deletes its temporary key files when the step finishes.
-The same `production` environment supplies FTP secrets to `render-reel.yml`.
+The same `production` environment supplies SSH secrets to `render-reel.yml`, which
+publishes one MP4 atomically into the actual public root without syncing other media.
 
 `php`, `composer`, `flock`, `sha256sum`, `rsync`, and `mysqldump` must be available in noninteractive SSH
 sessions. PHP needs MySQL PDO, mbstring, curl, XML/DOM, and GD with FreeType/WebP.
@@ -247,6 +247,8 @@ php scripts/publish-public.php /home/CPANELUSER/matchday-africa /home/CPANELUSER
 
 This points autoloading, bootstrapping, and the maintenance page to the private app,
 and tells Laravel where public assets live. The automated deployment repeats it.
+Keep the explicit `^war/?$` rewrite in `public/.htaccess`: the Laravel `/war` page
+shares its name with the physical asset directory and otherwise redirects to a 403.
 
 Do not place the whole Laravel project inside `public_html`.
 
