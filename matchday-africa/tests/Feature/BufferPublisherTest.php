@@ -111,6 +111,22 @@ class BufferPublisherTest extends TestCase
         $this->assertSame(['chan-ig'], array_column($this->bufferPosts(), 'channelId'));
     }
 
+    public function test_channels_are_listed_through_the_account(): void
+    {
+        Http::fake(['api.buffer.com/*' => function ($request) {
+            if (str_contains($request['query'], 'account { organizations')) {
+                return Http::response(['data' => ['account' => ['organizations' => [['id' => 'org1', 'name' => 'Matchday']]]]]);
+            }
+            if (str_contains($request['query'], 'IntrospectType')) {
+                return Http::response(['data' => ['__type' => null]]);
+            }
+
+            return Http::response(['data' => ['channels' => [['id' => 'c1', 'name' => 'matchdayafrica', 'service' => 'twitter']]]]);
+        }]);
+
+        $this->artisan('buffer:publish --channels')->expectsTable(['ID', 'Name', 'Service', 'Health'], [['c1', 'matchdayafrica', 'twitter', '']])->assertSuccessful();
+    }
+
     public function test_posting_stops_at_the_monthly_request_limit(): void
     {
         $this->fakeBuffer();

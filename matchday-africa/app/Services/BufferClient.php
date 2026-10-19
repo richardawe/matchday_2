@@ -114,12 +114,22 @@ class BufferClient
         return self::$typeCache[$typeName] = $out;
     }
 
-    /** @return array{organizations?: array, error?: string} */
+    /**
+     * The organizations the key can see. Buffer moved this under `account` (October 2026, the
+     * top-level field started demanding an input), so that comes first; the old shape stays as a
+     * fallback for the schema housedata.uk and ngr.ltd were built on.
+     *
+     * @return array{organizations?: array, error?: string}
+     */
     public function listOrganizations(): array
     {
-        $r = $this->query('query GetOrganizations { organizations { id name } }');
+        $r = $this->query('query GetOrganizations { account { organizations { id name } } }');
+        if (!isset($r['error'])) {
+            return ['organizations' => $r['data']['account']['organizations'] ?? []];
+        }
+        $fallback = $this->query('query GetOrganizations { organizations { id name } }');
 
-        return isset($r['error']) ? ['error' => $r['error']] : ['organizations' => $r['data']['organizations'] ?? []];
+        return isset($fallback['error']) ? ['error' => "{$r['error']} / {$fallback['error']}"] : ['organizations' => $fallback['data']['organizations'] ?? []];
     }
 
     /**

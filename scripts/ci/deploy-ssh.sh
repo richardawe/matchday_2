@@ -5,8 +5,8 @@ set -Eeuo pipefail
 
 mode=${1:-}
 case "$mode" in
-    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render) ;;
-    *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render"; exit 2 ;;
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync) ;;
+    *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync"; exit 2 ;;
 esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
     [[ -n "${!variable:-}" ]] || { echo "Missing production secret: $variable"; exit 1; }
@@ -162,6 +162,18 @@ php artisan tinker --execute='$m = App\Models\FootballMatch::findOrFail((int) ge
 php artisan reel:render "$2" --no-ansi
 php artisan tinker --execute='echo "Reel: ".json_encode(data_get(App\Models\FootballMatch::find((int) getenv("MATCH_ID"))->metadata, "reel")).PHP_EOL;'
 REMOTE
+elif [[ "$mode" == configure-espn ]]; then
+    # live: ESPN is the primary live source; shadow: only record and log differences; off: football-data only.
+    case "${INPUT_ESPN_MODE:-}" in
+        live) json='{"ESPN_ENABLED":"true","ESPN_SHADOW":"false"}' ;;
+        shadow) json='{"ESPN_ENABLED":"true","ESPN_SHADOW":"true"}' ;;
+        off) json='{"ESPN_ENABLED":"false"}' ;;
+        *) echo "espn_mode must be live, shadow or off."; exit 1 ;;
+    esac
+    printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/set-env.php && php artisan config:cache --no-ansi"
+elif [[ "$mode" == espn-sync ]]; then
+    # One fixtures pass now (normally every 6 hours) and today's live/details passes, with unmatched fixtures listed.
+    ssh "${ssh_options[@]}" "$target" "cd $root && php artisan espn:sync fixtures --no-ansi && php artisan espn:sync live --no-ansi && php artisan espn:sync details --no-ansi"
 else
     [[ "${GITHUB_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || { echo "Missing release commit SHA."; exit 1; }
     ssh "${ssh_options[@]}" "$target" "bash -s -- $root $GITHUB_SHA" <<'REMOTE'
