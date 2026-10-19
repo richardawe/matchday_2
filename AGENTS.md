@@ -62,11 +62,17 @@ artifact, and runs the Remotion smoke test when renderer code/art/fonts change.
 Require the stable **CI gate** status in GitHub branch rules. Deployment is restricted
 to `main`: SSH preflight → maintenance mode → FTPS upload → SSH production script →
 public release/page/API checks. Missing SSH configuration fails before upload.
+The required CI gate runs on every PR so documentation-only PRs cannot get stuck
+waiting for a path-filtered check.
 
 `deploy-production.sh` preserves the app key and data, installs locked dependencies,
 runs migrations/caches/worker restart, and brings the app up only after server checks
 pass. Server reels install on lock changes and render-check on source/asset changes.
 FTP preserves generated media, uploads, storage, vendor, and local databases.
+The actual cPanel web root is `/home/matchdayaf/public_html`; the private app is
+`/home/matchdayaf/matchday-africa`. Configure server `APP_PUBLIC_PATH` and matching
+GitHub `CPANEL_PUBLIC_ROOT`. Deploys back up the database/config before migrations,
+publish into the served web root, and verify real CSS/JS responses as well as pages.
 The fallback reel workflow uses the `production` environment; the legacy social
 workflow never uploads its JSON stub to production.
 
@@ -109,8 +115,8 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `BUFFER_CHANNEL_X` / `_INSTAGRAM` / `_TIKTOK` | empty | Buffer channel IDs |
 
 ## 7. Open items and known issues
-- `production.env.example` sets `APP_TIMEZONE` twice (`Africa/Lagos`, then `UTC`). Confirm which the
-  live `.env` uses before changing any time logic (rule 5 assumes `Africa/Lagos`).
+- Live `APP_TIMEZONE` was verified as `Africa/Lagos` on 19 October 2026; the production
+  template now matches it. Kick-off display formatting remains a separate issue (rule 5).
 - West Ham and Wolves have no crest-free statue (`art => null` in `config/armies.php`); their cards use club colours only.
 - Native speakers should review the Pidgin, Swahili/Sheng and Mzansi captions in `app/Services/Griot.php`.
 - Buffer's GraphQL API is in public beta and was implemented from its docs without a live account. Check

@@ -38,6 +38,8 @@ In GitHub → repository Settings → Environments → **production**, configure
 | `CPANEL_SSH_PORT` | Optional; defaults to `22` |
 | `CPANEL_SSH_KNOWN_HOSTS` | OpenSSH known_hosts entry verified against the host's trusted fingerprint |
 | `CPANEL_APP_ROOT` | Absolute SSH path, e.g. `/home/CPANELUSER/matchday-africa`; no spaces |
+| `CPANEL_PUBLIC_ROOT` | Absolute served web root; must match server `.env` `APP_PUBLIC_PATH` (or the app's `public` directory when unset) |
+| `CPANEL_FTP_PUBLIC_DIR` | For the GitHub reel fallback with a separate web root: FTP path to that served public directory |
 
 Do not paste credentials into chat, commit them, or put them in a public web
 folder. Obtain the SSH host fingerprint from the host/cPanel over a trusted
@@ -46,7 +48,7 @@ port the known_hosts entry uses `[hostname]:port`. The workflow enforces strict
 host-key checking and deletes its temporary key files when the step finishes.
 The same `production` environment supplies FTP secrets to `render-reel.yml`.
 
-`php`, `composer`, `flock`, and `sha256sum` must be available in noninteractive SSH
+`php`, `composer`, `flock`, `sha256sum`, `rsync`, and `mysqldump` must be available in noninteractive SSH
 sessions. PHP needs MySQL PDO, mbstring, curl, XML/DOM, and GD with FreeType/WebP.
 If `REEL_RENDERER=server`, install Node 22 and npm in that session's PATH, or set
 `REEL_NODE` in the server `.env` to its executable path. First installs must follow
@@ -78,6 +80,27 @@ changes or dependencies are missing. It runs the actual renderer check on first
 installation and when renderer code, fonts, army art, or Node version changes.
 Success hashes are written only after the render passes. With `off` or `github`,
 server Node installation is unnecessary.
+
+Before dependency changes or migrations, the script saves the database and `.env`
+under private `storage/app/deploy-backups/<timestamp>/` with owner-only permissions.
+A failed backup stops deployment. These backups contain secrets: keep them outside
+public storage, monitor disk space, and archive them securely before removing old copies.
+
+For this host the verified layout is `/home/matchdayaf/matchday-africa` (private app)
+and `/home/matchdayaf/public_html` (served web root). Set
+`APP_PUBLIC_PATH=/home/matchdayaf/public_html` in the server `.env`, and set the
+matching `CPANEL_PUBLIC_ROOT` secret. The deployment copies public assets into the
+served root, publishes a front controller pointing to the private app and its
+maintenance file, and binds Laravel's public path for both HTTP and CLI. It retains
+existing hashed assets and never syncs over generated media, uploads, or storage.
+The HTTP acceptance check fetches compiled CSS and JS and checks their MIME types;
+an HTML error page or missing asset fails deployment even when `/` returns 200.
+
+Live repair on 19 October 2026: a database/config backup was taken, three pending
+migrations were applied, the split web-root build was refreshed, and framework
+caches were rebuilt. Missing `espn_slug` schema had emptied the home page, stale
+routes caused match-page HTTP 500s, and mismatched manifests broke CSS. SSH access
+and GitHub environment configuration must still be verified separately.
 
 FTP excludes `.env`, `vendor`, storage/cache contents, public storage/uploads,
 `public/generated`, reel dependencies/output, SQLite files, and the local Vite hot
@@ -215,12 +238,15 @@ Copy the complete contents of `matchday-africa/public/`—including hidden `.hta
 /home/CPANELUSER/public_html/
 ```
 
-Then edit only these two lines in `/home/CPANELUSER/public_html/index.php`:
+Set `APP_PUBLIC_PATH=/home/CPANELUSER/public_html` in the server `.env`, then generate
+the front controller with the confirmed paths:
 
-```php
-require __DIR__.'/../matchday-africa/vendor/autoload.php';
-$app = require_once __DIR__.'/../matchday-africa/bootstrap/app.php';
+```bash
+php scripts/publish-public.php /home/CPANELUSER/matchday-africa /home/CPANELUSER/public_html
 ```
+
+This points autoloading, bootstrapping, and the maintenance page to the private app,
+and tells Laravel where public assets live. The automated deployment repeats it.
 
 Do not place the whole Laravel project inside `public_html`.
 

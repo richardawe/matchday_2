@@ -60,4 +60,15 @@ class MatchCentreOrderingTest extends TestCase
         $this->travelTo('2026-10-19 08:00:00');
         $this->get(route('matches.index', ['date' => '2026-10-25']))->assertOk()->assertSee('Sunday 25 October 2026');
     }
+
+    public function test_live_filter_and_badge_exclude_stale_live_records(): void
+    {
+        $this->travelTo('2026-10-19 12:00:00');
+        $league = League::create(['name' => 'Premier League', 'short_code' => 'PL']);
+        $this->fixture($league, 'Fresh Home', 'Fresh Away', -20, 'LIVE');
+        $stale = $this->fixture($league, 'Stale Home', 'Stale Away', -60, 'LIVE');
+        $stale->update(['last_api_update' => now()->subDays(2)]);
+        $this->get(route('matches.index', ['filter' => 'live']))->assertOk()
+            ->assertSee('Live <b>1</b>', false)->assertSee('Fresh Home')->assertDontSee('Stale Home');
+    }
 }

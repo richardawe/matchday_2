@@ -95,7 +95,7 @@ class MatchController extends Controller
 
         try {
             $dayMatches = FootballMatch::with(['homeTeam', 'awayTeam', 'league'])
-                ->when($filter === 'live', fn ($q) => $q->whereIn('status', FootballMatch::LIVE_STATUSES),
+                ->when($filter === 'live', fn ($q) => $q->crediblyLive(),
                     fn ($q) => $q->whereDate('match_date', $day))
                 ->orderBy('match_date')
                 ->get();
@@ -119,7 +119,7 @@ class MatchController extends Controller
                 'leaguesToday' => $leaguesToday,
                 'regionCounts' => $regionCounts,
                 'regions' => config('competitions.regions'),
-                'liveCount' => FootballMatch::whereIn('status', FootballMatch::LIVE_STATUSES)->count(),
+                'liveCount' => FootballMatch::crediblyLive()->count(),
                 'filter' => $filter,
                 'day' => $day,
                 'region' => $region,

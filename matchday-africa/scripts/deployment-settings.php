@@ -21,6 +21,21 @@ if ($mode === 'node') {
     echo $value('REEL_NODE', 'node');
     exit(0);
 }
+if ($mode === 'public') {
+    $path = $value('APP_PUBLIC_PATH', $root.'/public');
+    if (!str_starts_with($path, '/') || !is_dir($path) || realpath($path) === realpath($root)) {
+        fwrite(STDERR, "APP_PUBLIC_PATH must be an existing public directory outside the private app root.\n");
+        exit(1);
+    }
+    $resolved = realpath($path);
+    $private = realpath($root);
+    if (str_starts_with($resolved, $private.'/') && $resolved !== $private.'/public') {
+        fwrite(STDERR, "The served directory cannot expose private application files.\n");
+        exit(1);
+    }
+    echo $resolved;
+    exit(0);
+}
 
 $errors = [];
 if ($value('APP_ENV') !== 'production') {

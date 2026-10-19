@@ -2,12 +2,6 @@ name: Matchday Africa CI/CD
 
 on:
   pull_request:
-    paths:
-      - "matchday-africa/**"
-      - "scripts/ci/**"
-      - ".github/workflows/matchday-africa.yml"
-      - ".github/workflows/render-reel.yml"
-      - ".github/workflows/render-social.yml"
   push:
     branches: [main]
     paths:
@@ -168,6 +162,7 @@ jobs:
       CPANEL_SSH_PORT: ${{ secrets.CPANEL_SSH_PORT || '22' }}
       CPANEL_SSH_KNOWN_HOSTS: ${{ secrets.CPANEL_SSH_KNOWN_HOSTS }}
       CPANEL_APP_ROOT: ${{ secrets.CPANEL_APP_ROOT }}
+      CPANEL_PUBLIC_ROOT: ${{ secrets.CPANEL_PUBLIC_ROOT }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Reject a superseded release

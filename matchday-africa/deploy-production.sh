@@ -14,12 +14,14 @@ fi
 # Validate the actual dotenv values without sourcing shell code or displaying secrets.
 # Existing vendor is required for this in-place deploy; first installs use the runbook.
 php scripts/deployment-settings.php validate
+public_root=$(php scripts/deployment-settings.php public)
 
 mkdir -p storage/app/story-cards storage/app/reels public/generated/reels \
     storage/framework/{cache/data,sessions,views} bootstrap/cache
 exec 9>storage/framework/deploy.lock
 flock -n 9 || { echo "Another deployment is running."; exit 1; }
 test -f public/build/manifest.json || { echo "Missing tested Vite build."; exit 1; }
+php scripts/backup-deployment.php
 
 echo "Installing locked production dependencies..."
 composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
@@ -63,10 +65,24 @@ echo "Applying database migrations..."
 php artisan migrate --force
 
 echo "Creating the public storage link..."
-if [[ ! -e public/storage && ! -L public/storage ]]; then
+if [[ "$public_root" != "$(pwd -P)/public" ]]; then
+    # No --delete: retain hashed assets for existing browser sessions and all runtime media.
+    rsync -a --exclude=/index.php --exclude=/storage --exclude=/uploads --exclude=/generated \
+        --exclude=/hot public/ "$public_root/"
+    php scripts/publish-public.php "$(pwd -P)" "$public_root"
+    # Carry forward media from an earlier app/public layout without replacing live files.
+    for directory in generated uploads; do
+        if [[ -d "public/$directory" ]]; then
+            mkdir -p "$public_root/$directory"
+            rsync -a --ignore-existing "public/$directory/" "$public_root/$directory/"
+        fi
+    done
+fi
+mkdir -p "$public_root/generated/reels"
+if [[ ! -e "$public_root/storage" && ! -L "$public_root/storage" ]]; then
     php artisan storage:link
 fi
-[[ -d public/storage ]] || { echo "public/storage is not a working directory/link."; exit 1; }
+[[ -d "$public_root/storage" ]] || { echo "Public storage is not a working directory/link."; exit 1; }
 
 echo "Building production caches..."
 php artisan config:cache

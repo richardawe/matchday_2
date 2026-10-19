@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Read-only HTTP acceptance checks for the release that was just deployed."""
 import json
+from html.parser import HTMLParser
 import os
 import re
 import sys
@@ -17,7 +18,7 @@ def smoke(base_url, expected_sha):
     if parsed.scheme != "https" or not parsed.netloc or parsed.query or parsed.fragment:
         raise ValueError("Use the production HTTPS base URL")
 
-    def get(path):
+    def get(path, expected_type=None):
         request = urllib.request.Request(
             base_url.rstrip("/") + path,
             headers={"Cache-Control": "no-cache", "User-Agent": "Matchday-deploy-smoke"},
@@ -30,7 +31,15 @@ def smoke(base_url, expected_sha):
                     # Redirects to sign-in or another host cannot establish readiness.
                     if urllib.parse.urlsplit(response.url).netloc != parsed.netloc:
                         raise RuntimeError(f"{path}: unexpected redirect host")
+                    if urllib.parse.urlsplit(response.url).path != urllib.parse.urlsplit(path).path:
+                        raise RuntimeError(f"{path}: unexpected redirect path")
+                    if expected_type and response.headers.get_content_type() not in expected_type:
+                        raise RuntimeError(f"{path}: incorrect asset content type")
                     result = response.read().decode("utf-8")
+                    if not result.strip():
+                        raise RuntimeError(f"{path}: empty response")
+                    if expected_type and re.search(r'<(?:!doctype\s+html|html)(?:\s|>)', result, re.I):
+                        raise RuntimeError(f"{path}: HTML instead of a compiled asset")
                     print(f"HTTP 200: {urllib.parse.urlsplit(path).path}")
                     return result
             except (urllib.error.URLError, TimeoutError):
@@ -44,6 +53,31 @@ def smoke(base_url, expected_sha):
     home = get("/")
     if "<html" not in home.lower() or "/build/assets/" not in home:
         raise RuntimeError("Home page did not render the compiled frontend")
+    class Assets(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.urls = set()
+
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            url = attrs.get('href') if tag == 'link' else attrs.get('src') if tag == 'script' else None
+            if url and '/build/assets/' in url:
+                self.urls.add(url)
+
+    assets = Assets()
+    assets.feed(home)
+    extensions = set()
+    for url in sorted(assets.urls):
+        asset = urllib.parse.urlsplit(urllib.parse.urljoin(base_url, url))
+        if asset.netloc != parsed.netloc or asset.scheme != 'https':
+            raise RuntimeError('Compiled assets must use the production HTTPS origin')
+        extension = os.path.splitext(asset.path)[1]
+        types = {'.css': ['text/css'], '.js': ['application/javascript', 'text/javascript']}
+        if extension in types:
+            get(asset.path, types[extension])
+            extensions.add(extension)
+    if extensions != {'.css', '.js'}:
+        raise RuntimeError('Home page must load compiled CSS and JavaScript')
     listing = get("/matches")
     if "<html" not in listing.lower() or "Match" not in listing:
         raise RuntimeError("Match listing did not render")

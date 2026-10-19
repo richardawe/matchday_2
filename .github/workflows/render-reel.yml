@@ -62,4 +62,4 @@ jobs:
           local-dir: ./matchday-africa/reel/out/
           # One folder per match: the action deletes files it uploaded earlier that are missing
           # locally, so a shared folder would wipe the previous reels.
-          server-dir: ${{ secrets.CPANEL_FTP_SERVER_DIR }}/public/generated/reels/${{ inputs.match_id }}/
+          server-dir: ${{ secrets.CPANEL_FTP_PUBLIC_DIR || format('{0}/public', secrets.CPANEL_FTP_SERVER_DIR) }}/generated/reels/${{ inputs.match_id }}/

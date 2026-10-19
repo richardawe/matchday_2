@@ -2,6 +2,7 @@
 """Exercise deployment ordering, preserved state, and fail-closed SSH transport."""
 import importlib.util
 import io
+from email.message import Message
 import json
 import os
 from pathlib import Path
@@ -25,13 +26,16 @@ args=sys.argv[1:]
 with open(os.environ['CALL_LOG'],'a') as log: log.write(json.dumps([name]+args)+'\n')
 if os.environ.get('FAIL_COMMAND') == ' '.join([name]+args): sys.exit(23)
 if name=='php' and args[:1]==['scripts/deployment-settings.php']:
+    if args[1]=='public': print(os.environ.get('FAKE_PUBLIC_ROOT',str(Path.cwd()/'public')))
     if args[1]=='renderer': print(os.environ.get('FAKE_RENDERER','off'))
     if args[1]=='node': print('node')
 if name=='php' and args==['artisan','storage:link']:
-    Path('public/storage').symlink_to(Path.cwd()/'storage/app/public')
+    (Path(os.environ.get('FAKE_PUBLIC_ROOT','public'))/'storage').symlink_to(Path.cwd()/'storage/app/public')
 if name=='npm': Path('node_modules').mkdir(exist_ok=True)
 if name=='node' and args==['--version']: print('v22.0.0')
-if name=='ssh': sys.stdin.read()
+if name=='ssh':
+    sys.stdin.read()
+    if ' public ' in args[-1]: print(os.environ['CPANEL_PUBLIC_ROOT'])
 '''
 
 
@@ -39,10 +43,10 @@ class DeployTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.bin = self.root / 'bin'
         self.bin.mkdir()
-        for tool in ['php', 'composer', 'node', 'npm', 'ssh']:
+        for tool in ['php', 'composer', 'node', 'npm', 'ssh', 'flock']:
             file = self.bin / tool
             file.write_text(FAKE_TOOL)
             file.chmod(0o755)
@@ -90,6 +94,46 @@ class DeployTests(unittest.TestCase):
         self.assertEqual(self.run_deploy(FAIL_COMMAND=command).returncode, 23)
         self.assertNotIn(['php', 'artisan', 'migrate', '--force'], self.calls())
 
+    def test_backup_failure_stops_before_dependencies_or_migrations(self):
+        self.assertEqual(self.run_deploy(FAIL_COMMAND='php scripts/backup-deployment.php').returncode, 23)
+        self.assertFalse(any(call[0] == 'composer' for call in self.calls()))
+        self.assertNotIn(['php', 'artisan', 'migrate', '--force'], self.calls())
+
+    def test_separate_public_root_gets_assets_without_overwriting_runtime_media(self):
+        public = self.root/'public_html'
+        for directory in ['generated/reels', 'uploads', 'build/assets']:
+            (public/directory).mkdir(parents=True, exist_ok=True)
+        (public/'generated/reels/keep.mp4').write_text('retained media')
+        (self.root/'public/generated/reels').mkdir(parents=True)
+        (self.root/'public/generated/reels/keep.mp4').write_text('older staging media')
+        (self.root/'public/generated/reels/migrate.mp4').write_text('migrated media')
+        (public/'uploads/keep.jpg').write_text('retained upload')
+        (public/'build/assets/old.css').write_text('old browser session')
+        (public/'index.php').write_text('existing cPanel entry')
+        (self.root/'public/build/assets').mkdir()
+        (self.root/'public/build/assets/new.css').write_text('new release')
+        self.assert_success(self.run_deploy(FAKE_PUBLIC_ROOT=str(public)))
+        self.assertEqual((public/'build/assets/new.css').read_text(), 'new release')
+        self.assertEqual((public/'build/assets/old.css').read_text(), 'old browser session')
+        self.assertEqual((public/'generated/reels/keep.mp4').read_text(), 'retained media')
+        self.assertEqual((public/'generated/reels/migrate.mp4').read_text(), 'migrated media')
+        self.assertEqual((public/'uploads/keep.jpg').read_text(), 'retained upload')
+        self.assertTrue((public/'storage').is_dir())
+        self.assertIn(['php', 'scripts/publish-public.php', str(self.root), str(public)], self.calls())
+
+    @unittest.skipUnless(REAL_PHP, 'PHP is required')
+    def test_real_public_entry_uses_private_app_maintenance_and_public_paths(self):
+        public = self.root/'public_html'
+        public.mkdir()
+        result = subprocess.run([REAL_PHP, str(APP/'scripts/publish-public.php'), str(self.root), str(public)],
+                                capture_output=True, text=True)
+        self.assert_success(result)
+        source = (public/'index.php').read_text()
+        self.assertIn(str(self.root), source)
+        self.assertIn("$root.'/storage/framework/maintenance.php'", source)
+        self.assertIn("$app->usePublicPath('"+str(public)+"')", source)
+        self.assert_success(subprocess.run([REAL_PHP, '-l', str(public/'index.php')], capture_output=True, text=True))
+
     def test_migration_failure_never_caches_or_restarts_workers(self):
         self.assertEqual(self.run_deploy(FAIL_COMMAND='php artisan migrate --force').returncode, 23)
         self.assertNotIn(['php', 'artisan', 'config:cache'], self.calls())
@@ -129,7 +173,7 @@ class DeployTests(unittest.TestCase):
     def ssh_env(self):
         return {**self.env, 'CPANEL_SSH_HOST': 'host.example', 'CPANEL_SSH_USER': 'cpanel',
                 'CPANEL_SSH_KEY': 'fixture only', 'CPANEL_SSH_KNOWN_HOSTS': 'host.example ssh-ed25519 fixture',
-                'CPANEL_APP_ROOT': '/home/cpanel/matchday-africa', 'GITHUB_SHA': 'a' * 40}
+                'CPANEL_APP_ROOT': '/home/cpanel/matchday-africa', 'CPANEL_PUBLIC_ROOT': '/home/cpanel/public_html', 'GITHUB_SHA': 'a' * 40}
 
     def run_ssh(self, mode, env):
         return subprocess.run(['bash', str(REPO / 'scripts/ci/deploy-ssh.sh'), mode],
@@ -142,7 +186,7 @@ class DeployTests(unittest.TestCase):
     def test_ssh_requires_pinned_host_keys_and_cleans_up_credentials(self):
         self.assert_success(self.run_ssh('preflight', self.ssh_env()))
         calls = self.calls()
-        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(calls), 3)
         for call in calls:
             self.assertIn('StrictHostKeyChecking=yes', call)
             self.assertIn('BatchMode=yes', call)
@@ -177,7 +221,8 @@ class SmokeTests(unittest.TestCase):
         self.module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.module)
         self.sha = 'a' * 40
-        self.pages = {'/deploy-version.txt': self.sha, '/up': 'ok', '/': '<html>/build/assets/app.js Matchday</html>',
+        self.pages = {'/deploy-version.txt': self.sha, '/up': 'ok', '/': '<html><link rel="stylesheet" href="/build/assets/app.css"><script src="/build/assets/app.js"></script>Matchday</html>',
+                      '/build/assets/app.css': 'body { color: black; }', '/build/assets/app.js': 'console.log("ready")',
                       '/matches': '<html>Matches <a href="/matches/123">fixture</a></html>',
                       '/api/matchday-pulse': json.dumps({'html': '<p>pulse</p>', 'has_live': False}),
                       '/matches/123': '<html>Match room</html>',
@@ -189,6 +234,8 @@ class SmokeTests(unittest.TestCase):
             response = io.BytesIO(self.pages[path].encode())
             response.status = 200
             response.url = request.full_url
+            response.headers = Message()
+            response.headers['Content-Type'] = 'text/css' if path.endswith('.css') else 'application/javascript' if path.endswith('.js') else 'text/html'
             return response
         with patch.object(self.module.urllib.request, 'urlopen', open_response), patch.dict(os.environ, {'SMOKE_MATCH_ID': ''}):
             self.module.smoke('https://matchday.africa', self.sha)
@@ -204,6 +251,18 @@ class SmokeTests(unittest.TestCase):
     def test_broken_pulse_payload_fails(self):
         self.pages['/api/matchday-pulse'] = '{}'
         with self.assertRaisesRegex(RuntimeError, 'unexpected payload'):
+            self.run_smoke()
+
+    def test_missing_compiled_stylesheet_fails(self):
+        del self.pages['/build/assets/app.css']
+        with self.assertRaises(KeyError):
+            self.run_smoke()
+
+    def test_html_fallback_cannot_masquerade_as_stylesheet(self):
+        self.pages['/'] = self.pages['/'].replace('app.css', 'missing.css')
+        self.pages['/build/assets/missing.css'] = '<html>Not found</html>'
+        # A nonempty HTML body with a CSS MIME type still must not pass.
+        with self.assertRaisesRegex(RuntimeError, 'HTML instead of'):
             self.run_smoke()
 
 

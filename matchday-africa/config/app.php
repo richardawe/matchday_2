@@ -15,6 +15,9 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
+    // cPanel may serve public_html separately from the private application root.
+    'public_path' => env('APP_PUBLIC_PATH'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment
