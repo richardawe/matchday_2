@@ -20,20 +20,25 @@ jobs:
   render:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+    env:
+      REEL_CONCURRENCY: "2"
     defaults:
       run:
         working-directory: matchday-africa/reel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: matchday-africa/reel/package-lock.json
 
       - name: Install Remotion
-        run: npm ci
+        run: npm ci --no-audit --no-fund
 
       - name: Render reel
         env:
@@ -41,16 +46,18 @@ jobs:
           MATCH_ID: ${{ inputs.match_id }}
         run: |
           case "$MATCH_ID" in (*[!0-9]*|'') echo "match_id must be numeric"; exit 1;; esac
+          # shellcheck disable=SC2016
+          node -e 'const u = new URL(process.env.PROPS_URL); if (u.origin !== "https://matchday.africa" || u.pathname !== `/reels/${process.env.MATCH_ID}/props`) process.exit(1);'
           mkdir -p out
           node render.mjs --props-url "$PROPS_URL" --out "out/$MATCH_ID.mp4"
 
       - name: Upload to cPanel
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        uses: SamKirkland/FTP-Deploy-Action@8e83cea8672e3fbcbb9fdafff34debf6ae4c5f65 # v4.3.5
         with:
           server: ${{ secrets.CPANEL_FTP_SERVER }}
           username: ${{ secrets.CPANEL_FTP_USERNAME }}
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
-          protocol: ${{ secrets.CPANEL_FTP_PROTOCOL || 'ftp' }}
+          protocol: ${{ secrets.CPANEL_FTP_PROTOCOL || 'ftps' }}
           port: ${{ secrets.CPANEL_FTP_PORT || 21 }}
           local-dir: ./matchday-africa/reel/out/
           # One folder per match: the action deletes files it uploaded earlier that are missing

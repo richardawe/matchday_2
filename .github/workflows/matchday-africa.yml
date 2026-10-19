@@ -4,12 +4,18 @@ on:
   pull_request:
     paths:
       - "matchday-africa/**"
+      - "scripts/ci/**"
       - ".github/workflows/matchday-africa.yml"
+      - ".github/workflows/render-reel.yml"
+      - ".github/workflows/render-social.yml"
   push:
     branches: [main]
     paths:
       - "matchday-africa/**"
+      - "scripts/ci/**"
       - ".github/workflows/matchday-africa.yml"
+      - ".github/workflows/render-reel.yml"
+      - ".github/workflows/render-social.yml"
   workflow_dispatch:
 
 concurrency:
@@ -24,80 +30,172 @@ defaults:
     working-directory: matchday-africa
 
 jobs:
+  changes:
+    name: Select reel smoke test
+    runs-on: ubuntu-latest
+    outputs:
+      reel: ${{ steps.changes.outputs.reel }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - id: changes
+        working-directory: .
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == workflow_dispatch || -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then
+            echo 'reel=true' >> "$GITHUB_OUTPUT"
+          else
+            changed=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- \
+              matchday-africa/reel/ matchday-africa/resources/fonts/ matchday-africa/resources/armies/ \
+              .github/workflows/matchday-africa.yml .github/workflows/render-reel.yml)
+            if [[ -n "$changed" ]]; then
+              echo 'reel=true' >> "$GITHUB_OUTPUT"
+            else
+              echo 'reel=false' >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
   test:
-    name: Test and build
+    name: Test and build (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
-
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.2", "8.4"]
     steps:
-      - name: Check out the application
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
-          php-version: "8.2"
-          extensions: mbstring, pdo_sqlite
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, pdo_sqlite, gd, curl, zip
           coverage: none
-
+          tools: composer:v2
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: matchday-africa/package-lock.json
-
       - name: Cache Composer packages
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/composer/files
           key: composer-${{ runner.os }}-${{ hashFiles('matchday-africa/composer.lock') }}
           restore-keys: composer-${{ runner.os }}-
-
       - name: Install PHP dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
-
       - name: Install frontend dependencies
-        run: npm ci
-
+        run: npm ci --no-audit --no-fund
       - name: Build production assets
         run: npm run build
-
       - name: Run application tests
-        run: php artisan test
+        run: php vendor/bin/phpunit
+      - name: Test deployment scripts
+        if: matrix.php == '8.2'
+        working-directory: .
+        run: python3 scripts/ci/test-deployment.py
+      - name: Lint deployment shell scripts
+        if: matrix.php == '8.2'
+        working-directory: .
+        run: shellcheck matchday-africa/deploy-production.sh scripts/ci/deploy-ssh.sh
+      - name: Preserve the tested frontend build
+        if: matrix.php == '8.2'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: frontend-${{ github.sha }}
+          path: matchday-africa/public/build/
+          if-no-files-found: error
+          retention-days: 7
 
-  deploy:
-    name: Deploy to matchday.africa by FTP
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: test
+  reel-smoke:
+    name: Render reel smoke test
+    needs: changes
+    if: needs.changes.outputs.reel == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment:
-      name: production
-      url: https://matchday.africa
-
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: matchday-africa/reel
+    env:
+      REEL_CONCURRENCY: "2"
     steps:
-      - name: Check out the application
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: matchday-africa/package-lock.json
+          cache-dependency-path: matchday-africa/reel/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: node check.mjs
 
-      - name: Build production assets
-        run: npm ci && npm run build
+  checks:
+    name: CI gate
+    needs: [test, changes, reel-smoke]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require application tests and any selected reel smoke test
+        working-directory: .
+        env:
+          TEST_RESULT: ${{ needs.test.result }}
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          REEL_RESULT: ${{ needs.reel-smoke.result }}
+        run: |
+          [[ "$TEST_RESULT" == success && "$CHANGES_RESULT" == success ]]
+          [[ "$REEL_RESULT" == success || "$REEL_RESULT" == skipped ]]
 
+  deploy:
+    name: Deploy and verify production
+    needs: checks
+    if: >-
+      always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' &&
+      needs.checks.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: https://matchday.africa
+    env:
+      CPANEL_SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
+      CPANEL_SSH_USER: ${{ secrets.CPANEL_SSH_USER }}
+      CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+      CPANEL_SSH_PORT: ${{ secrets.CPANEL_SSH_PORT || '22' }}
+      CPANEL_SSH_KNOWN_HOSTS: ${{ secrets.CPANEL_SSH_KNOWN_HOSTS }}
+      CPANEL_APP_ROOT: ${{ secrets.CPANEL_APP_ROOT }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Reject a superseded release
+        working-directory: .
+        run: |
+          current=$(git ls-remote origin refs/heads/main | cut -f 1)
+          [[ "$current" == "$GITHUB_SHA" ]] || { echo 'main has moved; deploy its latest workflow run instead.'; exit 1; }
+      - name: Restore the tested frontend build
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: frontend-${{ github.sha }}
+          path: matchday-africa/public/build/
+      - name: Verify SSH access and production prerequisites before upload
+        working-directory: .
+        run: bash scripts/ci/deploy-ssh.sh preflight
+      - name: Stamp the release
+        run: printf '%s\n' "$GITHUB_SHA" > public/deploy-version.txt
+      - name: Enter maintenance mode for the in-place upload
+        working-directory: .
+        run: bash scripts/ci/deploy-ssh.sh maintenance
       - name: Upload application to cPanel
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        uses: SamKirkland/FTP-Deploy-Action@8e83cea8672e3fbcbb9fdafff34debf6ae4c5f65 # v4.3.5
         with:
           server: ${{ secrets.CPANEL_FTP_SERVER }}
           username: ${{ secrets.CPANEL_FTP_USERNAME }}
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
-          protocol: ${{ secrets.CPANEL_FTP_PROTOCOL || 'ftp' }}
-          port: ${{ secrets.CPANEL_FTP_PORT || 21 }}
+          protocol: ${{ secrets.CPANEL_FTP_PROTOCOL || 'ftps' }}
+          port: ${{ secrets.CPANEL_FTP_PORT || '21' }}
           local-dir: ./matchday-africa/
           server-dir: ${{ secrets.CPANEL_FTP_SERVER_DIR }}/
           exclude: |
@@ -108,9 +206,27 @@ jobs:
             **/tests/**
             **/.env
             **/.env.*
+            **/database/*.sqlite
+            **/database/*.sqlite-*
+            **/phpunit.xml
+            **/.phpunit*
+            **/public/hot
             **/storage/**
             **/bootstrap/cache/**
             **/public/storage/**
             **/public/uploads/**
+            **/public/generated/**
+            **/reel/out/**
             **/*.log
             **/releases/**
+      - name: Install dependencies, migrate, cache, and restart workers
+        working-directory: .
+        run: bash scripts/ci/deploy-ssh.sh deploy
+      - name: Verify the public release and application routes
+        env:
+          SMOKE_MATCH_ID: ${{ vars.CPANEL_SMOKE_MATCH_ID }}
+        run: python3 scripts/smoke-production.py https://matchday.africa "$GITHUB_SHA"
+      - name: Report deployment failure
+        if: failure()
+        run: |
+          echo '::error::Deployment did not complete. If maintenance mode was entered, the site stays down until a successful recovery. See CPANEL_DEPLOYMENT_RUNBOOK.md; do not blindly run artisan up after a partial upload or failed migration.'

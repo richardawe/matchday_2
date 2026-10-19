@@ -11,9 +11,9 @@ reel, Buffer and arena work (commits up to `22bcc73` on `main`).
 | `matchday-africa/` | **The live site**: Laravel 12, PHP 8.2+, Blade + Vite + Tailwind, MySQL in production, SQLite in tests. Served at https://matchday.africa from cPanel. | Yes |
 | `matchday-africa/reel/` | Separate Node project (Remotion 4.0.532, React 18) that renders the 20-second full-time reel. Own `package.json` / `package-lock.json`. | Uploaded as source; needs `npm ci` on the server |
 | Repo root (`app/`, `worker/`, `db/`, `scripts/`, `package.json`, `next.config.ts`) | An older Next/vinext + Cloudflare D1 starter. **Not deployed.** Don't build or change it for production. | No |
-| `.github/workflows/matchday-africa.yml` | CI: tests + Vite build on PRs touching `matchday-africa/**`; on push to `main`, tests then **FTP deploy to production**. | n/a |
+| `.github/workflows/matchday-africa.yml` | CI: tests + Vite build on PRs touching `matchday-africa/**`; on push to `main`, tests then **FTPS upload + SSH server steps + HTTP checks**. | n/a |
 | `.github/workflows/render-reel.yml` | Fallback reel renderer (started by the site via the GitHub API when `REEL_RENDERER=github`). | n/a |
-| `.github/workflows/render-social.yml` | Legacy stub (only saves a JSON spec). Superseded by the reel pipeline. | n/a |
+| `.github/workflows/render-social.yml` | Legacy metadata validator; saves a JSON artifact, never deploys media. | n/a |
 
 Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `deploy-production.sh`
 (post-upload steps), `docs/ESPN_LIVE_DATA_PLAN.md` (live data design and risks), `docs/redesign-brief.html`
@@ -55,58 +55,31 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Buffer → X, Instagram, TikTok | `app/Services/BufferPublisher.php`, `buffer:publish`, `config/buffer.php`, table `social_posts` | `buffer:publish` 1m | `BUFFER_API_KEY` + `BUFFER_CHANNEL_*` |
 | Home arena | `resources/views/partials/home-arena.blade.php`, `resources/js/arena.js` (GSAP), `arena3d.js` (three.js, desktop only) | rides the home pulse refresh | always on when a Premier League match qualifies |
 
-## 4. CI/CD: what the pipeline must do
+## 4. CI/CD
 
-This is the task list for setting up automatic deploys. What exists today: the deploy workflow tests,
-builds and **uploads files by FTP only**. It can't run migrations, clear caches or install the reel's
-Node packages, so those still need a manual `bash deploy-production.sh` in cPanel Terminal.
+The workflow now tests PHP 8.2/8.4 with GD, preserves the tested Vite build as an
+artifact, and runs the Remotion smoke test when renderer code/art/fonts change.
+Require the stable **CI gate** status in GitHub branch rules. Deployment is restricted
+to `main`: SSH preflight → maintenance mode → FTPS upload → SSH production script →
+public release/page/API checks. Missing SSH configuration fails before upload.
 
-### 4.1 Make deploys run the server steps automatically
-- Preferred: if the host allows SSH, add a step after the FTP upload in `matchday-africa.yml` that SSHes in
-  (for example `appleboy/ssh-action`, pinned to a release) and runs `cd <app root> && bash deploy-production.sh`.
-  New secrets in the `production` environment: `CPANEL_SSH_HOST`, `CPANEL_SSH_USER`, `CPANEL_SSH_KEY`,
-  `CPANEL_SSH_PORT`. Ask the owner whether SSH is enabled before building this.
-- If there is no SSH, don't invent a public "run migrations" URL without the owner's sign-off. Document
-  the manual step instead.
+`deploy-production.sh` preserves the app key and data, installs locked dependencies,
+runs migrations/caches/worker restart, and brings the app up only after server checks
+pass. Server reels install on lock changes and render-check on source/asset changes.
+FTP preserves generated media, uploads, storage, vendor, and local databases.
+The fallback reel workflow uses the `production` environment; the legacy social
+workflow never uploads its JSON stub to production.
 
-### 4.2 Extend `deploy-production.sh`
-Add, after `composer install` and before the caches:
-1. `mkdir -p storage/app/story-cards storage/app/reels public/generated/reels`
-2. If `.env` has `REEL_RENDERER=server` and `reel/package-lock.json` changed since the last run (keep a
-   hash in `storage/app/reel-lock.sha`): `(cd reel && npm ci --omit=dev --no-audit --no-fund)`. Remotion
-   downloads its headless Chrome on first use. The first time, also run `(cd reel && node check.mjs)` and
-   stop with its message if it fails.
-3. Keep `php artisan migrate --force` (three new migrations: ESPN columns, `match_moments`, `social_posts`).
-4. Keep `config:cache`. It means **any `.env` change needs this script (or `php artisan optimize:clear`) again**.
+See `matchday-africa/CPANEL_DEPLOYMENT_RUNBOOK.md` for exact FTP/SSH secret names,
+verified SSH host-key setup, application-root mapping, branch rules, cron, and recovery.
+Use the cPanel application owner; Linux root is unnecessary. Server access, GitHub
+secret configuration, branch rules, and cron must be verified separately. Workflow
+code alone does not establish that hosting is configured. A failed in-place upload
+or server step leaves maintenance mode active; do not blindly reopen a partial release.
 
-### 4.3 Fix the FTP sync rules in `matchday-africa.yml`
-- Add to `exclude`: `**/public/generated/**`, `**/reel/node_modules/**`, `**/reel/out/**`.
-- Make sure these committed build outputs **are** uploaded: `resources/armies/**`, `resources/fonts/**`,
-  `public/war/army/**`, `reel/**` (source only).
-- `public/build` is produced in CI by `npm run build` and must be uploaded (it is, via `local-dir`).
-
-### 4.4 Add a reel smoke test to CI
-A job that runs only when `matchday-africa/reel/**` changes:
-`cd matchday-africa/reel && npm ci && node check.mjs` on `ubuntu-latest` (about 1–2 minutes; Remotion fetches
-its own Chrome and ffmpeg). It proves the reel still renders before deploy.
-
-### 4.5 Server cron (one-off, cPanel → Cron Jobs)
-- `* * * * * /usr/local/bin/php /home/CPANELUSER/matchday-africa/artisan schedule:run >> /dev/null 2>&1`
-- Queue fallback if no worker: see the runbook §14.
-- The ESPN, story, reel and Buffer jobs use `runInBackground()` / `withoutOverlapping()`; `exec` must be
-  allowed for the PHP CLI. Check with `php artisan schedule:list`.
-- If `node` isn't on cron's PATH, set `REEL_NODE` to the full path (cPanel's "Setup Node.js App" shows it).
-
-### 4.6 Secrets checklist (GitHub → Settings → Environments → production)
-`CPANEL_FTP_SERVER`, `CPANEL_FTP_USERNAME`, `CPANEL_FTP_PASSWORD`, `CPANEL_FTP_SERVER_DIR` (app root,
-ending in `/`), optional `CPANEL_FTP_PROTOCOL`, `CPANEL_FTP_PORT`; plus SSH secrets if 4.1 is used.
-`render-reel.yml` reuses the FTP secrets. For `REEL_RENDERER=github`, the **server** `.env` needs
-`REEL_GITHUB_TOKEN` (a fine-grained token on this repo with Actions: read and write).
-
-### 4.7 After every deploy, check
-- `GET /up` returns 200; `/`, `/matches`, a match page and `/matches/{id}/live` return 200.
-- `php artisan migrate:status` shows nothing pending; `php artisan matchday:health` looks sane.
-- The admin dashboard's "Live feed (ESPN)" line and recent sync runs.
+Local deployment regression checks: `python3 scripts/ci/test-deployment.py` from the
+repository root, with PHP on PATH and Laravel vendor dependencies installed. Shell
+checks: `shellcheck matchday-africa/deploy-production.sh scripts/ci/deploy-ssh.sh`.
 
 ## 5. Go-live order for the new features (server `.env`, then `optimize:clear` or the deploy script)
 1. `php artisan migrate --force`.
