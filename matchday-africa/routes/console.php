@@ -13,6 +13,10 @@ Schedule::command('matches:refresh upcoming')->everySixHours()->withoutOverlappi
 Schedule::command('matches:refresh today')->everyFifteenMinutes()->withoutOverlapping(10)->name('matches-today');
 Schedule::command('matches:refresh live')->everyMinute()->withoutOverlapping(3)->name('matches-live');
 Schedule::command('matches:refresh results')->everyFiveMinutes()->withoutOverlapping(10)->name('matches-results');
+// ESPN feed (no-ops while ESPN_ENABLED=false): live passes every 20s inside each minute.
+Schedule::command('espn:sync fixtures')->everySixHours()->withoutOverlapping(30)->runInBackground()->name('espn-fixtures');
+Schedule::command('espn:sync live')->everyMinute()->withoutOverlapping(2)->runInBackground()->name('espn-live');
+Schedule::command('espn:sync details')->everyMinute()->withoutOverlapping(5)->runInBackground()->name('espn-details');
 Schedule::command('sync:standings --all')->dailyAt('03:10')->withoutOverlapping(60)->name('standings-nightly');
 Schedule::command('sync:leagues --featured')->dailyAt('02:30')->withoutOverlapping(60)->name('leagues-daily');
 Schedule::command('sync:players --all --limit=20')->weeklyOn(1, '04:00')->withoutOverlapping(120)->name('players-weekly');

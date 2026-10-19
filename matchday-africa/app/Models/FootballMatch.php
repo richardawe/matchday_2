@@ -48,7 +48,11 @@ class FootballMatch extends Model
         'is_prediction_eligible',
         'prediction_deadline',
         'prediction_types_enabled',
-        'scored_at'
+        'scored_at',
+        'espn_id',
+        'data_source',
+        'events_source',
+        'espn_synced_at'
     ];
 
     protected $casts = [
@@ -60,6 +64,8 @@ class FootballMatch extends Model
         'away_team_id' => 'integer',
         'away_team_football_data_id' => 'integer',
         'match_date' => 'datetime',
+        'espn_id' => 'integer',
+        'espn_synced_at' => 'datetime',
         'minute' => 'integer',
         'home_score' => 'integer',
         'away_score' => 'integer',
@@ -200,13 +206,26 @@ class FootballMatch extends Model
     {
         return match($this->status) {
             'SCHEDULED', 'TIMED' => 'Scheduled',
-            'LIVE', '1H', '2H' => 'Live',
-            'HT' => 'Half Time',
+            'LIVE', 'IN_PLAY', '1H', '2H', 'ET' => 'Live',
+            'HT', 'PAUSED' => 'Half Time',
+            'PENALTY_SHOOTOUT' => 'Penalties',
             'FT', 'FINISHED' => 'Finished',
             'POSTPONED' => 'Postponed',
             'CANCELLED' => 'Cancelled',
             default => $this->status
         };
+    }
+
+    /**
+     * Status with the running clock while the ball is in play, e.g. "Live · 45'+2".
+     */
+    public function getLiveLabelAttribute(): string
+    {
+        $clock = data_get($this->metadata, 'espn_clock') ?: ($this->minute ? $this->minute."'" : null);
+
+        return in_array($this->status, ['LIVE', 'IN_PLAY', '1H', '2H', 'ET'], true) && $clock
+            ? $this->status_display.' · '.$clock
+            : $this->status_display;
     }
 
     /**

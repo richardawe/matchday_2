@@ -81,8 +81,8 @@ class SyncStandings extends Command
     private function syncStandingsByLeagueId(int $leagueId): int
     {
         $league = League::find($leagueId);
-        if (!$league) {
-            $this->error('❌ League not found');
+        if (!$league || !$league->football_data_id) {
+            $this->error($league ? '❌ League has no football-data.org ID (ESPN-only)' : '❌ League not found');
             return Command::FAILURE;
         }
         

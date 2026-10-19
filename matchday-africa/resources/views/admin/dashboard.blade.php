@@ -21,6 +21,8 @@
             <div><span>Finals without scores</span><strong>{{ $operations['finished_missing_score'] }}</strong></div>
             <div><span>Recent finals without events</span><strong>{{ $operations['finished_missing_events'] }}</strong></div>
             <div><span>Football API</span><strong>{{ $apiStatus['is_configured'] ? 'Ready' : 'Missing key' }}</strong></div>
+            <div><span>Live feed (ESPN)</span><strong>{{ !$espn['enabled'] ? 'Off' : ($espn['paused_until'] ? 'Paused until '.\Carbon\Carbon::parse($espn['paused_until'])->format('H:i') : 'On') }}</strong></div>
+            @if($espn['unmatched'])<details><summary>{{ count($espn['unmatched']) }} ESPN fixtures not linked to a match</summary><ul class="text-sm mt-2">@foreach(array_slice($espn['unmatched'],0,20) as $line)<li>{{ $line }}</li>@endforeach</ul><small>Add a name to <code>team_aliases</code> in config/espn.php to link them.</small></details>@endif
             <small>Last successful run: {{ $operations['last_success'] ? \Carbon\Carbon::parse($operations['last_success'])->diffForHumans() : 'Never recorded' }}</small>
         </aside>
     </section>

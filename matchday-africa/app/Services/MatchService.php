@@ -161,10 +161,10 @@ class MatchService
         $homeScoreHT = $matchData['score']['halfTime']['home'] ?? null;
         $awayScoreHT = $matchData['score']['halfTime']['away'] ?? null;
 
+        $existing = FootballMatch::where('football_data_id', $matchData['id'])->first();
+
         // Create or update the match
-        $match = FootballMatch::updateOrCreate(
-            ['football_data_id' => $matchData['id']],
-            [
+        $values = [
                 'league_id' => $leagueId,
                 'league_football_data_id' => $leagueFootballDataId,
                 'home_team_id' => $homeTeam->id,
@@ -188,12 +188,20 @@ class MatchService
                 'is_featured' => false,
                 'has_live_coverage' => $matchData['live'] ?? false,
                 'last_api_update' => now(),
-                'metadata' => $matchData
-            ]
-        );
+                // Merge so other providers' keys (API-Football, ESPN) survive each refresh.
+                'metadata' => array_merge(is_array($existing?->metadata) ? $existing->metadata : [], $matchData)
+            ];
+
+        // football-data.org's free tier is delayed: while ESPN is updating a match, ESPN's
+        // live fields win and this sync only refreshes the rest.
+        if (config('espn.enabled') && $existing?->espn_synced_at?->gte(now()->subMinutes(config('espn.authority_minutes', 10)))) {
+            unset($values['status'], $values['minute'], $values['home_score'], $values['away_score'], $values['last_api_update']);
+        }
+
+        $match = FootballMatch::updateOrCreate(['football_data_id' => $matchData['id']], $values);
 
         // Sync match events (goals, cards, etc.) if match is completed or live
-        if (in_array($match->status, ['FINISHED', 'LIVE', '1H', '2H', 'HT', 'ET', 'PENALTY_SHOOTOUT'])) {
+        if ($match->events_source !== 'espn' && in_array($match->status, ['FINISHED', 'LIVE', '1H', '2H', 'HT', 'ET', 'PENALTY_SHOOTOUT'])) {
             $this->syncMatchEvents($match->football_data_id, $match->id);
         }
 
@@ -541,6 +549,7 @@ class MatchService
     {
         try {
             $finishedMatches = FootballMatch::where('status', 'FINISHED')
+                ->whereNotNull('football_data_id')
                 ->whereDoesntHave('events')
                 ->take($limit)
                 ->get();

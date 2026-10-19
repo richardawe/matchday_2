@@ -24,7 +24,8 @@ class Team extends Model
         'website_url',
         'league_id',
         'is_active',
-        'metadata'
+        'metadata',
+        'espn_id'
     ];
 
     protected $casts = [

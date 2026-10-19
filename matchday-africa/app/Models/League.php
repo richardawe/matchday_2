@@ -19,7 +19,8 @@ class League extends Model
         'is_active',
         'is_featured',
         'priority',
-        'metadata'
+        'metadata',
+        'espn_slug'
     ];
 
     protected $casts = [

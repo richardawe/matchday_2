@@ -119,7 +119,7 @@ class StandingService
      */
     public function syncAllLeagueStandings(): array
     {
-        $leagues = League::where("is_active", true)->get();
+        $leagues = League::where("is_active", true)->whereNotNull("football_data_id")->get();
         $totalSuccess = 0;
         $totalErrors = 0;
 

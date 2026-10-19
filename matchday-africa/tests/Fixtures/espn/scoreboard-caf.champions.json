@@ -1,0 +1,121 @@
+{
+ "leagues": [
+  {
+   "id": "2391",
+   "slug": "caf.champions",
+   "name": "CAF Champions League"
+  }
+ ],
+ "events": [
+  {
+   "id": "401914241",
+   "date": "2026-10-18T13:00Z",
+   "name": "MC Alger at Rangers International",
+   "shortName": "ALG @ RAN",
+   "status": {
+    "displayClock": "90'",
+    "type": {
+     "id": "28",
+     "name": "STATUS_FULL_TIME",
+     "state": "post",
+     "completed": true,
+     "description": "Full Time"
+    }
+   },
+   "competitions": [
+    {
+     "id": "401914241",
+     "venue": {
+      "id": "10457",
+      "fullName": "MKO Abiola Stadium",
+      "address": {
+       "city": "Abeokuta",
+       "country": "Nigeria"
+      }
+     },
+     "attendance": 0,
+     "competitors": [
+      {
+       "id": "17797",
+       "homeAway": "home",
+       "score": "2",
+       "team": {
+        "id": "17797",
+        "displayName": "Rangers International",
+        "name": "Rangers International",
+        "abbreviation": "RAN"
+       }
+      },
+      {
+       "id": "7501",
+       "homeAway": "away",
+       "score": "0",
+       "team": {
+        "id": "7501",
+        "displayName": "MC Alger",
+        "name": "MC Alger",
+        "abbreviation": "ALG"
+       }
+      }
+     ],
+     "details": []
+    }
+   ]
+  },
+  {
+   "id": "401914220",
+   "date": "2026-10-18T13:00Z",
+   "name": "Petro de Luanda at Scottland Mabvuku",
+   "shortName": "PTR @ SCM",
+   "status": {
+    "displayClock": "90'",
+    "type": {
+     "id": "28",
+     "name": "STATUS_FULL_TIME",
+     "state": "post",
+     "completed": true,
+     "description": "Full Time"
+    }
+   },
+   "competitions": [
+    {
+     "id": "401914220",
+     "venue": {
+      "id": "1990",
+      "fullName": "Harare National Sports Stadium",
+      "address": {
+       "city": "Harare",
+       "country": "Zimbabwe"
+      }
+     },
+     "attendance": 0,
+     "competitors": [
+      {
+       "id": "22563",
+       "homeAway": "home",
+       "score": "2",
+       "team": {
+        "id": "22563",
+        "displayName": "Scottland Mabvuku",
+        "name": "Scottland Mabvuku",
+        "abbreviation": "SCM"
+       }
+      },
+      {
+       "id": "19436",
+       "homeAway": "away",
+       "score": "0",
+       "team": {
+        "id": "19436",
+        "displayName": "Petro de Luanda",
+        "name": "Petro de Luanda",
+        "abbreviation": "PTR"
+       }
+      }
+     ],
+     "details": []
+    }
+   ]
+  }
+ ]
+}

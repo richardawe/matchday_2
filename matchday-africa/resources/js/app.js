@@ -20,6 +20,30 @@ if (pulse) {
     window.setTimeout(refreshPulse, 30000);
 }
 
+// Live score, clock and incidents: every 20s in play, every minute around kick-off.
+const live = document.getElementById('match-live');
+if (live && (live.dataset.active === '1' || live.dataset.soon === '1')) {
+    let lastHtml = null;
+    const refreshLive = async () => {
+        let delay = 60000;
+        try {
+            const response = await fetch(live.dataset.url, {headers: {'Accept': 'application/json'}, cache: 'no-store'});
+            if (!response.ok) throw new Error('Live data unavailable');
+            const data = await response.json();
+            document.getElementById('match-home-score').textContent = data.score.home ?? '–';
+            document.getElementById('match-away-score').textContent = data.score.away ?? '–';
+            const status = document.getElementById('match-status');
+            if (status) status.textContent = data.status;
+            if (data.html !== lastHtml) live.innerHTML = data.html;
+            lastHtml = data.html;
+            if (data.finished) return;
+            delay = data.active ? 20000 : 60000;
+        } catch (_) { /* retry on the slower cadence */ }
+        window.setTimeout(refreshLive, delay);
+    };
+    window.setTimeout(refreshLive, live.dataset.active === '1' ? 20000 : 60000);
+}
+
 const chronicle = document.getElementById('match-chronicle');
 if (chronicle) {
     const refreshChronicle = async () => {

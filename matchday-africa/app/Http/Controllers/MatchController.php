@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\Services\MythGrammarService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Models\Player;
@@ -34,6 +35,29 @@ class MatchController extends Controller
             'fresh' => $fresh,
             'updated_at' => $match->last_api_update?->toIso8601String(),
         ])->header('Cache-Control', 'no-store, no-cache, must-revalidate');
+    }
+
+    /**
+     * Score, clock and incidents for the match page to poll. Cached for 10 seconds so a busy
+     * live match costs one database read however many fans are watching.
+     */
+    public function live(FootballMatch $match): JsonResponse
+    {
+        $payload = Cache::remember("match-live:{$match->id}", 10, function () use ($match) {
+            $match = $match->fresh(['events.team']);
+            $events = $match->events;
+
+            return [
+                'score' => ['home' => $match->home_score, 'away' => $match->away_score],
+                'status' => $match->live_label,
+                'active' => in_array($match->status, FootballMatch::LIVE_STATUSES, true),
+                'finished' => $match->isFinished(),
+                'updated_at' => $match->last_api_update?->toIso8601String(),
+                'html' => view('partials.match-live-data', ['match' => $match, 'events' => $events])->render(),
+            ];
+        });
+
+        return response()->json($payload)->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 
     public function sponsorLogo(FootballMatch $match): StreamedResponse

@@ -21,7 +21,8 @@ class ApiFootballEnrichmentService
     {
         if ((string) config('services.api_football.key') === '') return ['configured'=>false,'fixtures'=>0,'eligible'=>0,'matched'=>0,'events'=>0,'calls'=>0];
         $matches = FootballMatch::with(['homeTeam','awayTeam','league'])->whereDate('match_date',$date)->get();
-        $eligible = $this->eligible($matches);
+        // Matches ESPN already covers don't spend the 100-calls-a-day budget.
+        $eligible = $this->eligible($matches->reject(fn($m)=>$m->events_source==='espn'));
         if ($eligible->isEmpty()) return $this->result(0,0,0,0);
 
         $fixtures = $this->fetch('fixtures',['date'=>$date,'timezone'=>config('app.timezone','UTC')],10800);

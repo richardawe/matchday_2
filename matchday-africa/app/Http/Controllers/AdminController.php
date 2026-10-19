@@ -54,8 +54,15 @@ class AdminController extends Controller
             'news_today' => NewsCandidate::where('status','published')->whereDate('updated_at',now())->count(),
             'events_today' => MatchEvent::whereDate('updated_at',now())->count(),
         ];
+        $lastEspnRun = config('espn.enabled') ? SyncRun::where('task', 'espn:fixtures')->latest('started_at')->first() : null;
+        $espn = [
+            'enabled' => config('espn.enabled'),
+            'paused_until' => config('espn.enabled') ? app(\App\Services\Espn\EspnClient::class)->pausedUntil() : null,
+            'last_run' => $lastEspnRun,
+            'unmatched' => (array) data_get($lastEspnRun?->context, 'unmatched', []),
+        ];
         
-        return view('admin.dashboard', compact('stats', 'apiStatus', 'recentLogs', 'syncRuns', 'operations'));
+        return view('admin.dashboard', compact('stats', 'apiStatus', 'recentLogs', 'syncRuns', 'operations', 'espn'));
     }
 
     /**
@@ -126,8 +133,8 @@ class AdminController extends Controller
                 case 'league':
                     $leagueId = (int) $request->input('league_id');
                     $league = League::find($leagueId);
-                    if (!$league) {
-                        throw new \Exception('League not found');
+                    if (!$league || !$league->football_data_id) {
+                        throw new \Exception($league ? 'League has no football-data.org ID (ESPN-only)' : 'League not found');
                     }
                     $result = $this->matchService->syncLeagueMatches($league->football_data_id);
                     break;
@@ -163,8 +170,8 @@ class AdminController extends Controller
             if ($type === 'league') {
                 $leagueId = (int) $request->input('league_id');
                 $league = League::find($leagueId);
-                if (!$league) {
-                    throw new \Exception('League not found');
+                if (!$league || !$league->football_data_id) {
+                    throw new \Exception($league ? 'League has no football-data.org ID (ESPN-only)' : 'League not found');
                 }
                 $result = $this->standingService->syncLeagueStandings($league->football_data_id);
             } else {
@@ -200,8 +207,8 @@ class AdminController extends Controller
                 case 'team':
                     $teamId = (int) $request->input('team_id');
                     $team = Team::find($teamId);
-                    if (!$team) {
-                        throw new \Exception('Team not found');
+                    if (!$team || !$team->football_data_id) {
+                        throw new \Exception($team ? 'Team has no football-data.org ID (ESPN-only)' : 'Team not found');
                     }
                     $result = $this->playerService->syncTeamPlayers($team->football_data_id);
                     break;

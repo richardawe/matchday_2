@@ -1,6 +1,8 @@
 # Plan: free live match data from ESPN's public feed
 
-Status: **draft, awaiting approval**. Researched 18 October 2026 against the live feed and the current `matchday-africa` code.
+Status: **approved 19 Oct 2026 and built**, switched off by default. Researched 18 October 2026 against the live feed and the current `matchday-africa` code.
+
+Decisions: (1) ESPN accepted as a stopgap despite the terms risk; (2) every league with full or partial coverage switched on; (3) match-page changes included; (4) fan reporting parked. The African domestic leagues ESPN lists (NPFL, Ghana, Kenya, Uganda, Zambia) are configured, so their fixtures appear as soon as ESPN loads the new season.
 
 ## 1. Summary
 
@@ -150,14 +152,17 @@ The minute comes from `status.displayClock` (e.g. `45'+2'`) into `minute` (and t
 - `app.js`: always poll on live match pages (not only when a chronicle story exists), and update the minute, status and events list without reloading.
 - Fix `status_display` so `IN_PLAY` and `PAUSED` show "Live" and "Half Time" instead of the raw code.
 
-## 6. Rollout
+## 6. Rollout (runbook)
 
-1. **Phase 1, behind a switch (≈1–2 days):** client, mapper, migration and tests. Run `espn:sync` in **shadow mode**: write what ESPN says into metadata only, and log differences against the current sources on a matchday.
-2. **Phase 2, live scores (≈1 day):** turn on ESPN as first choice for score/minute/status in Europe's big leagues and the CAF competitions. Do the match page polling work.
-3. **Phase 3, events and stats (≈1 day):** goals, cards, subs and stats from ESPN; cut API-Football back to what ESPN can't cover.
-4. **Phase 4, clean-up:** remove dead `Kernel.php`, update the admin health page, write a runbook.
+The code deploys through the normal GitHub Action. It does nothing until switched on, and the deploy doesn't run migrations, so do these steps on the server (cPanel Terminal, in the app folder):
 
-Each phase deploys via the existing GitHub Action to cPanel and can be turned off with `ESPN_ENABLED=false`, no code change needed.
+1. **Add the database columns:** `php artisan migrate --force`
+2. **Shadow mode first (one matchday):** in the server's `.env`, set `ESPN_ENABLED=true` and `ESPN_SHADOW=true`, then run `php artisan optimize:clear`. ESPN now records what it sees in each match's metadata and logs `ESPN shadow difference` wherever its score or status disagrees with ours. Nothing on the site changes, and no ESPN-only fixtures are created yet.
+3. **Check:** run `php artisan espn:sync fixtures` once by hand. The admin dashboard shows *Live feed (ESPN)* and any ESPN fixtures it couldn't link to ours. Fix stragglers by adding names to `team_aliases` in `config/espn.php`.
+4. **Go live:** set `ESPN_SHADOW=false`, then `php artisan optimize:clear`. ESPN becomes first choice for score, minute and status, adds goals, cards, subs, stats and line-ups, and creates the CAF/ESPN-only fixtures.
+5. **Rollback at any time:** `ESPN_ENABLED=false` + `php artisan optimize:clear`. football-data.org takes over again within a minute, with no code change.
+
+Scheduler (already in `routes/console.php`, needs only the existing every-minute cron): `espn:sync fixtures` every 6 h (about 340 requests, around 4 min), `espn:sync live` every minute in three 20-second passes, and only for leagues with a match in the window, `espn:sync details` every minute, throttled to one summary per live match every 2 min.
 
 ## 7. How we'll know it worked
 
