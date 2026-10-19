@@ -78,7 +78,7 @@ php artisan migrate:status --no-ansi | grep -E "social_posts|x_outbox|match_mome
 grep -E '^(APP_URL|APP_TIMEZONE|ESPN_ENABLED|ESPN_SHADOW|REEL_RENDERER|BUFFER_[A-Z_]+)=' .env \
     | sed -E 's/^(BUFFER_API_KEY=).+$/\1<set>/' || true
 echo "Scheduler cron:"; crontab -l 2>/dev/null | grep -F artisan || echo "  none found"
-php artisan tinker --execute='echo "Posts by channel and status: ".json_encode(DB::table("growth_posts")->selectRaw("channel, status, count(*) n")->groupBy("channel", "status")->get()).PHP_EOL;' 2>/dev/null || true
+php artisan tinker --execute='echo "Posts by channel and status: ".json_encode(DB::table("growth_posts")->selectRaw("channel, status, count(*) n")->groupBy("channel", "status")->get()).PHP_EOL; echo "Planned posts, last 24h:".PHP_EOL; foreach (DB::table("growth_posts")->where("updated_at", ">=", now()->subDay())->where("status", "!=", "draft")->latest("updated_at")->limit(15)->get() as $p) { echo "  {$p->updated_at} {$p->channel} {$p->type} {$p->content_key} {$p->status} ".($p->last_error ?? "").PHP_EOL; } echo "Live posts, last 24h:".PHP_EOL; foreach (DB::table("social_posts")->where("updated_at", ">=", now()->subDay())->latest("updated_at")->limit(15)->get() as $p) { echo "  {$p->updated_at} {$p->channel} {$p->subject} {$p->status} ".($p->error ?? "").PHP_EOL; }' 2>/dev/null || true
 REMOTE
 elif [[ "$mode" == buffer-channels ]]; then
     ssh "${ssh_options[@]}" "$target" "cd $root && php artisan buffer:publish --channels --no-ansi"

@@ -147,6 +147,16 @@ class XTimelineTest extends TestCase
         $this->assertSame([], $this->bufferPosts());
     }
 
+    public function test_drafts_planned_while_off_are_queued_once_posting_is_on(): void
+    {
+        config(['buffer.x.auto' => false]);
+        $this->artisan('twitter:engage');
+        config(['buffer.x.auto' => true]);
+
+        $this->artisan('twitter:engage')->expectsOutput('3 posts planned.');
+        $this->assertSame(['queued'], GrowthPost::pluck('status')->unique()->values()->all());
+    }
+
     public function test_results_round_up_goes_out_at_night(): void
     {
         $this->match->update(['status' => 'FINISHED', 'home_score' => 2, 'away_score' => 1]);

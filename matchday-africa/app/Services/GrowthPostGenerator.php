@@ -158,7 +158,15 @@ class GrowthPostGenerator
         $channels = ['x' => true, 'instagram' => ($image || $video) && config('buffer.channels.instagram'), 'tiktok' => $video && config('buffer.channels.tiktok')];
         foreach ($channels as $channel => $carries) {
             $key = $channel === 'x' ? $subject : "{$subject}@{$channel}";
-            if (!$carries || GrowthPost::where('content_key', $key)->exists()) {
+            if (!$carries) {
+                continue;
+            }
+            if ($existing = GrowthPost::where('content_key', $key)->first()) {
+                // Planned while posting was off: once it is on, a still-timely draft goes out too.
+                if ($existing->status === 'draft' && config('buffer.x.auto')) {
+                    $existing->update(['status' => 'queued']);
+                    $created++;
+                }
                 continue;
             }
             GrowthPost::create([

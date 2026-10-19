@@ -127,6 +127,15 @@ class BufferPublisherTest extends TestCase
         $this->artisan('buffer:publish --channels')->expectsTable(['ID', 'Name', 'Service', 'Health'], [['c1', 'matchdayafrica', 'twitter', '']])->assertSuccessful();
     }
 
+    public function test_chapters_rebuilt_for_an_old_match_are_not_posted_as_live(): void
+    {
+        $this->fakeBuffer();
+        $this->match->update(['match_date' => now('UTC')->subDays(2)]);
+
+        $this->artisan('buffer:publish')->expectsOutput('Buffer: 0 sent, 0 failed');
+        $this->assertSame([], $this->bufferPosts());
+    }
+
     public function test_posting_stops_at_the_monthly_request_limit(): void
     {
         $this->fakeBuffer();
