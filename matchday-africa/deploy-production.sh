@@ -37,13 +37,14 @@ renderer=$(php scripts/deployment-settings.php renderer)
 if [[ "$renderer" == server ]]; then
     reel_node=$(php scripts/deployment-settings.php node)
     node_binary=$(command -v "$reel_node") || { echo "REEL_NODE is unavailable."; exit 1; }
-    node_directory=$(dirname "$node_binary")
-    export PATH="$node_directory:$PATH"
-    command -v npm >/dev/null
+    # Node's directory goes first only for npm: on cPanel it can be /usr/bin, whose php is the
+    # CGI build, and every later `php artisan` would then fail.
+    node_path="$(dirname "$node_binary"):$PATH"
+    (PATH="$node_path"; command -v npm >/dev/null) || { echo "npm is missing next to $node_binary."; exit 1; }
     lock_hash=$(sha256sum reel/package-lock.json | cut -d ' ' -f 1)
     installed_hash=$(cat storage/app/reel-lock.sha 2>/dev/null || true)
     if [[ "$lock_hash" != "$installed_hash" || ! -d reel/node_modules ]]; then
-        (cd reel && npm ci --omit=dev --no-audit --no-fund)
+        (cd reel && PATH="$node_path" npm ci --omit=dev --no-audit --no-fund)
         # Only record success after proving the installed renderer works.
         rm -f storage/app/reel-check.sha
     fi
