@@ -1,0 +1,65 @@
+name: Server operations
+
+# Run a fixed set of operations on the production server over the deploy key, without anyone
+# needing a shell: check status, list Buffer channels, set the Buffer settings in .env, or run
+# the social planner once. The Buffer API key comes from the production environment's
+# BUFFER_API_KEY secret and is sent over SSH stdin, never printed.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: What to run
+        type: choice
+        options: [status, buffer-channels, configure-buffer, plan-posts]
+        default: status
+      channel_x:
+        description: "configure-buffer: Buffer channel ID for X (blank = leave as is)"
+        required: false
+      channel_instagram:
+        description: "configure-buffer: Buffer channel ID for Instagram (blank = leave as is)"
+        required: false
+      channel_tiktok:
+        description: "configure-buffer: Buffer channel ID for TikTok (blank = leave as is)"
+        required: false
+      auto:
+        description: "configure-buffer: switch automatic posting on or off"
+        type: choice
+        options: [unchanged, "true", "false"]
+        default: unchanged
+      slots:
+        description: "configure-buffer: daily Lagos posting slots, e.g. 08:00,13:00,19:00 (blank = leave as is)"
+        required: false
+
+permissions:
+  contents: read
+
+# Its own group: sharing the deploy group could let a queued ops run replace a pending deploy.
+concurrency:
+  group: matchday-server-ops
+
+jobs:
+  run:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      CPANEL_SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
+      CPANEL_SSH_USER: ${{ secrets.CPANEL_SSH_USER }}
+      CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+      CPANEL_SSH_PORT: ${{ secrets.CPANEL_SSH_PORT || '22' }}
+      CPANEL_SSH_KNOWN_HOSTS: ${{ secrets.CPANEL_SSH_KNOWN_HOSTS }}
+      CPANEL_APP_ROOT: ${{ secrets.CPANEL_APP_ROOT }}
+      CPANEL_PUBLIC_ROOT: ${{ secrets.CPANEL_PUBLIC_ROOT }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Run ${{ inputs.action }}
+        env:
+          ACTION: ${{ inputs.action }}
+          BUFFER_API_KEY: ${{ inputs.action == 'configure-buffer' && secrets.BUFFER_API_KEY || '' }}
+          INPUT_CHANNEL_X: ${{ inputs.channel_x }}
+          INPUT_CHANNEL_INSTAGRAM: ${{ inputs.channel_instagram }}
+          INPUT_CHANNEL_TIKTOK: ${{ inputs.channel_tiktok }}
+          INPUT_AUTO: ${{ inputs.auto }}
+          INPUT_SLOTS: ${{ inputs.slots }}
+        run: bash scripts/ci/deploy-ssh.sh "$ACTION"

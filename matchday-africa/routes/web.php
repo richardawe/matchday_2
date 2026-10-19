@@ -70,6 +70,7 @@ Route::get('/leagues/{league}/standings', [LeagueController::class, 'standings']
 Route::get('/matches', [MatchController::class, 'index'])->name('matches.index');
 Route::get('/matches/{match}/chronicle', [MatchController::class, 'chronicle'])->name('matches.chronicle');
 Route::get('/matches/{match}/live', [MatchController::class, 'live'])->name('matches.live');
+Route::get('/matches/{match}/card.png', [App\Http\Controllers\MomentCardController::class, 'fixture'])->name('matches.card');
 Route::get('/matches/{match}/reel.mp4', [App\Http\Controllers\ReelController::class, 'show'])->name('matches.reel');
 Route::get('/reels/{match}/props', [App\Http\Controllers\ReelController::class, 'props'])->middleware('signed')->name('reels.props');
 Route::get('/moments/{moment}/card/{voice}/{format}.png', [App\Http\Controllers\MomentCardController::class, 'show'])
@@ -236,5 +237,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin/twitter')->group(function ()
     Route::post('/posts', [App\Http\Controllers\Admin\TwitterController::class, 'store'])->name('admin.twitter.posts.store');
     Route::put('/posts/{post}', [App\Http\Controllers\Admin\TwitterController::class, 'update'])->name('admin.twitter.posts.update');
     Route::post('/posts/{post}/posted', [App\Http\Controllers\Admin\TwitterController::class, 'posted'])->name('admin.twitter.posts.posted');
+    Route::post('/posts/{post}/queue', [App\Http\Controllers\Admin\TwitterController::class, 'queue'])->name('admin.twitter.posts.queue');
     Route::delete('/posts/{post}', [App\Http\Controllers\Admin\TwitterController::class, 'destroy'])->name('admin.twitter.posts.destroy');
 });

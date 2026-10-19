@@ -16,10 +16,10 @@ class StoryCardRenderer
 {
     public const FORMATS = ['story' => [1080, 1920], 'feed' => [1080, 1350], 'og' => [1200, 630]];
 
-    private const PAPER = [232, 225, 211];
-    private const MUTED = [163, 156, 143];
-    private const GOLD = [237, 199, 129];
-    private const BLOOD = [214, 72, 60];
+    protected const PAPER = [232, 225, 211];
+    protected const MUTED = [163, 156, 143];
+    protected const GOLD = [237, 199, 129];
+    protected const BLOOD = [214, 72, 60];
 
     public function __construct(private Griot $griot) {}
 
@@ -120,7 +120,7 @@ class StoryCardRenderer
         return $img;
     }
 
-    private function army(GdImage $img, ?array $army, float $height, float $centerX, float $bottom, bool $flip = false, bool $ghost = false, bool $fallen = false): void
+    protected function army(GdImage $img, ?array $army, float $height, float $centerX, float $bottom, bool $flip = false, bool $ghost = false, bool $fallen = false): void
     {
         if (!$army || !$army['cutout_path'] || !is_file($army['cutout_path'])) {
             return;
@@ -147,7 +147,7 @@ class StoryCardRenderer
         imagecopyresampled($img, $art, (int) ($centerX - $dw / 2), (int) ($bottom - $dh), 0, 0, $dw, $dh, imagesx($art), imagesy($art));
     }
 
-    private function glow(GdImage $img, int $cx, int $cy, int $radius, string $hex): void
+    protected function glow(GdImage $img, int $cx, int $cy, int $radius, string $hex): void
     {
         $rgb = $this->rgb($hex);
         for ($i = 24; $i >= 1; $i--) {
@@ -157,7 +157,7 @@ class StoryCardRenderer
     }
 
     /** A linear fade of black from one alpha to another across a rectangle. */
-    private function fade(GdImage $img, int $x, int $y, int $w, int $h, string $direction, int $from, int $to): void
+    protected function fade(GdImage $img, int $x, int $y, int $w, int $h, string $direction, int $from, int $to): void
     {
         $steps = $direction === 'right' ? $w : $h;
         for ($i = 0; $i < $steps; $i += 2) {
@@ -170,7 +170,7 @@ class StoryCardRenderer
     }
 
     /** Kente-style stripe band in the team's colours with gold and black. */
-    private function kente(GdImage $img, int $y, int $w, int $h, array $colours): void
+    protected function kente(GdImage $img, int $y, int $w, int $h, array $colours): void
     {
         $pattern = [[$colours[0], 46], ['#d2a052', 12], [$colours[1] ?? '#e8e1d3', 28], ['#070807', 8], ['#d2a052', 12], ['#070807', 6]];
         for ($x = 0; $x < $w;) {
@@ -181,12 +181,12 @@ class StoryCardRenderer
         }
     }
 
-    private function text(GdImage $img, string $face, int $size, array $rgb, int $x, int $y, string $text): void
+    protected function text(GdImage $img, string $face, int $size, array $rgb, int $x, int $y, string $text): void
     {
         imagettftext($img, $size, 0, $x, $y, $this->color($img, $rgb), $this->font($face), $text);
     }
 
-    private function wrap(string $text, string $face, int $size, int $width): array
+    protected function wrap(string $text, string $face, int $size, int $width): array
     {
         $rows = [];
         $row = '';
@@ -205,7 +205,7 @@ class StoryCardRenderer
     }
 
     /** Shortens text with an ellipsis until it fits one line. */
-    private function fit(string $text, string $face, int $size, int $width): string
+    protected function fit(string $text, string $face, int $size, int $width): string
     {
         while (mb_strlen($text) > 4) {
             $box = imagettfbbox($size, 0, $this->font($face), $text);
@@ -218,17 +218,17 @@ class StoryCardRenderer
         return $text;
     }
 
-    private function font(string $face): string
+    protected function font(string $face): string
     {
         return resource_path('fonts/'.['display' => 'Anton-Regular.ttf', 'body' => 'IBMPlexSans.ttf', 'mono' => 'IBMPlexMono-SemiBold.ttf'][$face]);
     }
 
-    private function color(GdImage $img, array $rgb): int
+    protected function color(GdImage $img, array $rgb): int
     {
         return imagecolorallocate($img, $rgb[0], $rgb[1], $rgb[2]);
     }
 
-    private function rgb(string $hex): array
+    protected function rgb(string $hex): array
     {
         $hex = ltrim($hex, '#');
 
