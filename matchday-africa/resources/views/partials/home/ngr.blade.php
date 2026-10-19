@@ -1,0 +1,1 @@
+<aside class="md-ngr-ad" aria-label="Sponsored by NGR"><div class="md-wrap"><div><small>SPONSORED</small><strong>NGR<span>.</span></strong></div><p>Discover more from NGR.</p><a href="https://ngr.ltd/" target="_blank" rel="sponsored noopener">VISIT NGR.LTD →</a></div></aside>

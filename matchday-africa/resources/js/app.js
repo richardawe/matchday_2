@@ -10,6 +10,10 @@ Alpine.start();
 const arena = document.getElementById('arena');
 if (arena) import('./arena.js').then((m) => m.start(arena));
 
+// The reels-first homepage's player, likewise only where it appears.
+const reelsHero = document.getElementById('reels-hero');
+if (reelsHero) import('./home-reels.js').then((m) => m.start(reelsHero));
+
 const pulse = document.getElementById('matchday-pulse');
 if (pulse) {
     const refreshPulse = async () => {

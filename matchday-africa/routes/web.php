@@ -41,6 +41,7 @@ Route::get('/api/matchday-pulse', [HomeController::class, 'pulse'])->name('home.
 // Matchday War — native subdirectory experience
 Route::prefix('war')->name('war.')->group(function () {
     Route::get('/', [WarController::class, 'index'])->name('index');
+    Route::get('/arena', fn () => view('war.arena', ['arena' => app(\App\Services\ArenaService::class)->headline(now())]))->name('arena');
     Route::get('/match/{match}', [WarController::class, 'match'])->name('match');
     Route::get('/challenge/{match}', [WarController::class, 'challenge'])->name('challenge');
     Route::get('/api/fixtures', [WarFixtureController::class, 'index'])->name('api.fixtures');

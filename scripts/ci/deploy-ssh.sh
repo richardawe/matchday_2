@@ -5,8 +5,8 @@ set -Eeuo pipefail
 
 mode=${1:-}
 case "$mode" in
-    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue) ;;
-    *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue"; exit 2 ;;
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home) ;;
+    *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home"; exit 2 ;;
 esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
     [[ -n "${!variable:-}" ]] || { echo "Missing production secret: $variable"; exit 1; }
@@ -183,6 +183,14 @@ elif [[ "$mode" == reel-queue ]]; then
     # Backfill: queue reels for finished Premier League matches between two Lagos dates.
     [[ "${INPUT_FROM:-}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ && "${INPUT_TO:-}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "from_date and to_date must look like 2026-10-17."; exit 1; }
     ssh "${ssh_options[@]}" "$target" "cd $root && php artisan reel:queue --from=$INPUT_FROM --to=$INPUT_TO --no-ansi"
+elif [[ "$mode" == configure-home ]]; then
+    # The reels-first homepage (preview any time with ?home=v2).
+    case "${INPUT_HOME_V2:-}" in
+        on) json='{"HOME_V2":"true"}' ;;
+        off) json='{"HOME_V2":"false"}' ;;
+        *) echo "home_v2 must be on or off."; exit 1 ;;
+    esac
+    printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/set-env.php && php artisan config:cache --no-ansi"
 else
     [[ "${GITHUB_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || { echo "Missing release commit SHA."; exit 1; }
     ssh "${ssh_options[@]}" "$target" "bash -s -- $root $GITHUB_SHA" <<'REMOTE'

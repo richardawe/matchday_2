@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\FootballMatch;
 use App\Models\GrowthPost;
 use App\Models\MatchMoment;
-use App\Support\Armies;
 use App\Support\BufferUsage;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -132,20 +131,11 @@ class BufferPublisher
         return $others->sortBy(fn ($p) => [$priority[$p->type] ?? 9, $p->scheduled_at->timestamp, $p->id])->first();
     }
 
-    /** 10 points, plus goals, a late goal, red cards and the biggest clubs. */
     private function reelWeight(GrowthPost $post): int
     {
         $match = FootballMatch::with(['homeTeam', 'awayTeam'])->find((int) Str::after($post->content_key, 'reel:'));
-        if (!$match) {
-            return 10;
-        }
-        $moments = MatchMoment::where('match_id', $match->id)->get();
-        $big = collect([$match->homeTeam?->name, $match->awayTeam?->name])
-            ->filter(fn ($n) => in_array(Armies::key((string) $n), config('buffer.big_clubs'), true))->count();
 
-        return 10 + 3 * ((int) $match->home_score + (int) $match->away_score)
-            + ($moments->where('type', 'goal')->where('minute', '>=', 85)->isNotEmpty() ? 8 : 0)
-            + 4 * $moments->where('type', 'red_card')->count() + 6 * $big;
+        return $match ? app(ReelService::class)->weight($match) : 10;
     }
 
     /** A Lagos day with a Premier League kick-off: reels give way to previews and live posts. */
