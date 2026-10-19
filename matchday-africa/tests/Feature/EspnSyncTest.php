@@ -28,6 +28,7 @@ class EspnSyncTest extends TestCase
         $this->travelTo('2026-10-18 16:00:00');
         config([
             'espn.enabled' => true,
+            'espn.shadow' => false,
             'espn.request_pause_ms' => 0,
             'espn.fixtures_days_back' => 0,
             'espn.fixtures_days_ahead' => 0,

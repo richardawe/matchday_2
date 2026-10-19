@@ -4,31 +4,129 @@ This runbook deploys the Laravel 12 application to `https://matchday.africa`, in
 
 ## Automated CI/CD
 
-The GitHub Actions workflow at `.github/workflows/matchday-africa.yml` runs the
-Laravel test suite and production frontend build for pull requests. A successful
-push to `main` builds the frontend and deploys the application code and compiled
-assets to cPanel by FTP. The existing server-managed `vendor` directory is
-preserved to avoid transferring thousands of dependency files on every release.
+`.github/workflows/matchday-africa.yml` tests PHP 8.2 and 8.4 with SQLite and GD,
+builds Vite, and exercises deployment failure handling. Changes to reel source,
+fonts, or army art also render a two-second Remotion clip. The stable **CI gate**
+check requires the application tests and any selected reel check to pass.
 
-Create a GitHub environment named `production` and add these environment
-secrets:
+On `main`, the deployment job restores the exact tested frontend artifact; it does
+not rebuild it. Before touching the live site it verifies the release is still
+`main`, connects by SSH with pinned host keys, and checks the existing Laravel
+root, PHP extensions, Composer, writable directories, and production `.env`.
+It then pre-renders a maintenance page (so mixed files need not boot Laravel),
+uploads by FTPS, runs `deploy-production.sh` over
+SSH, and verifies the public release SHA, health route, home, match list, match
+detail, pulse JSON, and live match JSON. SSH and FTP must target the same Laravel
+root; the uploaded release marker is checked from both paths.
 
-- `CPANEL_FTP_SERVER`: the cPanel FTP hostname, without `ftp://` or `https://`.
-- `CPANEL_FTP_USERNAME`: the cPanel FTP account username.
-- `CPANEL_FTP_PASSWORD`: the cPanel FTP account password.
-- `CPANEL_FTP_SERVER_DIR`: the FTP path to the Laravel application root, ending
-  in `/`.
-- `CPANEL_FTP_PROTOCOL`: optional; use `ftps` when supported, otherwise `ftp`.
-- `CPANEL_FTP_PORT`: optional; normally `21`.
+### Configure access once
 
-Keep the production `.env`, writable `storage` data, public storage link, and
-user uploads on the server. The workflow deliberately excludes them from file
-synchronization. FTP cannot run migrations or restart workers, so after a
-deployment containing database or queue changes, run `bash deploy-production.sh`
-from the application root in cPanel Terminal. Run the same command whenever
-`composer.lock` changes so server dependencies are refreshed. Configure an
-environment approval rule in GitHub if production deployments should require
-manual confirmation.
+Use the cPanel account that owns the Laravel app. Linux root/sudo is unnecessary.
+In GitHub → repository Settings → Environments → **production**, configure:
+
+| Secret | Purpose |
+| --- | --- |
+| `CPANEL_FTP_SERVER` | FTP hostname, without a URL scheme |
+| `CPANEL_FTP_USERNAME` | FTP account with access to the Laravel root |
+| `CPANEL_FTP_PASSWORD` | FTP password |
+| `CPANEL_FTP_SERVER_DIR` | FTP path to the Laravel root; may differ from the SSH absolute path |
+| `CPANEL_FTP_PROTOCOL` | Optional; defaults to `ftps`; use `ftp` only if the host requires it |
+| `CPANEL_FTP_PORT` | Optional; defaults to `21` |
+| `CPANEL_SSH_HOST` | SSH hostname or IPv4 address |
+| `CPANEL_SSH_USER` | cPanel SSH account name |
+| `CPANEL_SSH_KEY` | Dedicated, noninteractive private deployment key; authorize its public key in cPanel |
+| `CPANEL_SSH_PORT` | Optional; defaults to `22` |
+| `CPANEL_SSH_KNOWN_HOSTS` | OpenSSH known_hosts entry verified against the host's trusted fingerprint |
+| `CPANEL_APP_ROOT` | Absolute SSH path, e.g. `/home/CPANELUSER/matchday-africa`; no spaces |
+| `CPANEL_PUBLIC_ROOT` | Absolute served web root; must match server `.env` `APP_PUBLIC_PATH` (or the app's `public` directory when unset) |
+
+Do not paste credentials into chat, commit them, or put them in a public web
+folder. Obtain the SSH host fingerprint from the host/cPanel over a trusted
+channel; an unverified `ssh-keyscan` result alone is insufficient. For a nonstandard
+port the known_hosts entry uses `[hostname]:port`. The workflow enforces strict
+host-key checking and deletes its temporary key files when the step finishes.
+The same `production` environment supplies SSH secrets to `render-reel.yml`, which
+publishes one MP4 atomically into the actual public root without syncing other media.
+
+`php`, `composer`, `flock`, `sha256sum`, `rsync`, and `mysqldump` must be available in noninteractive SSH
+sessions. PHP needs MySQL PDO, mbstring, curl, XML/DOM, and GD with FreeType/WebP.
+If `REEL_RENDERER=server`, install Node 22 and npm in that session's PATH, or set
+`REEL_NODE` in the server `.env` to its executable path. First installs must follow
+the manual steps below to establish `.env`, vendor dependencies, and a database;
+the automated pipeline deliberately refuses to create or rotate a production key.
+
+Optionally set production environment **variable** `CPANEL_SMOKE_MATCH_ID` to a
+stable existing fixture ID. Otherwise the HTTP check discovers a fixture from the
+rendered pages. An empty database needs a chosen fixture before a full acceptance
+check can pass. Never seed or reset production just to make deployment checks pass.
+
+In repository branch rules, require **CI gate** for `main`, require pull requests,
+and prevent force pushes. Limit the `production` environment to the `main` branch;
+add reviewer approval if desired. These settings are configured through GitHub,
+not by committing workflow YAML. A workflow commit does not establish that the
+secrets, branch rules, or live server are configured.
+
+### Server steps and retained state
+
+`bash deploy-production.sh`, run from the Laravel root, checks production settings
+without logging credentials, installs locked production dependencies, clears only
+framework caches, runs migrations, rebuilds caches, reports migration/health/
+scheduler state, restarts queue workers, and exits maintenance mode. It preserves
+`.env` and the application key. It does not clear application cache locks.
+
+The script creates story-card, reel, and generated-media directories. When the
+server renderer is enabled, it runs `npm ci --omit=dev` only when the reel lockfile
+changes or dependencies are missing. It runs the actual renderer check on first
+installation and when renderer code, fonts, army art, or Node version changes.
+Success hashes are written only after the render passes. With `off` or `github`,
+server Node installation is unnecessary.
+
+Before dependency changes or migrations, the script saves the database and `.env`
+under private `storage/app/deploy-backups/<timestamp>/` with owner-only permissions.
+A failed backup stops deployment. These backups contain secrets: keep them outside
+public storage, monitor disk space, and archive them securely before removing old copies.
+
+For this host the verified layout is `/home/matchdayaf/matchday-africa` (private app)
+and `/home/matchdayaf/public_html` (served web root). Set
+`APP_PUBLIC_PATH=/home/matchdayaf/public_html` in the server `.env`, and set the
+matching `CPANEL_PUBLIC_ROOT` secret. The deployment copies public assets into the
+served root, publishes a front controller pointing to the private app and its
+maintenance file, and binds Laravel's public path for both HTTP and CLI. It retains
+existing hashed assets and never syncs over generated media, uploads, or storage.
+The HTTP acceptance check fetches compiled CSS and JS and checks their MIME types;
+an HTML error page or missing asset fails deployment even when `/` returns 200.
+
+Live repair on 19 October 2026: a database/config backup was taken, three pending
+migrations were applied, the split web-root build was refreshed, and framework
+caches were rebuilt. Missing `espn_slug` schema had emptied the home page, stale
+routes caused match-page HTTP 500s, and mismatched manifests broke CSS. SSH access
+and GitHub environment configuration must still be verified separately.
+
+FTP excludes `.env`, `vendor`, storage/cache contents, public storage/uploads,
+`public/generated`, reel dependencies/output, SQLite files, and the local Vite hot
+marker. Committed fonts, army art, reel source, and the tested `public/build` are
+uploaded. The legacy `render-social.yml` only saves a JSON artifact; it never syncs
+or deletes production media.
+
+### Failure and recovery
+
+This remains an **in-place cPanel deployment**, with a short maintenance window;
+it is not an atomic release-directory switch. Upload or server-step failures leave
+the site in maintenance mode to avoid serving mixed files or incompatible schema.
+The HTTP check can also fail after the app has been brought back up; inspect the
+actual site rather than assuming maintenance status from a failed job alone.
+
+Before the first automatic deployment, take the filesystem/database backups in
+section 2. If a release fails, inspect the failed Actions step and Laravel logs,
+correct access/dependencies or deploy a reviewed corrective commit, then rerun
+`bash deploy-production.sh` from the confirmed app root. Restore a known-good
+release and its compatible database backup if necessary. Do not automatically
+roll back migrations or blindly run `php artisan up` after a partial upload.
+Always repeat the public smoke check with the SHA of the recovered release.
+
+Cron is an independent one-time hosting configuration: set the scheduler and queue
+runner in section 14 and verify with `php artisan schedule:list`. A successful
+upload or workflow does not prove cron is installed or external feeds are enabled.
 
 ## Live data, story cards, reels and Buffer (added Oct 2026)
 
@@ -140,12 +238,17 @@ Copy the complete contents of `matchday-africa/public/`—including hidden `.hta
 /home/CPANELUSER/public_html/
 ```
 
-Then edit only these two lines in `/home/CPANELUSER/public_html/index.php`:
+Set `APP_PUBLIC_PATH=/home/CPANELUSER/public_html` in the server `.env`, then generate
+the front controller with the confirmed paths:
 
-```php
-require __DIR__.'/../matchday-africa/vendor/autoload.php';
-$app = require_once __DIR__.'/../matchday-africa/bootstrap/app.php';
+```bash
+php scripts/publish-public.php /home/CPANELUSER/matchday-africa /home/CPANELUSER/public_html
 ```
+
+This points autoloading, bootstrapping, and the maintenance page to the private app,
+and tells Laravel where public assets live. The automated deployment repeats it.
+Keep the explicit `^war/?$` rewrite in `public/.htaccess`: the Laravel `/war` page
+shares its name with the physical asset directory and otherwise redirects to a 403.
 
 Do not place the whole Laravel project inside `public_html`.
 

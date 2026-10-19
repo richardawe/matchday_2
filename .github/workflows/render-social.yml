@@ -1,24 +1,36 @@
-name: Render social campaign
+name: Validate legacy social render spec
+
+# This script only writes JSON. Never sync public/generated, which retains media.
 on:
   workflow_dispatch:
     inputs:
-      campaign_id: {description: Campaign ID, required: true, type: string}
-      spec_url: {description: Signed render specification URL, required: true, type: string}
+      campaign_id: { description: Campaign ID, required: true, type: string }
+      spec_url: { description: Signed render specification URL, required: true, type: string }
+
+permissions:
+  contents: read
+
 jobs:
-  render:
+  validate:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: 22, cache: npm}
-      - run: npm ci
-      - name: Render campaign assets
-        run: node scripts/render-social.mjs "${{ inputs.campaign_id }}" "${{ inputs.spec_url }}"
-      - name: Upload to cPanel
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          server: ${{ secrets.CPANEL_FTP_SERVER }}
-          username: ${{ secrets.CPANEL_FTP_USERNAME }}
-          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
-          local-dir: ./render-output/
-          server-dir: public/generated/
+          node-version: "22"
+      - name: Validate campaign spec (metadata only)
+        env:
+          CAMPAIGN_ID: ${{ inputs.campaign_id }}
+          SPEC_URL: ${{ inputs.spec_url }}
+        run: |
+          case "$CAMPAIGN_ID" in (*[!0-9]*|'') echo 'campaign_id must be numeric'; exit 1;; esac
+          node -e 'if (new URL(process.env.SPEC_URL).protocol !== "https:") process.exit(1);'
+          node scripts/render-social.mjs "$CAMPAIGN_ID" "$SPEC_URL"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: social-spec-${{ inputs.campaign_id }}
+          path: render-output/*.json
+          if-no-files-found: error
+          retention-days: 7

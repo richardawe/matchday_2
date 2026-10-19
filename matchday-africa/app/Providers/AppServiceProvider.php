@@ -13,7 +13,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        if ($path = config('app.public_path')) {
+            $oldPublic = $this->app->publicPath();
+            $this->app->usePublicPath($path);
+            // filesystems.php was loaded before providers, so rebind its default link too.
+            $links = config('filesystems.links', []);
+            unset($links[$oldPublic.'/storage'], $links[base_path('public/storage')]);
+            $links[$path.'/storage'] = storage_path('app/public');
+            config(['filesystems.links' => $links]);
+        }
     }
 
     /**
