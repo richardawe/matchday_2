@@ -6,6 +6,10 @@ window.Alpine = Alpine;
 
 Alpine.start();
 
+// The arena's motion is a separate chunk, fetched only on the home page.
+const arena = document.getElementById('arena');
+if (arena) import('./arena.js').then((m) => m.start(arena));
+
 const pulse = document.getElementById('matchday-pulse');
 if (pulse) {
     const refreshPulse = async () => {
@@ -14,6 +18,7 @@ if (pulse) {
             if (!response.ok) return;
             const data = await response.json();
             pulse.innerHTML = data.html;
+            if (data.arena) document.getElementById('arena')?.dispatchEvent(new CustomEvent('arena:update', {detail: data.arena}));
             window.setTimeout(refreshPulse, data.has_live ? 30000 : 120000);
         } catch (_) { window.setTimeout(refreshPulse, 120000); }
     };

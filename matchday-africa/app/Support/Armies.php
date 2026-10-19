@@ -22,12 +22,21 @@ class Armies
 
         return $club + [
             'key' => $key,
+            'glow' => self::glow($club['colours']),
             // Cut-out (transparent backdrop) built by scripts/build-armies.mjs, for server-drawn cards.
             'cutout_path' => $art ? resource_path("armies/{$art}.webp") : null,
             'cutout' => $art ? asset(config('armies.optimised')."/{$art}-cutout-960.webp") : null,
             'image' => $art ? asset(config('armies.optimised')."/{$art}-960.webp") : null,
             'srcset' => $art ? collect(config('armies.widths'))->map(fn ($w) => asset(config('armies.optimised')."/{$art}-{$w}.webp")." {$w}w")->join(', ') : null,
         ];
+    }
+
+    /** Light colour for glows: the kit's first colour, or its second when the first is near-black. */
+    public static function glow(array $colours): string
+    {
+        [$r, $g, $b] = sscanf($colours[0], '#%02x%02x%02x');
+
+        return (0.2126 * $r + 0.7152 * $g + 0.0722 * $b) < 40 && isset($colours[1]) ? $colours[1] : $colours[0];
     }
 
     public static function key(string $name): string
