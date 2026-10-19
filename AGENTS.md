@@ -52,7 +52,8 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Griot story chapters (kick-off, goals, red cards, HT, FT) | `app/Services/MatchStoryService.php`, `Griot.php` (captions in en/pcm/sw/za), `app/Models/MatchMoment.php` | `story:sync` 1m (also after each ESPN live pass) | needs `match_moments` migration |
 | Story cards (PNG, GD) | `app/Services/StoryCardRenderer.php`, route `moments.card` | drawn on first request, cached in `storage/app/story-cards` | needs GD with FreeType + WebP |
 | 20-second reel (Remotion) | `reel/`, `app/Services/ReelService.php`, `reel:render` command, `ReelController` | `reel:render` 1m (one reel per run, ~3 min after FT) | `REEL_RENDERER=off\|server\|github` |
-| Buffer → X, Instagram, TikTok | `app/Services/BufferPublisher.php`, `buffer:publish`, `config/buffer.php`, table `social_posts` | `buffer:publish` 1m | `BUFFER_API_KEY` + `BUFFER_CHANNEL_*` |
+| Buffer → X, Instagram, TikTok (live cards, reels; TikTok gets reels only) | `app/Services/BufferPublisher.php`, `BufferClient.php` (ported from ngr.ltd), `buffer:publish`, `config/buffer.php`, table `social_posts` | `buffer:publish` 1m | `BUFFER_API_KEY` + `BUFFER_CHANNEL_*` |
+| Planned social posts (news, fixture previews with a GD fixture card, morning fixtures, night results; X all, Instagram the carded ones) | `GrowthPostGenerator.php` (`twitter:engage`), `FixtureCardRenderer.php` (route `matches.card`), table `growth_posts` (per channel), admin `/admin/twitter` | `twitter:engage` 10m plans; `buffer:publish` 1m sends when a channel's slot is free | `BUFFER_AUTO` + `BUFFER_CHANNEL_*` |
 | Home arena | `resources/views/partials/home-arena.blade.php`, `resources/js/arena.js` (GSAP), `arena3d.js` (three.js, desktop only) | rides the home pulse refresh | always on when a Premier League match qualifies |
 
 ## 4. CI/CD
@@ -95,8 +96,16 @@ checks: `shellcheck matchday-africa/deploy-production.sh scripts/ci/deploy-ssh.s
 4. `cd reel && npm ci && node check.mjs`: on PASS set `REEL_RENDERER=server`, else `github` + token.
 5. Buffer: create a key at publish.buffer.com/settings/api, set `BUFFER_API_KEY`, run
    `php artisan buffer:publish --channels`, fill `BUFFER_CHANNEL_X/INSTAGRAM/TIKTOK`. `APP_URL` must be
-   the public https URL (Buffer fetches media from it).
+   the public https URL (Buffer fetches media from it). Then `BUFFER_AUTO=true` for the planned posts;
+   watch `/admin/twitter` for the first sends (failed posts show Buffer's own error).
 6. Rollback any feature by switching its flag off and clearing caches.
+
+**Server operations without a shell:** Actions → *Server operations* (`.github/workflows/server-ops.yml`,
+`main` only, production environment, deploy key). `status` (release, migrations, Buffer settings with the key
+masked, cron, post counts), `buffer-channels` (channel IDs), `configure-buffer` (writes `BUFFER_API_KEY` from
+the production secret of that name plus channel IDs, `BUFFER_AUTO`, `BUFFER_SLOTS` into `.env` through
+`matchday-africa/scripts/set-env.php`, which backs `.env` up first, then `config:cache`), `plan-posts` (plan and
+send once). From a terminal: `gh workflow run server-ops.yml -f action=status`.
 
 ## 6. Environment variables added in this round
 See the block at the end of `matchday-africa/.env.example` / `production.env.example`.
@@ -113,12 +122,19 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `BUFFER_API_KEY` | empty | Buffer API key |
 | `BUFFER_MODE` | shareNow | Or `addToQueue` to use the Buffer schedule |
 | `BUFFER_CHANNEL_X` / `_INSTAGRAM` / `_TIKTOK` | empty | Buffer channel IDs |
+| `BUFFER_AUTO` | false | Queue and send planned posts (otherwise drafts on `/admin/twitter`) |
+| `BUFFER_SLOTS` / `BUFFER_PREVIEWS_PER_DAY` | 08:00,13:00,19:00 / 3 | Lagos times; each account posts at most once per slot (live cards and reels included), so three a day. Fixture previews planned a day |
+| `BUFFER_MONTHLY_REQUESTS` / `_SOFT_LIMIT` / `_HARD_LIMIT` | 3000 / 2500 / 2900 | Buffer API budget, counted in `buffer_usage`; posting stops at the hard limit |
 
 ## 7. Open items and known issues
 - Live `APP_TIMEZONE` was verified as `Africa/Lagos` on 19 October 2026; the production
   template now matches it. Kick-off display formatting remains a separate issue (rule 5).
 - West Ham and Wolves have no crest-free statue (`art => null` in `config/armies.php`); their cards use club colours only.
 - Native speakers should review the Pidgin, Swahili/Sheng and Mzansi captions in `app/Services/Griot.php`.
-- Buffer's GraphQL API is in public beta and was implemented from its docs without a live account. Check
-  the first posts, especially whether Instagram treats the video as a Reel.
+- Buffer's client is the one ngr.ltd and housedata.uk run in production (`api.buffer.com/graphql`, variables,
+  Instagram type at `metadata.instagram.type` read from the live schema). Still check the first posts here,
+  especially whether Instagram treats the reel video as a Reel.
+- The X timeline only states the site's own facts. Don't quote `match_previews.preview_content` in automated
+  posts: `MatchPreviewService` invents head-to-head records when it has none. Article cover photos come from
+  other publishers, so they are never uploaded; X shows the article's link card.
 - The reel took ~85 s to render on a 4-core container. A small shared host will be slower; `check.mjs` prints an estimate.

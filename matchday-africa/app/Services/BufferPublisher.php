@@ -3,18 +3,26 @@
 namespace App\Services;
 
 use App\Models\FootballMatch;
+use App\Models\GrowthPost;
 use App\Models\MatchMoment;
+use App\Support\BufferUsage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 /**
- * Hands the Griot's chapter cards and full-time reels to Buffer, which posts them to X,
- * Instagram and TikTok. Each subject goes to each channel once (social_posts).
+ * Hands posts to Buffer:
+ *   - the Griot's live chapter cards and full-time reels, to X, Instagram and TikTok as they
+ *     happen, when the channel's slot is free (each subject to each channel once, social_posts);
+ *   - the planned timeline in growth_posts (GrowthPostGenerator).
+ * Every channel posts at most once per daily slot (config buffer.slots), live posts included.
  */
 class BufferPublisher
 {
-    public function __construct(private MatchStoryService $stories, private ReelService $reels, private Griot $griot) {}
+    private const MAX_ATTEMPTS = 3;
+
+    public function __construct(private MatchStoryService $stories, private ReelService $reels, private Griot $griot, private BufferClient $buffer) {}
 
     public function configured(): bool
     {
@@ -51,56 +59,128 @@ class BufferPublisher
                 $count($this->send("reel:{$match->id}", $channel, $id, $match, $text, video: $video));
             }
         }
+
+        [$sent, $failed] = $this->publishTimeline();
+        $done = [$done[0] + $sent, $done[1] + $failed];
+
         return $done;
     }
 
-    /** Channel IDs on the Buffer account, for setting BUFFER_CHANNEL_* (organization → channels). */
+    /**
+     * Sends the most valuable due planned post on each channel whose slot is free. Returns [sent, failed].
+     */
+    public function publishTimeline(): array
+    {
+        $done = [0, 0];
+        if (!config('buffer.x.auto') || !Schema::hasColumn('growth_posts', 'channel')) {
+            return $done;
+        }
+
+        GrowthPost::where('status', 'queued')->whereNotNull('expires_at')->where('expires_at', '<', now())
+            ->update(['status' => 'expired', 'last_error' => 'Not sent before it went out of date (no free slot in time).']);
+        // A run that died mid-send leaves its post claimed; hand it back.
+        GrowthPost::where('status', 'sending')->where('updated_at', '<', now()->subMinutes(10))->update(['status' => 'queued']);
+
+        foreach (array_filter(config('buffer.channels')) as $channel => $channelId) {
+            if (!$this->slotOpen($channel) || !BufferUsage::allows(true)) {
+                continue;
+            }
+            $priority = config('buffer.x.priority');
+            $post = GrowthPost::where('channel', $channel)->where('status', 'queued')->where('scheduled_at', '<=', now())
+                ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+                ->get()->sortBy(fn ($p) => [$priority[$p->type] ?? 9, $p->scheduled_at->timestamp, $p->id])->first();
+            if (!$post || !GrowthPost::whereKey($post->id)->where('status', 'queued')->update(['status' => 'sending'])) {
+                continue;
+            }
+            // The claim above bypassed the model; without this, putting it back to queued is a no-op.
+            $post->forceFill(['status' => 'sending'])->syncOriginal();
+
+            $image = $post->image_url && $this->reachableImage($post->image_url) ? $post->image_url : null;
+            $result = $post->image_url && !$image && $channel !== 'x'
+                ? ['error' => "The image did not load ({$post->image_url}); {$channel} needs one."]
+                : $this->buffer->createPost($channelId, $channel, $post->message, image: $image);
+            $attempts = $post->attempts + 1;
+
+            if ($result['ok'] ?? false) {
+                $post->update(['status' => 'sent', 'provider_post_id' => $result['id'], 'published_at' => now(), 'attempts' => $attempts,
+                    'last_error' => $post->image_url && !$image ? 'Sent without its image: the image URL did not load.' : null]);
+                $done[0]++;
+            } else {
+                $post->update(['status' => $attempts >= self::MAX_ATTEMPTS ? 'failed' : 'queued', 'attempts' => $attempts,
+                    'last_error' => mb_substr($result['error'] ?? 'Unknown Buffer response', 0, 1000)]);
+                $done[1]++;
+            }
+        }
+
+        return $done;
+    }
+
+    /**
+     * Whether a channel may post now: one post per slot (config buffer.slots, Lagos times), so
+     * three slots mean at most three posts a day, spread through it. Counts live posts too.
+     */
+    public function slotOpen(string $channel): bool
+    {
+        $now = now(config('buffer.x.timezone'));
+        $start = collect(config('buffer.slots'))->map(fn ($time) => $now->copy()->setTimeFromTimeString($time))
+            ->filter(fn ($slot) => $slot->lte($now))->sort()->last();
+        if (!$start) {
+            return false;
+        }
+        $since = $start->setTimezone(config('app.timezone'));
+
+        return !GrowthPost::where(['channel' => $channel, 'status' => 'sent'])->where('published_at', '>=', $since)->exists()
+            && !(Schema::hasTable('social_posts') && DB::table('social_posts')->where(['channel' => $channel, 'status' => 'sent'])->where('updated_at', '>=', $since)->exists());
+    }
+
+    /** Channels on the Buffer account, for setting BUFFER_CHANNEL_*. */
     public function channels(): array
     {
-        $orgs = $this->graphql('query { account { organizations { id name } } }');
+        $orgs = $this->buffer->listOrganizations();
+        if (isset($orgs['error'])) {
+            throw new \RuntimeException($orgs['error']);
+        }
         $channels = [];
-        foreach (data_get($orgs, 'data.account.organizations', []) as $org) {
-            $result = $this->graphql('query { channels(input: { organizationId: '.json_encode($org['id']).' }) { id name service } }');
-            $channels = array_merge($channels, data_get($result, 'data.channels', []));
+        foreach ($orgs['organizations'] as $org) {
+            $result = $this->buffer->listChannels($org['id']);
+            if (isset($result['error'])) {
+                throw new \RuntimeException($result['error']);
+            }
+            $channels = array_merge($channels, $result['channels']);
         }
 
         return $channels;
     }
 
-    /** True when Buffer accepted it, false when it failed (retried next run), null when already sent. */
+    /** True when Buffer accepted it, false when it failed (retried next run), null when already sent or held back. */
     private function send(string $subject, string $channel, string $channelId, FootballMatch $match, string $text, ?string $image = null, ?string $video = null): ?bool
     {
-        if (DB::table('social_posts')->where(['subject' => $subject, 'channel' => $channel])->whereIn('status', ['sent', 'sending'])->exists()) {
+        if (DB::table('social_posts')->where(['subject' => $subject, 'channel' => $channel])->whereIn('status', ['sent', 'sending'])->exists()
+            || !BufferUsage::allows(true) || !$this->slotOpen($channel)) {
             return null;
         }
         DB::table('social_posts')->updateOrInsert(['subject' => $subject, 'channel' => $channel],
             ['match_id' => $match->id, 'status' => 'sending', 'error' => null, 'updated_at' => now(), 'created_at' => now()]);
 
-        // Strings are JSON-encoded, which is also a valid GraphQL string literal.
-        $asset = $video
-            ? '{ video: { url: '.json_encode($video, JSON_UNESCAPED_SLASHES).', metadata: { thumbnailOffset: 18500 } } }'
-            : '{ image: { url: '.json_encode($image, JSON_UNESCAPED_SLASHES).' } }';
-        $mutation = 'mutation { createPost(input: { text: '.json_encode($text, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES).', channelId: '.json_encode($channelId)
-            .', schedulingType: automatic, mode: '.config('buffer.mode').', assets: ['.$asset.'] }) '
-            .'{ ... on PostActionSuccess { post { id } } ... on MutationError { message } } }';
-
-        try {
-            $result = $this->graphql($mutation);
-            $postId = data_get($result, 'data.createPost.post.id');
-            $error = $postId ? null : (data_get($result, 'data.createPost.message') ?? data_get($result, 'errors.0.message') ?? 'Unknown Buffer response');
-        } catch (Throwable $e) {
-            [$postId, $error] = [null, $e->getMessage()];
-        }
+        $result = $this->buffer->createPost($channelId, $channel, $text, $image, $video, config('buffer.mode'));
+        $postId = ($result['ok'] ?? false) ? $result['id'] : null;
         DB::table('social_posts')->where(['subject' => $subject, 'channel' => $channel])
-            ->update(['status' => $postId ? 'sent' : 'failed', 'buffer_post_id' => $postId, 'error' => $error ? mb_substr($error, 0, 1000) : null, 'updated_at' => now()]);
+            ->update(['status' => $postId ? 'sent' : 'failed', 'buffer_post_id' => $postId,
+                'error' => $postId ? null : mb_substr($result['error'] ?? 'Unknown Buffer response', 0, 1000), 'updated_at' => now()]);
 
         return (bool) $postId;
     }
 
-    private function graphql(string $query): array
+    /** Buffer fetches media itself; a URL that doesn't load fails at X later, so check it first. */
+    private function reachableImage(string $url): bool
     {
-        return Http::withToken(config('buffer.key'))->acceptJson()->timeout(20)
-            ->post(config('buffer.endpoint'), ['query' => $query])->throw()->json() ?? [];
+        try {
+            $response = Http::timeout(20)->get($url);
+
+            return $response->successful() && str_starts_with((string) $response->header('Content-Type'), 'image/');
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     /** Configured channels for this kind of post: name => Buffer channel ID. */

@@ -4,7 +4,10 @@
 set -Eeuo pipefail
 
 mode=${1:-}
-[[ "$mode" == preflight || "$mode" == maintenance || "$mode" == deploy || "$mode" == upload-reel ]] || { echo "Usage: $0 preflight|maintenance|deploy|upload-reel"; exit 2; }
+case "$mode" in
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts) ;;
+    *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts"; exit 2 ;;
+esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
     [[ -n "${!variable:-}" ]] || { echo "Missing production secret: $variable"; exit 1; }
 done
@@ -65,6 +68,44 @@ elif [[ "$mode" == upload-reel ]]; then
     # Upload one file atomically into the served root, retaining every other reel.
     ssh "${ssh_options[@]}" "$target" \
         "umask 022; mkdir -p $destination && cat > $destination/$MATCH_ID.mp4.upload && mv $destination/$MATCH_ID.mp4.upload $destination/$MATCH_ID.mp4" < "$source"
+elif [[ "$mode" == status ]]; then
+    # Read-only: release, migrations, social settings (API key shown only as set/unset), cron.
+    ssh "${ssh_options[@]}" "$target" "bash -s -- $root" <<'REMOTE'
+set -Eeuo pipefail
+cd "$1"
+echo "Release: $(cat public/deploy-version.txt 2>/dev/null || echo unknown)"
+php artisan migrate:status --no-ansi | grep -E "social_posts|x_outbox|match_moments|espn" || true
+grep -E '^(APP_URL|APP_TIMEZONE|ESPN_ENABLED|ESPN_SHADOW|REEL_RENDERER|BUFFER_[A-Z_]+)=' .env \
+    | sed -E 's/^(BUFFER_API_KEY=).+$/\1<set>/' || true
+echo "Scheduler cron:"; crontab -l 2>/dev/null | grep -F artisan || echo "  none found"
+php artisan tinker --execute='echo "Posts by channel and status: ".json_encode(DB::table("growth_posts")->selectRaw("channel, status, count(*) n")->groupBy("channel", "status")->get()).PHP_EOL;' 2>/dev/null || true
+REMOTE
+elif [[ "$mode" == buffer-channels ]]; then
+    ssh "${ssh_options[@]}" "$target" "cd $root && php artisan buffer:publish --channels --no-ansi"
+elif [[ "$mode" == plan-posts ]]; then
+    ssh "${ssh_options[@]}" "$target" "cd $root && php artisan twitter:engage --no-ansi && php artisan buffer:publish --no-ansi || true"
+elif [[ "$mode" == configure-buffer ]]; then
+    # Settings travel as JSON on stdin, so the API key never appears in a command line or log.
+    # shellcheck disable=SC2016 # the single-quoted program is PHP, not shell
+    json=$(php -r '
+$set = [];
+if (getenv("BUFFER_API_KEY") !== false && getenv("BUFFER_API_KEY") !== "") { $set["BUFFER_API_KEY"] = getenv("BUFFER_API_KEY"); }
+foreach (["X", "INSTAGRAM", "TIKTOK"] as $c) {
+    $v = trim((string) getenv("INPUT_CHANNEL_".$c));
+    if ($v === "") { continue; }
+    if (!preg_match("/^[A-Za-z0-9]{6,64}$/", $v)) { fwrite(STDERR, "Invalid $c channel ID.\n"); exit(1); }
+    $set["BUFFER_CHANNEL_".$c] = $v;
+}
+$auto = getenv("INPUT_AUTO");
+if ($auto === "true" || $auto === "false") { $set["BUFFER_AUTO"] = $auto; }
+$slots = trim((string) getenv("INPUT_SLOTS"));
+if ($slots !== "") {
+    if (!preg_match("/^([01][0-9]|2[0-3]):[0-5][0-9](,([01][0-9]|2[0-3]):[0-5][0-9]){0,9}$/", $slots)) { fwrite(STDERR, "Slots must look like 08:00,13:00,19:00.\n"); exit(1); }
+    $set["BUFFER_SLOTS"] = $slots;
+}
+if (!$set) { fwrite(STDERR, "Nothing to configure.\n"); exit(1); }
+echo json_encode($set);')
+    printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/set-env.php && php artisan config:cache --no-ansi"
 else
     [[ "${GITHUB_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || { echo "Missing release commit SHA."; exit 1; }
     ssh "${ssh_options[@]}" "$target" "bash -s -- $root $GITHUB_SHA" <<'REMOTE'
