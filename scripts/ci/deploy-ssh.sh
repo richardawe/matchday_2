@@ -50,7 +50,7 @@ REMOTE
     ssh "${ssh_options[@]}" "$target" "cd $root && php /dev/stdin validate $root" \
         < matchday-africa/scripts/deployment-settings.php
 elif [[ "$mode" == maintenance ]]; then
-    ssh "${ssh_options[@]}" "$target" "cd $root && php artisan down --retry=60"
+    ssh "${ssh_options[@]}" "$target" "cd $root && php artisan down --render=errors::503 --retry=60"
 else
     [[ "${GITHUB_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || { echo "Missing release commit SHA."; exit 1; }
     ssh "${ssh_options[@]}" "$target" "bash -s -- $root $GITHUB_SHA" <<'REMOTE'

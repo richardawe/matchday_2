@@ -13,7 +13,8 @@ On `main`, the deployment job restores the exact tested frontend artifact; it do
 not rebuild it. Before touching the live site it verifies the release is still
 `main`, connects by SSH with pinned host keys, and checks the existing Laravel
 root, PHP extensions, Composer, writable directories, and production `.env`.
-It then enters maintenance mode, uploads by FTPS, runs `deploy-production.sh` over
+It then pre-renders a maintenance page (so mixed files need not boot Laravel),
+uploads by FTPS, runs `deploy-production.sh` over
 SSH, and verifies the public release SHA, health route, home, match list, match
 detail, pulse JSON, and live match JSON. SSH and FTP must target the same Laravel
 root; the uploaded release marker is checked from both paths.
