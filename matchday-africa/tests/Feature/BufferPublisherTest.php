@@ -158,6 +158,22 @@ class BufferPublisherTest extends TestCase
         $this->assertSame(['instagram', 'tiktok', 'x'], \App\Models\GrowthPost::where('type', 'reel')->orderBy('channel')->pluck('channel')->all());
     }
 
+    public function test_a_timed_out_post_is_never_retried_automatically(): void
+    {
+        config(['buffer.x.auto' => true]);
+        \App\Models\GrowthPost::create(['content_key' => 'news:9', 'channel' => 'x', 'type' => 'news', 'message' => 'Hello',
+            'status' => 'queued', 'scheduled_at' => now()->subMinute()]);
+        $this->travel(31)->minutes();
+        Http::fake(['api.buffer.com/*' => fn () => throw new \Illuminate\Http\Client\ConnectionException('cURL error 28: Operation timed out after 45001 milliseconds')]);
+
+        $this->artisan('buffer:publish')->expectsOutput('Buffer: 0 sent, 1 failed');
+        $this->artisan('buffer:publish')->expectsOutput('Buffer: 0 sent, 0 failed');
+
+        $post = \App\Models\GrowthPost::first();
+        $this->assertSame(['failed', 1], [$post->status, $post->attempts]);
+        $this->assertStringContainsString('Check Buffer before retrying', $post->last_error);
+    }
+
     public function test_posting_stops_at_the_monthly_request_limit(): void
     {
         $this->fakeBuffer();

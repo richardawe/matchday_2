@@ -44,7 +44,7 @@ class BufferClient
     }
 
     /** @return array{data?: array, error?: string, raw?: mixed} */
-    public function query(string $query, array $variables = []): array
+    public function query(string $query, array $variables = [], int $timeout = 30): array
     {
         if (!config('buffer.key')) {
             return ['error' => 'BUFFER_API_KEY is not set'];
@@ -54,7 +54,7 @@ class BufferClient
         BufferUsage::record();
 
         try {
-            $response = Http::withToken(config('buffer.key'))->acceptJson()->timeout(30)
+            $response = Http::withToken(config('buffer.key'))->acceptJson()->timeout($timeout)
                 ->post(config('buffer.endpoint'), ['query' => $query, 'variables' => $variables ?: (object) []]);
         } catch (Throwable $e) {
             return ['error' => $e->getMessage()];
@@ -194,10 +194,13 @@ class BufferClient
                 ... on MutationError { message }
               }
             }
-            GQL, ['input' => $input]);
+            GQL, ['input' => $input], $video ? 120 : 45);
 
         if (isset($r['error'])) {
-            return ['error' => $r['error'], 'request' => $input];
+            // No answer is not a refusal: Buffer may have created the post. Never retry that blindly.
+            $timedOut = (bool) preg_match('/cURL error 28|timed out/i', $r['error']);
+
+            return ['error' => $r['error'], 'timed_out' => $timedOut, 'request' => $input];
         }
         $result = $r['data']['createPost'] ?? null;
         if (!$result) {

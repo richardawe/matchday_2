@@ -17,7 +17,7 @@ Schedule::command('matches:refresh results')->everyFiveMinutes()->withoutOverlap
 Schedule::command('espn:sync fixtures')->everySixHours()->withoutOverlapping(30)->runInBackground()->name('espn-fixtures');
 Schedule::command('espn:sync live')->everyMinute()->withoutOverlapping(2)->runInBackground()->name('espn-live');
 Schedule::command('reel:render')->everyMinute()->withoutOverlapping(30)->runInBackground()->name('griot-full-time-reels');
-Schedule::command('buffer:publish')->everyMinute()->withoutOverlapping(5)->name('buffer-social-posts');
+Schedule::command('buffer:publish')->everyMinute()->withoutOverlapping(10)->runInBackground()->name('buffer-social-posts');
 Schedule::command('story:sync')->everyMinute()->withoutOverlapping(5)->name('griot-story-chapters');
 Schedule::command('espn:sync details')->everyMinute()->withoutOverlapping(5)->runInBackground()->name('espn-details');
 Schedule::command('sync:standings --all')->dailyAt('03:10')->withoutOverlapping(60)->name('standings-nightly');

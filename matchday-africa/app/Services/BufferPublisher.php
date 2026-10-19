@@ -97,8 +97,10 @@ class BufferPublisher
                     'last_error' => $post->image_url && !$image ? 'Sent without its image: the image URL did not load.' : null]);
                 $done[0]++;
             } else {
-                $post->update(['status' => $attempts >= self::MAX_ATTEMPTS ? 'failed' : 'queued', 'attempts' => $attempts,
-                    'last_error' => mb_substr($result['error'] ?? 'Unknown Buffer response', 0, 1000)]);
+                $timedOut = $result['timed_out'] ?? false;
+                $post->update(['status' => $timedOut || $attempts >= self::MAX_ATTEMPTS ? 'failed' : 'queued', 'attempts' => $attempts,
+                    'last_error' => ($timedOut ? 'Buffer did not answer in time; it may still have posted it. Check Buffer before retrying. ' : '')
+                        .mb_substr($result['error'] ?? 'Unknown Buffer response', 0, 900)]);
                 $done[1]++;
             }
         }
@@ -146,7 +148,7 @@ class BufferPublisher
     /** True when Buffer accepted it, false when it failed (retried next run), null when already sent or held back. */
     private function send(string $subject, string $channel, string $channelId, FootballMatch $match, string $text, ?string $image = null, ?string $video = null): ?bool
     {
-        if (DB::table('social_posts')->where(['subject' => $subject, 'channel' => $channel])->whereIn('status', ['sent', 'sending'])->exists()
+        if (DB::table('social_posts')->where(['subject' => $subject, 'channel' => $channel])->whereIn('status', ['sent', 'sending', 'unknown'])->exists()
             || !BufferUsage::allows(true) || !$this->slotOpen($channel)) {
             return null;
         }
@@ -156,7 +158,8 @@ class BufferPublisher
         $result = $this->buffer->createPost($channelId, $channel, $text, $image, $video, config('buffer.mode'));
         $postId = ($result['ok'] ?? false) ? $result['id'] : null;
         DB::table('social_posts')->where(['subject' => $subject, 'channel' => $channel])
-            ->update(['status' => $postId ? 'sent' : 'failed', 'buffer_post_id' => $postId,
+            // A timeout is 'unknown' and never retried: Buffer may have posted it.
+            ->update(['status' => $postId ? 'sent' : (($result['timed_out'] ?? false) ? 'unknown' : 'failed'), 'buffer_post_id' => $postId,
                 'error' => $postId ? null : mb_substr($result['error'] ?? 'Unknown Buffer response', 0, 1000), 'updated_at' => now()]);
 
         return (bool) $postId;
