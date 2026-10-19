@@ -24,6 +24,7 @@ if (pulse) {
 const live = document.getElementById('match-live');
 if (live && (live.dataset.active === '1' || live.dataset.soon === '1')) {
     let lastHtml = null;
+    let lastStory = null;
     const refreshLive = async () => {
         let delay = 60000;
         try {
@@ -35,6 +36,8 @@ if (live && (live.dataset.active === '1' || live.dataset.soon === '1')) {
             const status = document.getElementById('match-status');
             if (status) status.textContent = data.status;
             if (data.html !== lastHtml) live.innerHTML = data.html;
+            const story = document.getElementById('match-story');
+            if (story && data.story !== undefined && data.story !== lastStory) { story.innerHTML = data.story; lastStory = data.story; }
             lastHtml = data.html;
             if (data.finished) return;
             delay = data.active ? 20000 : 60000;

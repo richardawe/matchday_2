@@ -7,6 +7,8 @@
     <div class="md-room-actions"><a class="md-primary" href="#prediction-arena">Predict this match</a><a class="md-primary" href="{{ route('war.match',$match) }}#game">Kick off Matchday War</a><button class="md-secondary md-share" data-share-title="{{ $match->homeTeam?->name }} vs {{ $match->awayTeam?->name }}" data-share-text="Make your prediction on Matchday Africa.">Share</button></div>
 </div></section>
 
+<div id="match-story">@include('partials.match-story')</div>
+
 <section id="prediction-arena" class="md-phase"><div class="md-wrap"><div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
     <div class="lg:col-span-2 bg-gray-950 text-white rounded-2xl p-6">
         <p class="md-eyebrow">MATCH PREDICTION</p><h2 class="text-3xl font-black mt-2">Call the final score.</h2><p class="text-gray-300 mt-2">Predict any scheduled match. Entries lock when the match goes live.</p>

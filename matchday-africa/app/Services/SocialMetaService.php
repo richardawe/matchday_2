@@ -257,6 +257,16 @@ class SocialMetaService
      */
     protected function getMatchSocialImage(FootballMatch $match): string
     {
+        // A shared chapter link (?moment=) previews that chapter; otherwise the latest one.
+        $stories = app(\App\Services\MatchStoryService::class);
+        if ($stories->ready()) {
+            $chapters = $stories->chapters($match);
+            $chapter = $chapters->firstWhere('id', (int) request()->query('moment')) ?? $chapters->last();
+            if ($chapter) {
+                return $chapter->cardUrl(\App\Services\Griot::voiceFor(request()), 'og');
+            }
+        }
+
         return route('images.social-default', ['v' => '20260823']);
     }
 

@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\Services\MythGrammarService;
+use App\Services\Griot;
+use App\Services\MatchStoryService;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -44,7 +47,8 @@ class MatchController extends Controller
      */
     public function live(FootballMatch $match): JsonResponse
     {
-        $payload = Cache::remember("match-live:{$match->id}", 10, function () use ($match) {
+        $voice = Griot::voiceFor(request());
+        $payload = Cache::remember("match-live:{$match->id}:{$voice}", 10, function () use ($match, $voice) {
             $match = $match->fresh(['events.team']);
             $events = $match->events;
 
@@ -55,6 +59,9 @@ class MatchController extends Controller
                 'finished' => $match->isFinished(),
                 'updated_at' => $match->last_api_update?->toIso8601String(),
                 'html' => view('partials.match-live-data', ['match' => $match, 'events' => $events])->render(),
+                'story' => app(MatchStoryService::class)->ready()
+                    ? view('partials.match-story', ['match' => $match, 'chapters' => app(MatchStoryService::class)->chapters($match), 'voice' => $voice])->render()
+                    : '',
             ];
         });
 
@@ -207,6 +214,12 @@ class MatchController extends Controller
             $winnerIds=$sponsor?->awards->pluck('user_id')??collect();
             $africanPlayers=Player::with('team')->active()->whereIn('team_id',[$match->home_team_id,$match->away_team_id])->whereIn('nationality_code',DiscoveryController::AFRICA)->get()->filter(fn($player)=>data_get($player->metadata,'api_football_lineup.match_id')===$match->id||data_get($player->metadata,'api_football_stats.match_id')===$match->id)->values();
 
+            $voice = Griot::voiceFor(request());
+            if (request()->has('voice')) {
+                Cookie::queue('griot_voice', $voice, 60 * 24 * 365);
+            }
+            $chapters = app(MatchStoryService::class)->ready() ? app(MatchStoryService::class)->chapters($match) : collect();
+
             return view('matches.show', compact(
                 'match', 
                 'events', 
@@ -214,7 +227,7 @@ class MatchController extends Controller
                 'upcomingMatches', 
                 'recentChats',
                 'matchPreview',
-                'featuredPreviews','momentum','predictionSet','mythStory','warTeams','predictions','currentPrediction','predictionOpen','sponsor','winnerIds','africanPlayers'
+                'featuredPreviews','momentum','predictionSet','mythStory','warTeams','predictions','currentPrediction','predictionOpen','sponsor','winnerIds','africanPlayers','chapters','voice'
             ))->with('content', $match);
 
         } catch (\Exception $e) {
@@ -228,7 +241,7 @@ class MatchController extends Controller
                 'recentChats' => collect([]),
                 'matchPreview' => null, 'momentum' => 50, 'predictionSet' => null, 'mythStory' => null,
                 'featuredPreviews' => collect([]), 'warTeams' => ['home' => null, 'away' => null],
-                'predictions'=>collect([]),'currentPrediction'=>null,'predictionOpen'=>false,'sponsor'=>null,'winnerIds'=>collect([]),'africanPlayers'=>collect([])
+                'predictions'=>collect([]),'currentPrediction'=>null,'predictionOpen'=>false,'sponsor'=>null,'winnerIds'=>collect([]),'africanPlayers'=>collect([]),'chapters'=>collect([]),'voice'=>'en'
             ])->with('content', $match);
         }
     }

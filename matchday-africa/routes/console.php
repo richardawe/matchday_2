@@ -16,6 +16,7 @@ Schedule::command('matches:refresh results')->everyFiveMinutes()->withoutOverlap
 // ESPN feed (no-ops while ESPN_ENABLED=false): live passes every 20s inside each minute.
 Schedule::command('espn:sync fixtures')->everySixHours()->withoutOverlapping(30)->runInBackground()->name('espn-fixtures');
 Schedule::command('espn:sync live')->everyMinute()->withoutOverlapping(2)->runInBackground()->name('espn-live');
+Schedule::command('story:sync')->everyMinute()->withoutOverlapping(5)->name('griot-story-chapters');
 Schedule::command('espn:sync details')->everyMinute()->withoutOverlapping(5)->runInBackground()->name('espn-details');
 Schedule::command('sync:standings --all')->dailyAt('03:10')->withoutOverlapping(60)->name('standings-nightly');
 Schedule::command('sync:leagues --featured')->dailyAt('02:30')->withoutOverlapping(60)->name('leagues-daily');

@@ -70,6 +70,8 @@ Route::get('/leagues/{league}/standings', [LeagueController::class, 'standings']
 Route::get('/matches', [MatchController::class, 'index'])->name('matches.index');
 Route::get('/matches/{match}/chronicle', [MatchController::class, 'chronicle'])->name('matches.chronicle');
 Route::get('/matches/{match}/live', [MatchController::class, 'live'])->name('matches.live');
+Route::get('/moments/{moment}/card/{voice}/{format}.png', [App\Http\Controllers\MomentCardController::class, 'show'])
+    ->where(['voice' => 'en|pcm|sw|za', 'format' => 'story|feed|og'])->name('moments.card');
 Route::get('/matches/{match}/sponsor-logo', [MatchController::class, 'sponsorLogo'])->name('matches.sponsor-logo');
 Route::get('/matches/{match}', [MatchController::class, 'show'])->name('matches.show');
 Route::get('/matches/enhanced', [App\Http\Controllers\EnhancedMatchController::class, 'index'])->name('matches.enhanced');
