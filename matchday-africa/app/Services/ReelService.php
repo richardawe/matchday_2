@@ -197,6 +197,19 @@ class ReelService
         return true;
     }
 
+    /** How strong a reel is: 10, plus goals, a late goal, red cards and the biggest clubs. */
+    public function weight(FootballMatch $match): int
+    {
+        $match->loadMissing(['homeTeam', 'awayTeam']);
+        $moments = MatchMoment::where('match_id', $match->id)->get();
+        $big = collect([$match->homeTeam?->name, $match->awayTeam?->name])
+            ->filter(fn ($n) => in_array(Armies::key((string) $n), config('buffer.big_clubs'), true))->count();
+
+        return 10 + 3 * ((int) $match->home_score + (int) $match->away_score)
+            + ($moments->where('type', 'goal')->where('minute', '>=', 85)->isNotEmpty() ? 8 : 0)
+            + 4 * $moments->where('type', 'red_card')->count() + 6 * $big;
+    }
+
     /** The reel's poster frame, when the render made one. */
     public function posterPath(FootballMatch $match): ?string
     {
