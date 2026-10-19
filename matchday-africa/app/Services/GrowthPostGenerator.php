@@ -37,7 +37,8 @@ class GrowthPostGenerator
     private function reels(): int
     {
         $created = 0;
-        FootballMatch::with(['homeTeam', 'awayTeam', 'league'])->where('match_date', '>=', now('UTC')->subDays(2))->whereNotNull('metadata')->get()
+        // Any match whose reel became ready in the last day, however long ago it was played.
+        FootballMatch::with(['homeTeam', 'awayTeam', 'league'])->where('match_date', '>=', now('UTC')->subDays(14))->whereNotNull('metadata')->get()
             ->filter(fn ($m) => data_get($m->metadata, 'reel.status') === 'ready' && data_get($m->metadata, 'reel.ready_at')
                 && Carbon::parse(data_get($m->metadata, 'reel.ready_at'))->gt(now()->subDay()))
             ->each(function (FootballMatch $match) use (&$created) {
