@@ -1,11 +1,11 @@
 // Renders the Griot's full-time reel to MP4.
-//   node render.mjs --props match.json --out reel.mp4 [--composition Reel]
+//   node render.mjs --props match.json --out reel.mp4 [--poster reel.jpg] [--composition Reel]
 //   node render.mjs --props-url https://… --out reel.mp4   (GitHub Actions: a signed URL from the site)
 // The props file is written by `php artisan reel:render`. Each army's `art_path` points at its
 // crest-free cut-out; fonts, art and the generated soundtrack are staged in a temporary public
 // folder so the render never needs the network.
 import { bundle } from '@remotion/bundler';
-import { renderMedia, selectComposition } from '@remotion/renderer';
+import { renderMedia, renderStill, selectComposition } from '@remotion/renderer';
 import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -14,7 +14,7 @@ import { writeSoundtrack } from './audio.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-export async function renderReel(props, out, { composition = 'Reel', log = console.log } = {}) {
+export async function renderReel(props, out, { composition = 'Reel', log = console.log, poster = null } = {}) {
     const started = Date.now();
     const stage = await mkdtemp(path.join(os.tmpdir(), 'matchday-reel-'));
     try {
@@ -48,6 +48,11 @@ export async function renderReel(props, out, { composition = 'Reel', log = conso
                 if (pct !== last) { last = pct; log(`rendering ${pct}%`); }
             },
         });
+        // A still from the first big moment, for match pages, the homepage rail and link previews.
+        if (poster) {
+            await renderStill({ composition: comp, serveUrl, inputProps, output: poster, browserExecutable,
+                frame: Math.min(80, comp.durationInFrames - 1), imageFormat: 'jpeg', jpegQuality: 82 });
+        }
         return { seconds: Math.round((Date.now() - started) / 100) / 10, frames: comp.durationInFrames };
     } finally {
         await rm(stage, { recursive: true, force: true });
@@ -63,6 +68,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const props = arg('props-url')
         ? await (await fetch(arg('props-url'), { headers: { Accept: 'application/json' } })).json()
         : JSON.parse(await readFile(arg('props'), 'utf8'));
-    const result = await renderReel(props, arg('out'), { composition: arg('composition') ?? 'Reel' });
+    const result = await renderReel(props, arg('out'), { composition: arg('composition') ?? 'Reel', poster: arg('poster') });
     console.log(`done in ${result.seconds}s (${result.frames} frames) -> ${arg('out')}`);
 }

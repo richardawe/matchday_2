@@ -54,6 +54,11 @@ return [
     |
     */
     'slots' => array_values(array_filter(array_map('trim', explode(',', env('BUFFER_SLOTS', '08:00,13:00,19:00'))))),
+    // Reels go out in these slots (0 = the first) on days without a Premier League match, two a
+    // day per account through the week after their round; the other slot keeps news and previews.
+    'reel_slots' => [0, 2],
+    // Reels involving these clubs are more likely to be picked (armies.php keys).
+    'big_clubs' => ['arsenal', 'chelsea', 'liverpool', 'manchester city', 'manchester united', 'tottenham hotspur', 'newcastle united'],
 
     /*
     |--------------------------------------------------------------------------
@@ -71,7 +76,7 @@ return [
     'x' => [
         'auto' => (bool) env('BUFFER_AUTO', false),
         // Which planned post wins a free slot: lower first, then the earliest due.
-        'priority' => ['custom' => 0, 'reel' => 0, 'results' => 1, 'preview' => 2, 'fixtures' => 3, 'news' => 4],
+        'priority' => ['custom' => 0, 'results' => 1, 'preview' => 2, 'fixtures' => 3, 'news' => 4],
         'timezone' => 'Africa/Lagos',
         // Previews go out this long before kick-off, for at most this many fixtures a day
         // (most important competitions first, config/competitions.php).

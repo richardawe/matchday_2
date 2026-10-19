@@ -29,7 +29,8 @@ class ReelService
     {
         return FootballMatch::with(['league', 'homeTeam', 'awayTeam'])
             ->whereIn('status', ['FINISHED', 'FT'])
-            ->where('match_date', '>=', now('UTC')->subDays(2))
+            // Recent matches, plus any older one queued by hand (reel:queue or the admin reels page).
+            ->where(fn ($q) => $q->where('match_date', '>=', now('UTC')->subDays(2))->orWhere('metadata->reel->status', 'queued'))
             ->whereIn('id', MatchMoment::where('type', 'full_time')->where('created_at', '<=', now()->subMinutes(config('reel.delay_minutes')))->select('match_id'))
             ->orderBy('match_date')
             ->get()
@@ -111,9 +112,10 @@ class ReelService
         File::ensureDirectoryExists($dir);
         $propsFile = "{$dir}/{$match->id}.json";
         $out = "{$dir}/{$match->id}.mp4";
+        $poster = "{$dir}/{$match->id}.jpg";
         File::put($propsFile, json_encode($this->props($match), JSON_UNESCAPED_UNICODE));
 
-        $process = new Process([config('reel.node'), base_path('reel/render.mjs'), '--props', $propsFile, '--out', $out], base_path('reel'), null, null, config('reel.timeout'));
+        $process = new Process([config('reel.node'), base_path('reel/render.mjs'), '--props', $propsFile, '--out', $out, '--poster', $poster], base_path('reel'), null, null, config('reel.timeout'));
         try {
             $process->mustRun();
             $this->mark($match, ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]);
@@ -176,6 +178,32 @@ class ReelService
         $file = data_get($match->metadata, 'reel.source') === 'github' ? $this->publicPath($match) : storage_path("app/reels/{$match->id}.mp4");
 
         return data_get($match->metadata, 'reel.status') === 'ready' && is_file($file) ? $file : null;
+    }
+
+    /**
+     * Queues a reel for (re)rendering by the scheduler: rebuilds the match's chapters first
+     * (older matches predate them) and resets its attempts. Returns false when the match can't
+     * have a reel (not a finished Premier League match between two clubs with art).
+     */
+    public function queue(FootballMatch $match): bool
+    {
+        if (!in_array($match->status, ['FINISHED', 'FT'], true) || !$this->stories->tellsStory($match)) {
+            return false;
+        }
+        $this->stories->sync($match);
+        MatchMoment::where('match_id', $match->id)->where('type', 'full_time')->update(['created_at' => now()->subMinutes(config('reel.delay_minutes') + 1)]);
+        $this->mark($match, ['status' => 'queued', 'attempts' => 0, 'queued_at' => now()->toIso8601String()]);
+
+        return true;
+    }
+
+    /** The reel's poster frame, when the render made one. */
+    public function posterPath(FootballMatch $match): ?string
+    {
+        $video = $this->path($match);
+        $poster = $video ? preg_replace('/\.mp4$/', '.jpg', $video) : null;
+
+        return $poster && is_file($poster) ? $poster : null;
     }
 
     private function publicPath(FootballMatch $match): string

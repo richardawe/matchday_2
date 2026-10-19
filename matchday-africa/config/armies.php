@@ -40,7 +40,9 @@ return [
         'sunderland' => ['army' => 'Northern Rebel Clans', 'art' => 'northern-rebel', 'colours' => ['#EB172B', '#FFFFFF']],
         'tottenham hotspur' => ['army' => 'Spartan Hoplites', 'art' => 'spartan-hoplite', 'colours' => ['#132257', '#FFFFFF']],
         'west ham united' => ['army' => 'Rebel Irons', 'art' => null, 'colours' => ['#7A263A', '#1BB1E7']],
-        'wolverhampton wanderers' => ['army' => 'Wolf Guard', 'art' => null, 'colours' => ['#FDB913', '#231F20']],
+        // The owner approved this one on 19 Oct 2026 although its wolf-head shield resembles the
+        // club crest (plinth text cropped); every other statue is crest-free.
+        'wolverhampton wanderers' => ['army' => 'Wolf Warband', 'art' => 'wolf-warband', 'colours' => ['#FDB913', '#231F20']],
     ],
 
     // Names providers use that differ from the keys above.

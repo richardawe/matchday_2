@@ -98,6 +98,34 @@ class GriotReelTest extends TestCase
         $this->assertCount(1, $reels->pending());
     }
 
+    public function test_backfill_queues_an_older_round_and_the_scheduler_picks_it_up(): void
+    {
+        config(['reel.renderer' => 'github', 'reel.github.token' => 'token']);
+        $this->match->update(['match_date' => now('UTC')->subDays(5)]);
+        \App\Models\MatchMoment::where('match_id', $this->match->id)->delete();
+        $reels = app(ReelService::class);
+        $this->assertCount(0, $reels->pending(), 'too old for the automatic run');
+
+        $day = now('Africa/Lagos')->subDays(5)->toDateString();
+        $this->artisan('reel:queue', ['--from' => $day, '--to' => $day])->expectsOutput('1 reels queued; the scheduler renders one a minute.');
+
+        $this->assertSame('queued', data_get($this->match->fresh()->metadata, 'reel.status'));
+        $this->assertCount(1, $reels->pending());
+        $this->assertSame(1, \App\Models\MatchMoment::where('match_id', $this->match->id)->where('type', 'full_time')->count());
+    }
+
+    public function test_admin_reel_desk_lists_matches_and_flags_missing_goals(): void
+    {
+        $this->match->update(['home_score' => 2]);
+        $admin = \App\Models\User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)->get(route('admin.reels.index'))->assertOk()
+            ->assertSee('Arsenal FC 2–0 Chelsea FC')->assertSee('Only 1 of 2 goals are in the data');
+        $this->actingAs($admin)->post(route('admin.reels.queue', $this->match))->assertRedirect();
+        $this->assertSame('queued', data_get($this->match->fresh()->metadata, 'reel.status'));
+        $this->get(route('matches.reel-poster', $this->match))->assertNotFound();
+    }
+
     public function test_props_endpoint_needs_a_signature(): void
     {
         $this->getJson(route('reels.props', $this->match))->assertForbidden();

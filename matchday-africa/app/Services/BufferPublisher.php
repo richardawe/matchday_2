@@ -5,10 +5,13 @@ namespace App\Services;
 use App\Models\FootballMatch;
 use App\Models\GrowthPost;
 use App\Models\MatchMoment;
+use App\Support\Armies;
 use App\Support\BufferUsage;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -74,10 +77,8 @@ class BufferPublisher
             if (!$this->slotOpen($channel) || !BufferUsage::allows(true)) {
                 continue;
             }
-            $priority = config('buffer.x.priority');
-            $post = GrowthPost::where('channel', $channel)->where('status', 'queued')->where('scheduled_at', '<=', now())
-                ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
-                ->get()->sortBy(fn ($p) => [$priority[$p->type] ?? 9, $p->scheduled_at->timestamp, $p->id])->first();
+            $post = $this->choose(GrowthPost::where('channel', $channel)->where('status', 'queued')->where('scheduled_at', '<=', now())
+                ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))->get());
             if (!$post || !GrowthPost::whereKey($post->id)->where('status', 'queued')->update(['status' => 'sending'])) {
                 continue;
             }
@@ -106,6 +107,69 @@ class BufferPublisher
         }
 
         return $done;
+    }
+
+    /**
+     * The post for this slot. Reel slots (config buffer.reel_slots) on days without a Premier
+     * League match take a reel from the pool, picked at random but weighted towards big games,
+     * goals and late drama; matchdays keep every slot for previews, news and live posts. Otherwise
+     * the most valuable due post by type (config buffer.x.priority), earliest first.
+     */
+    private function choose(Collection $due): ?GrowthPost
+    {
+        [$reels, $others] = $due->partition(fn ($p) => $p->type === 'reel');
+        if ($reels->isNotEmpty() && in_array($this->slotIndex(), config('buffer.reel_slots'), true) && !$this->matchday()) {
+            $weighted = $reels->mapWithKeys(fn ($p) => [$p->id => $this->reelWeight($p)]);
+            $ticket = random_int(1, max(1, $weighted->sum()));
+            foreach ($weighted as $id => $weight) {
+                if (($ticket -= $weight) <= 0) {
+                    return $reels->firstWhere('id', $id);
+                }
+            }
+        }
+        $priority = config('buffer.x.priority');
+
+        return $others->sortBy(fn ($p) => [$priority[$p->type] ?? 9, $p->scheduled_at->timestamp, $p->id])->first();
+    }
+
+    /** 10 points, plus goals, a late goal, red cards and the biggest clubs. */
+    private function reelWeight(GrowthPost $post): int
+    {
+        $match = FootballMatch::with(['homeTeam', 'awayTeam'])->find((int) Str::after($post->content_key, 'reel:'));
+        if (!$match) {
+            return 10;
+        }
+        $moments = MatchMoment::where('match_id', $match->id)->get();
+        $big = collect([$match->homeTeam?->name, $match->awayTeam?->name])
+            ->filter(fn ($n) => in_array(Armies::key((string) $n), config('buffer.big_clubs'), true))->count();
+
+        return 10 + 3 * ((int) $match->home_score + (int) $match->away_score)
+            + ($moments->where('type', 'goal')->where('minute', '>=', 85)->isNotEmpty() ? 8 : 0)
+            + 4 * $moments->where('type', 'red_card')->count() + 6 * $big;
+    }
+
+    /** A Lagos day with a Premier League kick-off: reels give way to previews and live posts. */
+    private function matchday(): bool
+    {
+        $day = now(config('buffer.x.timezone'));
+        $utc = fn ($t) => $t->copy()->setTimezone('UTC')->format('Y-m-d H:i:s');
+
+        return FootballMatch::whereHas('league', fn ($q) => $q->where('short_code', 'PL')->orWhere('espn_slug', 'eng.1'))
+            ->whereBetween('match_date', [$utc($day->copy()->startOfDay()), $utc($day->copy()->endOfDay())])->exists();
+    }
+
+    /** Which of today's slots we are in (0 = the first), or null before the first. */
+    private function slotIndex(): ?int
+    {
+        $now = now(config('buffer.x.timezone'));
+        $index = null;
+        foreach (collect(config('buffer.slots'))->sort()->values() as $i => $time) {
+            if ($now->copy()->setTimeFromTimeString($time)->lte($now)) {
+                $index = $i;
+            }
+        }
+
+        return $index;
     }
 
     /**

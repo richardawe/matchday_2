@@ -33,26 +33,39 @@ class GrowthPostGenerator
         return $this->reels() + $this->news() + $this->previews() + $this->fixtures() + $this->results();
     }
 
-    /** Each finished match's 20-second reel, to X, Instagram (as a Reel) and TikTok, within a day. */
+    /**
+     * Each finished match's reel, to X, Instagram (as a Reel) and TikTok. Reels wait in a pool
+     * and go out through the following week (BufferPublisher::publishTimeline picks them), until
+     * the next round starts.
+     */
     private function reels(): int
     {
         $created = 0;
-        // Any match whose reel became ready in the last day, however long ago it was played.
         FootballMatch::with(['homeTeam', 'awayTeam', 'league'])->where('match_date', '>=', now('UTC')->subDays(14))->whereNotNull('metadata')->get()
-            ->filter(fn ($m) => data_get($m->metadata, 'reel.status') === 'ready' && data_get($m->metadata, 'reel.ready_at')
-                && Carbon::parse(data_get($m->metadata, 'reel.ready_at'))->gt(now()->subDay()))
+            ->filter(fn ($m) => data_get($m->metadata, 'reel.status') === 'ready' && data_get($m->metadata, 'reel.ready_at'))
             ->each(function (FootballMatch $match) use (&$created) {
                 $readyAt = Carbon::parse(data_get($match->metadata, 'reel.ready_at'));
                 $final = $this->stories->chapters($match)->firstWhere('type', 'full_time');
                 $verdict = $final ? implode(' ', $this->griot->tell($final)) : '';
                 $body = $this->name($match->homeTeam)." {$match->home_score}–{$match->away_score} ".$this->name($match->awayTeam)
-                    .": the whole match in 20 seconds 🎬\n\n{$verdict}";
+                    .": the whole match in 20 seconds 🎬\n\n{$verdict}\n\nFull story, stats and predictions on Matchday Africa 👇";
                 $link = route('matches.show', $match);
                 $video = route('matches.reel', ['match' => $match, 'v' => $readyAt->timestamp]);
-                $created += $this->plan("reel:{$match->id}", 'reel', XText::compose($body, $link, $this->tags($match)), null, $link, now(), $readyAt->copy()->addDay(), $video);
+                $created += $this->plan("reel:{$match->id}", 'reel', XText::compose($body, $link, $this->tags($match)), null, $link, now(), $this->nextRound($match), $video);
             });
 
         return $created;
+    }
+
+    /** When the next round starts: the league's first kick-off at least two days after this one. */
+    private function nextRound(FootballMatch $match): Carbon
+    {
+        $kickoff = $this->kickoff($match);
+        $next = FootballMatch::where('league_id', $match->league_id)
+            ->where('match_date', '>=', $kickoff->copy()->addDays(2)->format('Y-m-d H:i:s'))
+            ->orderBy('match_date')->value('match_date');
+
+        return $next ? Carbon::parse(Carbon::parse($next)->format('Y-m-d H:i:s'), 'UTC') : $kickoff->copy()->addDays(7);
     }
 
     private function news(): int
