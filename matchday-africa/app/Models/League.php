@@ -94,4 +94,30 @@ class League extends Model
     {
         return $query->where('is_featured', true);
     }
+
+    /**
+     * Position in config/competitions.php (lower is more important); unlisted leagues sort last.
+     */
+    public function getCompetitionRankAttribute(): int
+    {
+        $keys = array_keys(config('competitions.order', []));
+        foreach (array_filter([$this->espn_slug, $this->short_code]) as $key) {
+            $rank = array_search($key, $keys, true);
+            if ($rank !== false) {
+                return $rank;
+            }
+        }
+
+        return count($keys) + ($this->is_featured ? 0 : 1);
+    }
+
+    /**
+     * africa, europe, international or other, for grouping and filtering.
+     */
+    public function getRegionAttribute(): string
+    {
+        $order = config('competitions.order', []);
+
+        return $order[$this->espn_slug] ?? $order[$this->short_code] ?? 'other';
+    }
 }

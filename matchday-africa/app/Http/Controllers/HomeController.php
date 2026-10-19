@@ -19,11 +19,26 @@ class HomeController extends Controller
 {
     public function pulse(): JsonResponse
     {
-        $now=now();$relations=['homeTeam','awayTeam','league'];
-        $live=FootballMatch::with($relations)->crediblyLive($now)->orderBy('match_date')->take(4)->get();
-        $upcoming=FootballMatch::with($relations)->whereIn('status',['SCHEDULED','TIMED'])->whereBetween('match_date',[$now,$now->copy()->addDays(7)])->orderBy('match_date')->take(4)->get();
-        $results=FootballMatch::with($relations)->whereIn('status',['FINISHED','AWARDED'])->whereBetween('match_date',[$now->copy()->subDays(2),$now])->orderByDesc('match_date')->take(4)->get();
-        return response()->json(['html'=>view('partials.home-pulse',['liveMatches'=>$live,'upcomingMatches'=>$upcoming,'recentResults'=>$results])->render(),'has_live'=>$live->isNotEmpty(),'updated_at'=>$now->toIso8601String()]);
+        $now=now();$pulse=$this->pulseMatches($now);
+        return response()->json(['html'=>view('partials.home-pulse',$pulse)->render(),'has_live'=>$pulse['liveMatches']->isNotEmpty(),'updated_at'=>$now->toIso8601String()]);
+    }
+
+    /**
+     * Live, next and just-finished matches for the pulse, ranked so headline competitions
+     * (config/competitions.php) lead and a busy matchday elsewhere can't crowd them out.
+     */
+    private function pulseMatches(Carbon $now): array
+    {
+        $relations=['homeTeam','awayTeam','league'];
+        $rank=fn($match)=>$match->league?->competition_rank??PHP_INT_MAX;
+        $live=FootballMatch::with($relations)->crediblyLive($now)->get()
+            ->sortBy([fn($a,$b)=>$rank($a)<=>$rank($b),fn($a,$b)=>$a->match_date<=>$b->match_date])->values();
+        // Today's fixtures first (by competition, then kick-off); later days only fill spare slots.
+        $upcoming=FootballMatch::with($relations)->whereIn('status',['SCHEDULED','TIMED'])->whereBetween('match_date',[$now,$now->copy()->addDays(7)])->orderBy('match_date')->take(60)->get()
+            ->sortBy([fn($a,$b)=>$a->match_date->toDateString()<=>$b->match_date->toDateString(),fn($a,$b)=>$rank($a)<=>$rank($b),fn($a,$b)=>$a->match_date<=>$b->match_date])->values();
+        $results=FootballMatch::with($relations)->whereIn('status',['FINISHED','AWARDED'])->whereBetween('match_date',[$now->copy()->subDays(2),$now])->orderByDesc('match_date')->take(60)->get()
+            ->sortBy([fn($a,$b)=>$rank($a)<=>$rank($b),fn($a,$b)=>$b->match_date<=>$a->match_date])->values();
+        return ['liveMatches'=>$live,'upcomingMatches'=>$upcoming,'recentResults'=>$results];
     }
 
     public function index()
@@ -61,22 +76,11 @@ class HomeController extends Controller
                 }
             ])
             ->crediblyLive($now)
-            ->orderBy('match_date', 'asc')
-            ->get();
+            ->get()
+            ->sortBy([fn($a,$b)=>($a->league?->competition_rank??PHP_INT_MAX)<=>($b->league?->competition_rank??PHP_INT_MAX),fn($a,$b)=>$a->match_date<=>$b->match_date])
+            ->values();
 
-            $upcomingMatches = FootballMatch::with($matchRelations)
-                ->whereIn('status', ['SCHEDULED', 'TIMED'])
-                ->whereBetween('match_date', [$now, $now->copy()->addDays(7)])
-                ->orderBy('match_date')
-                ->take(6)
-                ->get();
-
-            $recentResults = FootballMatch::with($matchRelations)
-                ->whereIn('status', ['FINISHED', 'AWARDED'])
-                ->whereBetween('match_date', [$now->copy()->subDay(), $now])
-                ->orderByDesc('match_date')
-                ->take(6)
-                ->get();
+            ['upcomingMatches' => $upcomingMatches, 'recentResults' => $recentResults] = $this->pulseMatches($now);
 
             // Get featured blog posts
             $featuredBlogs = Blog::where('status', 'published')

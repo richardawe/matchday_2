@@ -6,6 +6,7 @@ use App\Models\FootballMatch;
 use App\Models\League;
 use App\Models\Team;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -66,103 +67,63 @@ class MatchController extends Controller
         return Storage::disk('public')->response($match->sponsor->logo_path,null,['Cache-Control'=>'public, max-age=86400']);
     }
 
+    /**
+     * Match centre: one day (or everything live) grouped by competition, most important first,
+     * filterable by region, competition and team.
+     */
     public function index(Request $request)
     {
+        // Tweets link to ?date=YYYY-MM-DD without a filter.
+        $filter = $request->get('filter', $request->filled('date') ? 'date' : 'today');
+        $filter = in_array($filter, ['live', 'yesterday', 'today', 'tomorrow', 'date'], true) ? $filter : 'today';
+        $day = match ($filter) {
+            'yesterday' => Carbon::yesterday(),
+            'tomorrow' => Carbon::tomorrow(),
+            'date' => rescue(fn () => Carbon::parse((string) $request->get('date'))->startOfDay(), Carbon::today(), false),
+            default => Carbon::today(),
+        };
+        $region = $request->get('region');
+        $search = trim((string) $request->get('q'));
+
         try {
-            $query = FootballMatch::with(['homeTeam', 'awayTeam', 'league'])
-                ->orderBy('match_date', 'asc');
+            $dayMatches = FootballMatch::with(['homeTeam', 'awayTeam', 'league'])
+                ->when($filter === 'live', fn ($q) => $q->whereIn('status', FootballMatch::LIVE_STATUSES),
+                    fn ($q) => $q->whereDate('match_date', $day))
+                ->orderBy('match_date')
+                ->get();
 
-            // Get filter parameter - default to 'today'
-            $filter = $request->get('filter', 'today');
-            $today = Carbon::today();
-            $tomorrow = Carbon::tomorrow();
+            // Counts for the region chips and competition picker come from the whole day.
+            $leaguesToday = $dayMatches->pluck('league')->filter()->unique('id')
+                ->sortBy(fn ($league) => $league->competition_rank)->values();
+            $regionCounts = $dayMatches->groupBy(fn ($match) => $match->league?->region ?? 'other')->map->count();
 
-            // Apply filters based on the filter parameter
-            switch ($filter) {
-                case 'live':
-                    $query->whereIn('status', ['LIVE', 'IN_PLAY', 'PAUSED', '1H', '2H', 'HT']);
-                    break;
-                    
-                case 'today':
-                    $query->whereDate('match_date', $today);
-                    break;
-                    
-                case 'tomorrow':
-                    $query->whereDate('match_date', $tomorrow);
-                    break;
-                    
-                case 'all':
-                default:
-                    // Show all matches - no additional filter
-                    break;
-            }
+            $matches = $dayMatches
+                ->when($region, fn ($all) => $all->filter(fn ($match) => ($match->league?->region ?? 'other') === $region))
+                ->when($request->filled('league_id'), fn ($all) => $all->where('league_id', (int) $request->league_id))
+                ->when($search !== '', fn ($all) => $all->filter(fn ($match) => Str::contains(
+                    Str::lower(Str::ascii($match->homeTeam?->name.' '.$match->awayTeam?->name)), Str::lower(Str::ascii($search)))));
+            $groups = $matches->groupBy('league_id')
+                ->sortBy(fn ($group) => $group->first()->league?->competition_rank ?? PHP_INT_MAX);
 
-            // Apply other existing filters (league, team, etc.)
-            if ($request->filled('league_id')) {
-                $query->where('league_id', $request->league_id);
-            }
-
-            if ($request->filled('team_id')) {
-                $query->where(function($q) use ($request) {
-                    $q->where('home_team_id', $request->team_id)
-                      ->orWhere('away_team_id', $request->team_id);
-                });
-            }
-
-            if ($request->filled('date_from')) {
-                $query->whereDate('match_date', '>=', $request->date_from);
-            }
-
-            if ($request->filled('date_to')) {
-                $query->whereDate('match_date', '<=', $request->date_to);
-            }
-
-            if ($request->filled('status')) {
-                $query->where('status', $request->status);
-            }
-
-            // Get paginated results
-            $matches = $query->paginate(20)->withQueryString();
-
-            // Get filter counts for display
-            $liveCounts = FootballMatch::whereIn('status', ['LIVE', 'IN_PLAY', 'PAUSED', '1H', '2H', 'HT'])->count();
-            $todayCounts = FootballMatch::whereDate('match_date', $today)->count();
-            $tomorrowCounts = FootballMatch::whereDate('match_date', $tomorrow)->count();
-
-            // Get filter options for dropdowns
-            $leagues = League::where('is_active', true)->orderBy('name')->get();
-            $teams = Team::where('is_active', true)->orderBy('name')->get();
-
-            return view('matches.index', compact(
-                'matches', 
-                'leagues', 
-                'teams',
-                'liveCounts',
-                'todayCounts',
-                'tomorrowCounts',
-                'filter'
-            ));
-
+            return view('matches.index', [
+                'groups' => $groups,
+                'matchTotal' => $matches->count(),
+                'leaguesToday' => $leaguesToday,
+                'regionCounts' => $regionCounts,
+                'regions' => config('competitions.regions'),
+                'liveCount' => FootballMatch::whereIn('status', FootballMatch::LIVE_STATUSES)->count(),
+                'filter' => $filter,
+                'day' => $day,
+                'region' => $region,
+                'search' => $search,
+            ]);
         } catch (\Exception $e) {
             \Log::error('Matches index error: ' . $e->getMessage());
-            
+
             return view('matches.index', [
-                'matches' => new LengthAwarePaginator(
-                    collect(),
-                    0,
-                    20,
-                    max(1, (int) request()->input('page', 1)),
-                    [
-                        'path' => request()->url(),
-                        'query' => request()->query(),
-                    ]
-                ),
-                'leagues' => collect([]),
-                'teams' => collect([]),
-                'liveCounts' => 0,
-                'todayCounts' => 0,
-                'tomorrowCounts' => 0,
-                'filter' => 'today'
+                'groups' => collect(), 'matchTotal' => 0, 'leaguesToday' => collect(), 'regionCounts' => collect(),
+                'regions' => config('competitions.regions'), 'liveCount' => 0,
+                'filter' => $filter, 'day' => $day, 'region' => $region, 'search' => $search,
             ]);
         }
     }
