@@ -34,6 +34,15 @@
     @if(!empty($reel['error']))<p class="md-xerror">{{ Str::limit($reel['error'], 220) }}</p>@endif
    </div>
    <form method="POST" action="{{ route('admin.reels.queue', $m) }}">@csrf<button class="md-xsave">{{ ($reel['status'] ?? null) === 'ready' ? 'Re-render' : 'Render' }}</button></form>
+   @if(!empty($reel['banter']))
+   <form method="POST" action="{{ route('admin.reels.banter', $m) }}" class="md-reeldesk-lines">@csrf @method('PUT')
+    @foreach($reel['banter'] as $i => $b)
+     <label><span>{{ strtoupper($b['slot']) }} · {{ $b['side'] === 'home' ? $m->homeTeam?->name : $m->awayTeam?->name }} · {{ $b['lang'] === 'pcm' ? 'PIDGIN' : 'ENGLISH' }} · <b class="is-{{ $b['source'] }}">{{ strtoupper($b['source']) }}</b></span>
+      <input name="lines[{{ $i }}]" value="{{ $b['text'] }}" maxlength="{{ \App\Services\BanterService::MAX_LENGTH }}" required></label>
+    @endforeach
+    <div><button class="md-xsave">Save lines and re-render</button> <button class="md-xsave" formaction="{{ route('admin.reels.banter.new', $m) }}" formmethod="POST" formnovalidate>Draw new lines</button></div>
+   </form>
+   @endif
   </article>
  @empty<div class="md-ops-empty">No finished Premier League matches in the last three weeks.</div>@endforelse
  </div>

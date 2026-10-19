@@ -1,14 +1,17 @@
 // The reel's soundtrack, synthesised from scratch so there is no music licence to clear:
 // a low horn on the title, a crowd bed that swells, a talking-drum hit (pitch bending down,
 // like a squeezed dùndún) on every goal, a heavy thud on a red card, and a drum roll at the end.
+// Speech bubbles pop with a soft click; their voice-over (voice.mjs) is mixed in on top, and the
+// crowd and drums dip under each spoken line.
 import { writeFile } from 'node:fs/promises';
 import { buildTimeline, FPS, TOTAL } from './src/timeline.js';
 
 const RATE = 44100;
 
-export async function writeSoundtrack(beats, file) {
+export async function writeSoundtrack(beats, file, bubbles = [], speech = []) {
     const length = Math.ceil((TOTAL / FPS) * RATE);
     const mix = new Float32Array(length);
+    const voiceTrack = new Float32Array(length);
     let seed = 7;
     const noise = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
 
@@ -42,7 +45,7 @@ export async function writeSoundtrack(beats, file) {
 
     horn(0, 1.9);
     talkingDrum(0.05, 180, 110, 0.6);
-    for (const scene of buildTimeline(beats)) {
+    for (const scene of buildTimeline(beats, bubbles)) {
         const at = scene.from / FPS;
         if (scene.kind === 'beat' && scene.beat.type === 'goal') {
             talkingDrum(at);
@@ -57,6 +60,27 @@ export async function writeSoundtrack(beats, file) {
             thud(at + 0.75, 1);
         }
     }
+
+    // Bubbles: a click as each pops, then its spoken line with everything else ducked beneath it.
+    const duck = new Float32Array(length).fill(1);
+    for (const bubble of bubbles) {
+        const at = bubble.from / FPS;
+        add(at, 0.05, (t) => 0.35 * noise() * Math.exp(-t * 90) + 0.3 * Math.sin(2 * Math.PI * 1400 * t) * Math.exp(-t * 70));
+        const voice = bubble.voiced !== undefined ? speech[bubble.voiced] : null;
+        if (!voice) continue;
+        const start = Math.floor((at + 0.12) * RATE);
+        const span = Math.floor((voice.samples.length / voice.rate) * RATE);
+        for (let i = 0; i < span && start + i < length; i++) {
+            // Linear resample from Kokoro's rate to ours.
+            const pos = (i * voice.rate) / RATE;
+            const k = Math.floor(pos);
+            const v = (voice.samples[k] ?? 0) + ((voice.samples[k + 1] ?? 0) - (voice.samples[k] ?? 0)) * (pos - k);
+            duck[start + i] = 0.38;
+            voiceTrack[start + i] += v * 1.35;
+        }
+    }
+    for (let i = 1; i < length; i++) duck[i] = duck[i] < duck[i - 1] ? duck[i - 1] - (duck[i - 1] - duck[i]) * 0.004 : Math.min(duck[i], duck[i - 1] + 0.0004);
+    for (let i = 0; i < length; i++) mix[i] = mix[i] * duck[i] + voiceTrack[i];
 
     // Soft limiter, then 16-bit PCM WAV.
     const pcm = Buffer.alloc(44 + length * 2);

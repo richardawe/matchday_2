@@ -52,10 +52,11 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Competition ranking (home pulse, match centre) | `config/competitions.php`, `League::competition_rank/region` | n/a | n/a |
 | Griot story chapters (kick-off, goals, red cards, HT, FT) | `app/Services/MatchStoryService.php`, `Griot.php` (captions in en/pcm/sw/za), `app/Models/MatchMoment.php` | `story:sync` 1m (also after each ESPN live pass) | needs `match_moments` migration |
 | Story cards (PNG, GD) | `app/Services/StoryCardRenderer.php`, route `moments.card` | drawn on first request, cached in `storage/app/story-cards` | needs GD with FreeType + WebP |
-| 20-second reel (Remotion) | `reel/`, `app/Services/ReelService.php`, `reel:render` command, `ReelController` | `reel:render` 1m (one reel per run, ~3 min after FT, 3 attempts per match) | `REEL_RENDERER=off\|server\|github` |
+| 20-second reel (Remotion) | `reel/` (`src/Reel.jsx`, `src/timeline.js`, `audio.mjs`, `voice.mjs`), `ReelService.php`, `reel:render`, `reel:queue`, admin `/admin/reels` | `reel:render` 1m (one reel per run, ~3 min after FT, 3 attempts per match) | `REEL_RENDERER=off\|server\|github` |
 | Buffer → X, Instagram (live goal and red-card cards; reels go through growth_posts) | `app/Services/BufferPublisher.php`, `BufferClient.php` (ported from ngr.ltd), `buffer:publish`, `config/buffer.php`, table `social_posts` | `buffer:publish` 1m | `BUFFER_API_KEY` + `BUFFER_CHANNEL_*` |
 | Planned social posts (reels, news, fixture previews with a GD fixture card, morning fixtures, night results; X all, Instagram image/video, TikTok reels) | `GrowthPostGenerator.php` (`twitter:engage`), `FixtureCardRenderer.php` (route `matches.card`), table `growth_posts` (per channel), admin `/admin/twitter` | `twitter:engage` 10m plans; `buffer:publish` 1m sends when a channel's slot is free | `BUFFER_AUTO` + `BUFFER_CHANNEL_*` |
 | Reels-first homepage | `resources/views/home-v2.blade.php`, `HomeShowcase.php` (reels, matchweek board), `resources/js/home-reels.js`, shared blocks in `resources/views/partials/home/`; arena at `/war/arena` (`ArenaService.php`) | n/a | `HOME_V2` (preview `/?home=v2`) |
+| Reel banter (speech bubbles) and voice-over | `BanterService.php` (situations, AI lines through `OpenRouterService`, `check()` rules), `config/banter.php` (written bank and blocklist), `reel/voice.mjs` (Kokoro TTS, model cached in `storage/app/tts-cache`) | composed once per reel, kept in `metadata.reel.banter`; edit or redraw on `/admin/reels` | `REEL_BANTER`, `REEL_BANTER_AI`, `REEL_VOICEOVER` |
 | Home arena | `resources/views/partials/home-arena.blade.php`, `resources/js/arena.js` (GSAP), `arena3d.js` (three.js, desktop only) | rides the home pulse refresh | always on when a Premier League match qualifies |
 
 ## 4. CI/CD
@@ -129,13 +130,16 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `BUFFER_CHANNEL_X` / `_INSTAGRAM` / `_TIKTOK` | empty | Buffer channel IDs |
 | `BUFFER_AUTO` | false | Queue and send planned posts (otherwise drafts on `/admin/twitter`) |
 | `BUFFER_SLOTS` / `BUFFER_PREVIEWS_PER_DAY` | 08:00,13:00,19:00 / 3 | Lagos times; each account posts at most once per slot (live cards and reels included), so three a day. Fixture previews planned a day |
+| `REEL_BANTER` / `REEL_BANTER_AI` / `REEL_BANTER_LANGS` | false / false / en,pcm | Speech bubbles in reels; up to two AI lines each; each army keeps one language per match |
+| `REEL_VOICEOVER` / `REEL_VOICE_HOME` / `REEL_VOICE_AWAY` / `REEL_TTS_CACHE` | false / am_fenrir / bm_george / storage/app/tts-cache | Kokoro reads the bubbles aloud |
 | `BUFFER_MONTHLY_REQUESTS` / `_SOFT_LIMIT` / `_HARD_LIMIT` | 3000 / 2500 / 2900 | Buffer API budget, counted in `buffer_usage`; posting stops at the hard limit |
 
 ## 7. Open items and known issues
 - Live `APP_TIMEZONE` was verified as `Africa/Lagos` on 19 October 2026; the production
   template now matches it. Kick-off display formatting remains a separate issue (rule 5).
 - West Ham has no statue (`art => null`); it isn't in the 2026–27 Premier League. Wolves uses the approved `wolf-warband` exception.
-- Native speakers should review the Pidgin, Swahili/Sheng and Mzansi captions in `app/Services/Griot.php`.
+- Native speakers should review the Pidgin, Swahili/Sheng and Mzansi captions in `app/Services/Griot.php` and the Pidgin lines in `config/banter.php`.
+- Banter rules (armies only, facts from data, blocklist) are enforced by `BanterService::check()` for AI and edited lines, and `BanterTest` checks every written line. A player named at the start of a sentence is only caught if they appear in the match's events.
 - Buffer's client is the one ngr.ltd and housedata.uk run in production (`api.buffer.com/graphql`, variables,
   Instagram type at `metadata.instagram.type` read from the live schema). Still check the first posts here,
   especially whether Instagram treats the reel video as a Reel.

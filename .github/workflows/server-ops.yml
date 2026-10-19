@@ -34,6 +34,16 @@ on:
         type: choice
         options: [server, github, "off"]
         default: server
+      reel_banter:
+        description: "configure-reel: speech bubbles in reels"
+        type: choice
+        options: [unchanged, written, written+ai, "off"]
+        default: unchanged
+      reel_voiceover:
+        description: "configure-reel: Kokoro voice-over for the bubbles"
+        type: choice
+        options: [unchanged, "on", "off"]
+        default: unchanged
       reel_node:
         description: "configure-reel: absolute path to Node 18+ from reel-check (blank = leave as is)"
         required: false
@@ -93,6 +103,8 @@ jobs:
           REEL_GITHUB_TOKEN: ${{ inputs.action == 'configure-reel' && secrets.REEL_GITHUB_TOKEN || '' }}
           INPUT_REEL_RENDERER: ${{ inputs.reel_renderer }}
           INPUT_REEL_NODE: ${{ inputs.reel_node }}
+          INPUT_REEL_BANTER: ${{ inputs.reel_banter }}
+          INPUT_REEL_VOICEOVER: ${{ inputs.reel_voiceover }}
           INPUT_MATCH_ID: ${{ inputs.match_id }}
           INPUT_ESPN_MODE: ${{ inputs.espn_mode }}
           INPUT_HOME_V2: ${{ inputs.home_v2 }}

@@ -79,7 +79,7 @@ class ReelService
             'beats' => $chapters->whereNotIn('type', ['full_time'])->map(function (MatchMoment $chapter) use ($voice) {
                 [$headline, $line] = $this->griot->tell($chapter, $voice);
 
-                return ['type' => $chapter->type, 'tag' => $this->griot->tag($chapter), 'side' => $chapter->side,
+                return ['id' => $chapter->id, 'minute' => $chapter->minute, 'type' => $chapter->type, 'tag' => $this->griot->tag($chapter), 'side' => $chapter->side,
                     'home_score' => $chapter->home_score, 'away_score' => $chapter->away_score, 'headline' => $headline, 'line' => $line];
             })->values()->all(),
             'stats' => [
@@ -88,6 +88,8 @@ class ReelService
                 ['label' => 'ON TARGET', 'home' => $match->home_shots_on_target, 'away' => $match->away_shots_on_target],
             ],
             'final' => $final ? array_combine(['headline', 'line'], $this->griot->tell($final, $voice)) : ['headline' => 'Full time', 'line' => ''],
+            'bubbles' => config('reel.banter.enabled') ? (data_get($match->fresh()?->metadata, 'reel.banter') ?? []) : [],
+            'voiceover' => config('reel.voiceover.enabled') ? ['home' => config('reel.voiceover.home'), 'away' => config('reel.voiceover.away')] : null,
         ];
     }
 
@@ -95,6 +97,11 @@ class ReelService
     {
         if (config('reel.renderer') !== 'off') {
             $this->mark($match, ['attempts' => data_get($match->fresh()?->metadata, 'reel.attempts', 0) + 1]);
+            // The bubbles are written once and kept, so a re-render says the same thing unless
+            // they are edited or redrawn on the reel desk.
+            if (config('reel.banter.enabled') && !data_get($match->fresh()?->metadata, 'reel.banter')) {
+                $this->mark($match, ['banter' => app(BanterService::class)->compose($match)]);
+            }
         }
 
         return match (config('reel.renderer')) {
@@ -115,7 +122,8 @@ class ReelService
         $poster = "{$dir}/{$match->id}.jpg";
         File::put($propsFile, json_encode($this->props($match), JSON_UNESCAPED_UNICODE));
 
-        $process = new Process([config('reel.node'), base_path('reel/render.mjs'), '--props', $propsFile, '--out', $out, '--poster', $poster], base_path('reel'), null, null, config('reel.timeout'));
+        $process = new Process([config('reel.node'), base_path('reel/render.mjs'), '--props', $propsFile, '--out', $out, '--poster', $poster], base_path('reel'),
+            ['REEL_TTS_CACHE' => config('reel.voiceover.cache')], null, config('reel.timeout'));
         try {
             $process->mustRun();
             $this->mark($match, ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]);
@@ -208,6 +216,12 @@ class ReelService
         return 10 + 3 * ((int) $match->home_score + (int) $match->away_score)
             + ($moments->where('type', 'goal')->where('minute', '>=', 85)->isNotEmpty() ? 8 : 0)
             + 4 * $moments->where('type', 'red_card')->count() + 6 * $big;
+    }
+
+    /** Replace the reel's speech bubbles (from the reel desk). */
+    public function setBanter(FootballMatch $match, array $bubbles): void
+    {
+        $this->mark($match, ['banter' => array_values($bubbles)]);
     }
 
     /** The reel's poster frame, when the render made one. */

@@ -2,7 +2,7 @@
 //   node render.mjs --props match.json --out reel.mp4 [--poster reel.jpg] [--composition Reel]
 //   node render.mjs --props-url https://… --out reel.mp4   (GitHub Actions: a signed URL from the site)
 // The props file is written by `php artisan reel:render`. Each army's `art_path` points at its
-// crest-free cut-out; fonts, art and the generated soundtrack are staged in a temporary public
+// crest-free cut-out; fonts, art and the generated soundtrack (with any voice-over) are staged in a temporary public
 // folder so the render never needs the network.
 import { bundle } from '@remotion/bundler';
 import { renderMedia, renderStill, selectComposition } from '@remotion/renderer';
@@ -11,6 +11,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeSoundtrack } from './audio.mjs';
+import { placeBubbles } from './src/timeline.js';
+import { speakBubbles } from './voice.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -31,7 +33,10 @@ export async function renderReel(props, out, { composition = 'Reel', log = conso
             delete inputProps[side].art_path;
             delete inputProps[side].art_url;
         }
-        await writeSoundtrack(inputProps.beats, path.join(stage, 'soundtrack.wav'));
+        // Speech bubbles: voiced by Kokoro when the site asks for it, timed, then mixed into the soundtrack.
+        const { bubbles, speech } = await speakBubbles(inputProps.beats, inputProps.bubbles ?? [], inputProps.voiceover, log);
+        inputProps.bubbles = bubbles;
+        await writeSoundtrack(inputProps.beats, path.join(stage, 'soundtrack.wav'), placeBubbles(inputProps.beats, bubbles), speech);
         inputProps.audio = 'soundtrack.wav';
 
         const serveUrl = await bundle({ entryPoint: path.join(here, 'src/index.jsx'), publicDir: stage });

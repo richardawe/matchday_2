@@ -237,6 +237,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin/reels')->group(function () {
     Route::get('/', [App\Http\Controllers\Admin\ReelController::class, 'index'])->name('admin.reels.index');
     Route::post('/queue', [App\Http\Controllers\Admin\ReelController::class, 'queueRange'])->name('admin.reels.queue-range');
     Route::post('/{match}/queue', [App\Http\Controllers\Admin\ReelController::class, 'queue'])->name('admin.reels.queue');
+    Route::put('/{match}/banter', [App\Http\Controllers\Admin\ReelController::class, 'saveBanter'])->name('admin.reels.banter');
+    Route::post('/{match}/banter/new', [App\Http\Controllers\Admin\ReelController::class, 'newBanter'])->name('admin.reels.banter.new');
 });
 
 // Twitter admin routes (admin only)

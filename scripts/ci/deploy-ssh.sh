@@ -150,6 +150,12 @@ if ($node !== "") {
     if (!preg_match("#^/[A-Za-z0-9_./-]+/node$#", $node)) { fwrite(STDERR, "REEL_NODE must be an absolute path ending in /node.\n"); exit(1); }
     $set["REEL_NODE"] = $node;
 }
+$banter = getenv("INPUT_REEL_BANTER") ?: "unchanged";
+if ($banter === "off") { $set += ["REEL_BANTER" => "false", "REEL_BANTER_AI" => "false"]; }
+if ($banter === "written") { $set += ["REEL_BANTER" => "true", "REEL_BANTER_AI" => "false"]; }
+if ($banter === "written+ai") { $set += ["REEL_BANTER" => "true", "REEL_BANTER_AI" => "true"]; }
+$voice = getenv("INPUT_REEL_VOICEOVER") ?: "unchanged";
+if (in_array($voice, ["on", "off"], true)) { $set["REEL_VOICEOVER"] = $voice === "on" ? "true" : "false"; }
 if ($renderer === "github") {
     if ((string) getenv("REEL_GITHUB_TOKEN") === "") { fwrite(STDERR, "Add the REEL_GITHUB_TOKEN secret to the production environment first.\n"); exit(1); }
     $set["REEL_GITHUB_TOKEN"] = getenv("REEL_GITHUB_TOKEN");
