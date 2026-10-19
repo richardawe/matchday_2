@@ -22,12 +22,11 @@ return [
         'instagram' => env('BUFFER_CHANNEL_INSTAGRAM'),
         'tiktok' => env('BUFFER_CHANNEL_TIKTOK'),
     ],
-    // Live Griot chapters and reels: what goes where. Cards are 4:5 images; reels are 9:16 videos.
+    // Live Griot chapter cards (4:5 images): what goes where. Reels go through growth_posts.
     'routes' => [
         'goal' => ['x', 'instagram'],
         'red_card' => ['x'],
-        'full_time' => ['x'],
-        'reel' => ['x', 'instagram', 'tiktok'],
+        // No full-time card: with three posts a day the reel and the night results cover it.
     ],
     // Only chapters this recent are sent, so switching Buffer on doesn't flood old matches.
     'max_age_minutes' => 30,
@@ -63,8 +62,8 @@ return [
     |
     | `twitter:engage` plans posts into growth_posts, one row per subject and channel: new news
     | articles, a preview of each top fixture before kick-off, the day's fixtures in the morning
-    | and the results at night. X takes all of them; Instagram only those with an image (the
-    | fixture cards); TikTok takes video only, so it gets the full-time reels and nothing here.
+    | and the results at night, and each finished match's 20-second reel. X takes all of them;
+    | Instagram those with an image or video (fixture cards, reels); TikTok video only (reels).
     | With `auto` on they are queued and `buffer:publish` sends the most valuable due post when
     | a channel's slot is free. With `auto` off they stay drafts on the admin page.
     |
@@ -72,7 +71,7 @@ return [
     'x' => [
         'auto' => (bool) env('BUFFER_AUTO', false),
         // Which planned post wins a free slot: lower first, then the earliest due.
-        'priority' => ['results' => 1, 'preview' => 2, 'fixtures' => 3, 'news' => 4, 'custom' => 0],
+        'priority' => ['custom' => 0, 'reel' => 0, 'results' => 1, 'preview' => 2, 'fixtures' => 3, 'news' => 4],
         'timezone' => 'Africa/Lagos',
         // Previews go out this long before kick-off, for at most this many fixtures a day
         // (most important competitions first, config/competitions.php).

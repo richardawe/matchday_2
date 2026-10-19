@@ -5,8 +5,8 @@ set -Eeuo pipefail
 
 mode=${1:-}
 case "$mode" in
-    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts) ;;
-    *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts"; exit 2 ;;
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render) ;;
+    *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render"; exit 2 ;;
 esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
     [[ -n "${!variable:-}" ]] || { echo "Missing production secret: $variable"; exit 1; }
@@ -106,6 +106,62 @@ if ($slots !== "") {
 if (!$set) { fwrite(STDERR, "Nothing to configure.\n"); exit(1); }
 echo json_encode($set);')
     printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/set-env.php && php artisan config:cache --no-ansi"
+elif [[ "$mode" == reel-check ]]; then
+    # Finds a Node 18+ the cron can use, installs the renderer and runs its 2-second test render.
+    # Changes nothing in .env; prints the REEL_NODE path to configure.
+    ssh "${ssh_options[@]}" "$target" "bash -s -- $root" <<'REMOTE'
+set -Eeuo pipefail
+cd "$1"
+echo "Recent Premier League matches (events, chapters, reel):"
+php artisan tinker --execute='foreach (App\Models\FootballMatch::with("homeTeam","awayTeam")->whereHas("league", fn ($q) => $q->where("short_code", "PL"))->whereIn("status", ["FINISHED", "FT"])->latest("match_date")->limit(8)->get() as $m) { echo "  #{$m->id} {$m->match_date} {$m->homeTeam?->name} {$m->home_score}-{$m->away_score} {$m->awayTeam?->name} | events ".$m->events()->whereIn("type", ["goal", "red_card"])->count()." | chapters ".App\Models\MatchMoment::where("match_id", $m->id)->count()." | reel ".json_encode(data_get($m->metadata, "reel")).PHP_EOL; }' 2>&1 | grep -v '^$' || true
+configured=$(php scripts/deployment-settings.php node)
+best=""; best_major=0
+for candidate in "$configured" "$(command -v node || true)" /opt/cpanel/ea-nodejs*/bin/node /opt/alt/alt-nodejs*/root/usr/bin/node /usr/local/bin/node "$HOME"/nodevenv/*/*/bin/node; do
+    [[ -n "$candidate" ]] || continue
+    path=$(command -v "$candidate" 2>/dev/null || true)
+    [[ -n "$path" && -x "$path" ]] || continue
+    version=$("$path" --version 2>/dev/null || true)
+    echo "Node found: $path $version"
+    major=${version#v}; major=${major%%.*}
+    if [[ "$major" =~ ^[0-9]+$ ]] && (( major >= 18 && major > best_major )); then best=$path; best_major=$major; fi
+done
+[[ -n "$best" ]] || { echo "FAIL: no Node 18 or newer on this server. Use REEL_RENDERER=github, or add Node in cPanel (Setup Node.js App)."; exit 1; }
+echo "Using $best"
+export PATH="$(dirname "$best"):$PATH"
+command -v npm >/dev/null || { echo "FAIL: npm is missing next to $best."; exit 1; }
+cd reel
+npm ci --omit=dev --no-audit --no-fund
+"$best" check.mjs
+echo "REEL_NODE to configure: $best"
+REMOTE
+elif [[ "$mode" == configure-reel ]]; then
+    # shellcheck disable=SC2016 # the single-quoted program is PHP, not shell
+    json=$(php -r '
+$renderer = getenv("INPUT_REEL_RENDERER");
+if (!in_array($renderer, ["server", "github", "off"], true)) { fwrite(STDERR, "Choose server, github or off.\n"); exit(1); }
+$set = ["REEL_RENDERER" => $renderer];
+$node = trim((string) getenv("INPUT_REEL_NODE"));
+if ($node !== "") {
+    if (!preg_match("#^/[A-Za-z0-9_./-]+/node$#", $node)) { fwrite(STDERR, "REEL_NODE must be an absolute path ending in /node.\n"); exit(1); }
+    $set["REEL_NODE"] = $node;
+}
+if ($renderer === "github") {
+    if ((string) getenv("REEL_GITHUB_TOKEN") === "") { fwrite(STDERR, "Add the REEL_GITHUB_TOKEN secret to the production environment first.\n"); exit(1); }
+    $set["REEL_GITHUB_TOKEN"] = getenv("REEL_GITHUB_TOKEN");
+}
+echo json_encode($set);')
+    printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/set-env.php && php artisan config:cache --no-ansi"
+elif [[ "$mode" == reel-render ]]; then
+    [[ "${INPUT_MATCH_ID:-}" =~ ^[0-9]+$ ]] || { echo "match_id must be numeric."; exit 1; }
+    # Rebuild the match's chapters first (older matches may predate them), then render now.
+    ssh "${ssh_options[@]}" "$target" "bash -s -- $root $INPUT_MATCH_ID" <<'REMOTE'
+set -Eeuo pipefail
+cd "$1"
+export MATCH_ID="$2"
+php artisan tinker --execute='$m = App\Models\FootballMatch::findOrFail((int) getenv("MATCH_ID")); echo "Chapters added: ".app(App\Services\MatchStoryService::class)->sync($m).PHP_EOL;'
+php artisan reel:render "$2" --no-ansi
+php artisan tinker --execute='echo "Reel: ".json_encode(data_get(App\Models\FootballMatch::find((int) getenv("MATCH_ID"))->metadata, "reel")).PHP_EOL;'
+REMOTE
 else
     [[ "${GITHUB_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || { echo "Missing release commit SHA."; exit 1; }
     ssh "${ssh_options[@]}" "$target" "bash -s -- $root $GITHUB_SHA" <<'REMOTE'

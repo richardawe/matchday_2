@@ -67,6 +67,37 @@ class GriotReelTest extends TestCase
         $this->assertCount(0, app(ReelService::class)->pending(), 'not dispatched twice');
     }
 
+    public function test_a_failing_reel_is_tried_three_times_and_a_lost_github_render_times_out(): void
+    {
+        config(['reel.renderer' => 'github', 'reel.github.token' => 'token']);
+        Http::fake(['api.github.com/*' => Http::response('nope', 500)]);
+        $this->travel(4)->minutes();
+        $reels = app(ReelService::class);
+
+        foreach (range(1, 3) as $try) {
+            $this->assertCount(1, $reels->pending(), "try {$try}");
+            $this->assertSame('failed', $reels->make($reels->pending()->first()));
+        }
+        $this->assertCount(0, $reels->pending(), 'not retried every minute forever');
+
+        // A dispatched render that never arrives is marked failed after 45 minutes.
+        $this->match->update(['metadata' => ['reel' => ['status' => 'dispatched', 'started_at' => now()->toIso8601String()]]]);
+        $this->travel(46)->minutes();
+        $reels->collectUploads();
+        $this->assertSame('failed', data_get($this->match->fresh()->metadata, 'reel.status'));
+    }
+
+    public function test_a_render_that_died_mid_way_is_retried(): void
+    {
+        config(['reel.renderer' => 'server', 'reel.timeout' => 600]);
+        $this->match->update(['metadata' => ['reel' => ['status' => 'rendering', 'started_at' => now()->toIso8601String(), 'attempts' => 1]]]);
+        $reels = app(ReelService::class);
+
+        $this->assertCount(0, $reels->pending(), 'still within the render timeout');
+        $this->travel(21)->minutes();
+        $this->assertCount(1, $reels->pending());
+    }
+
     public function test_props_endpoint_needs_a_signature(): void
     {
         $this->getJson(route('reels.props', $this->match))->assertForbidden();
