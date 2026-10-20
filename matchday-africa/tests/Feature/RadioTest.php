@@ -76,7 +76,10 @@ class RadioTest extends TestCase
         $fact = $this->fact();
         $this->mock(RadioFacts::class, fn ($m) => $m->shouldReceive('collect')->once()->andReturn([$fact]));
         $segments = [['fact_keys' => [$fact['key']], 'text' => 'Arsenal won 2 to 1 against Chelsea in the Premier League.']];
-        $this->mock(RadioScript::class, fn ($m) => $m->shouldReceive('write')->once()->andReturn($segments));
+        $this->mock(RadioScript::class, function ($m) use ($segments) {
+            $m->shouldReceive('write')->once()->andReturn($segments);
+            $m->shouldReceive('verify')->once();
+        });
         $b = app(RadioService::class)->queue();
         $this->artisan('radio:work')->assertSuccessful();
         $this->assertSame('draft', $b->fresh()->status);
@@ -207,6 +210,33 @@ class RadioTest extends TestCase
         $this->app->instance(OpenRouterService::class, $editor);
         $this->expectException(\RuntimeException::class);
         app(RadioScript::class)->verify([['fact_keys' => ['match:1'], 'text' => 'An invented player scored.']], [$this->fact()]);
+    }
+
+    public function test_factual_checker_accepts_only_true_json_even_when_markdown_fenced(): void
+    {
+        $editor = Mockery::mock(OpenRouterService::class);
+        $editor->shouldReceive('editFootballArticle')->once()->andReturn("```json\n{\"ok\":true}\n```");
+        $this->app->instance(OpenRouterService::class, $editor);
+        app(RadioScript::class)->verify([['fact_keys' => ['match:1'], 'text' => $this->fact()['text']]], [$this->fact()]);
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_rejected_script_and_its_facts_are_retained_but_not_published(): void
+    {
+        $this->mock(RadioFacts::class, fn ($m) => $m->shouldReceive('collect')->once()->andReturn([$this->fact()]));
+        $editor = Mockery::mock(OpenRouterService::class);
+        $editor->shouldReceive('editFootballArticle')->twice()->andReturn(
+            json_encode(['segments' => [['fact_keys' => ['match:1'], 'text' => 'Arsenal won 2 to 1 against Chelsea.']]]),
+            '{"ok":false,"reason":"Unsupported player name"}'
+        );
+        $this->app->instance(OpenRouterService::class, $editor);
+        $b = app(RadioService::class)->queue();
+        $this->artisan('radio:work')->assertFailed();
+        $this->assertSame('failed', $b->fresh()->status);
+        $this->assertNotEmpty($b->fresh()->script);
+        $this->assertSame([$this->fact()], $b->fresh()->facts);
+        $this->assertStringContainsString('Unsupported player name', $b->fresh()->failure_reason);
+        $this->get(route('radio.show', $b))->assertNotFound();
     }
 
     public function test_no_news_feed_is_fetched_until_approved_and_radio_coverage_is_separate(): void

@@ -35,7 +35,8 @@ array cache in production. There is no new queue daemon requirement.
 Server operations in GitHub Actions also supports `radio-check` (find Node/FFmpeg
 and install the locked runtime), `configure-radio` (`draft`, `auto`, or `off`),
 `radio-run` (queue and write the current edition), `radio-status` (script and facts),
-`radio-voice` (reviewed bulletin ID), and `radio-publish` (checked audio ID).
+`radio-voice` (reviewed bulletin ID), `radio-publish` (checked audio ID), and
+`radio-retry` (explicit retry of a failed bulletin ID).
 The deployment key stays in the production environment. Configuration updates only
 the radio keys through the backed-up `.env` editor. `radio-check` also looks for the
 MP3-capable FFmpeg bundled with the existing server reel renderer.
@@ -62,6 +63,9 @@ MP3-capable FFmpeg bundled with the existing server reel renderer.
   HTML and oversized scripts. A separate model request checks claims, names, scores
   and uncertainty against the cited facts. Failed or malformed review blocks the job.
   This reduces errors; it is not proof of correctness. Human review is the launch default.
+  Rejected candidate scripts and their source snapshots remain private in the desk
+  for diagnosis. A fenced JSON response is parsed, but approval still requires the
+  exact boolean `true`; rejected, empty or malformed checks never approve publication.
 - Aim for 400–650 words only when facts support it. Sparse editions are shorter. Do
   not pad quiet news days with invented context. Facts older than six hours cannot
   proceed to speech or publication; the displayed recording time remains visible.

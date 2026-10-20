@@ -61,8 +61,12 @@ class RadioService
             try {
                 if ($bulletin->stage === 'script') {
                     $facts = app(RadioFacts::class)->collect();
+                    $bulletin->update(['facts' => $facts, 'recorded_at' => now()]);
                     $segments = app(RadioScript::class)->write($facts);
                     $script = $this->compose($bulletin, $segments);
+                    // Keep rejected candidates private but inspectable in the radio desk.
+                    $bulletin->update(['segments' => $segments, 'script' => $script]);
+                    app(RadioScript::class)->verify($segments, $facts);
                     $bulletin->update(['facts' => $facts, 'segments' => $segments, 'script' => $script,
                         'recorded_at' => now(), 'stage' => 'audio', 'attempts' => 0,
                         'status' => config('radio.auto_publish') ? 'queued' : 'draft']);

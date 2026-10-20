@@ -5,7 +5,7 @@ set -Eeuo pipefail
 
 mode=${1:-}
 case "$mode" in
-    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|radio-check|configure-radio|radio-run|radio-status|radio-voice|radio-publish) ;;
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|radio-check|configure-radio|radio-run|radio-status|radio-voice|radio-publish|radio-retry) ;;
     *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home"; exit 2 ;;
 esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
@@ -223,11 +223,11 @@ elif [[ "$mode" == radio-run ]]; then
     ssh "${ssh_options[@]}" "$target" "cd $root && php artisan radio:edition --no-ansi && php artisan radio:work --no-ansi && php scripts/radio-ops.php status"
 elif [[ "$mode" == radio-status ]]; then
     ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/radio-ops.php status"
-elif [[ "$mode" == radio-voice || "$mode" == radio-publish ]]; then
+elif [[ "$mode" == radio-voice || "$mode" == radio-publish || "$mode" == radio-retry ]]; then
     [[ "${INPUT_BULLETIN_ID:-}" =~ ^[0-9]+$ ]] || { echo "bulletin_id must be numeric."; exit 1; }
     operation=${mode#radio-}
     ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/radio-ops.php $operation $INPUT_BULLETIN_ID"
-    if [[ "$operation" == voice ]]; then
+    if [[ "$operation" == voice || "$operation" == retry ]]; then
         ssh "${ssh_options[@]}" "$target" "cd $root && php artisan radio:work --no-ansi && php scripts/radio-ops.php status $INPUT_BULLETIN_ID"
     fi
 elif [[ "$mode" == configure-home ]]; then
