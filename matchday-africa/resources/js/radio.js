@@ -9,3 +9,10 @@ document.querySelectorAll('[data-radio-player]').forEach((player) => {
         });
     });
 });
+
+// Choosing sound on a reel gives that reel the audio focus as well.
+document.addEventListener('volumechange', (event) => {
+    if (event.target instanceof HTMLVideoElement && !event.target.muted) {
+        document.querySelectorAll('[data-radio-player] audio').forEach((audio) => audio.pause());
+    }
+}, true);
