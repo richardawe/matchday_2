@@ -5,7 +5,7 @@ set -Eeuo pipefail
 
 mode=${1:-}
 case "$mode" in
-    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home) ;;
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|radio-check|configure-radio|radio-run|radio-status|radio-voice|radio-publish) ;;
     *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home"; exit 2 ;;
 esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
@@ -183,6 +183,52 @@ elif [[ "$mode" == reel-queue ]]; then
     # Backfill: queue reels for finished Premier League matches between two Lagos dates.
     [[ "${INPUT_FROM:-}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ && "${INPUT_TO:-}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "from_date and to_date must look like 2026-10-17."; exit 1; }
     ssh "${ssh_options[@]}" "$target" "cd $root && php artisan reel:queue --from=$INPUT_FROM --to=$INPUT_TO --no-ansi"
+elif [[ "$mode" == radio-check || "$mode" == configure-radio ]]; then
+    radio_mode=${INPUT_RADIO_MODE:-draft}
+    [[ "$radio_mode" == draft || "$radio_mode" == auto || "$radio_mode" == off ]] || { echo "Invalid radio mode."; exit 1; }
+    ssh "${ssh_options[@]}" "$target" "bash -s -- $root $mode $radio_mode" <<'REMOTE'
+set -Eeuo pipefail
+cd "$1"
+operation=$2
+radio_mode=$3
+if [[ "$operation" == configure-radio && "$radio_mode" == off ]]; then
+    printf '%s' '{"RADIO_ENABLED":"false","RADIO_AUTO_PUBLISH":"false"}' | php scripts/set-env.php
+    php artisan config:cache --no-ansi
+    exit 0
+fi
+best=""
+for candidate in "$(php scripts/deployment-settings.php radio-node)" "$(command -v node || true)" /opt/cpanel/ea-nodejs*/bin/node /opt/alt/alt-nodejs*/root/usr/bin/node /usr/local/bin/node "$HOME"/nodevenv/*/*/bin/node; do
+    path=$(command -v "$candidate" 2>/dev/null || true)
+    [[ -n "$path" && -x "$path" ]] || continue
+    if "$path" -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>22||(a===22&&b>=13)?0:1)' 2>/dev/null; then best=$path; break; fi
+done
+[[ -n "$best" ]] || { echo "FAIL: radio requires Node 22.13+."; exit 1; }
+export PATH="$(dirname "$best"):$PATH"
+ffmpeg=""
+for candidate in "$(command -v ffmpeg || true)" /usr/bin/ffmpeg /usr/local/bin/ffmpeg "$HOME"/bin/ffmpeg reel/node_modules/@remotion/compositor-linux-*/ffmpeg; do
+    [[ -n "$candidate" && -x "$candidate" ]] || continue
+    if "$candidate" -hide_banner -encoders 2>/dev/null | grep -F libmp3lame >/dev/null; then ffmpeg=$(realpath "$candidate"); break; fi
+done
+[[ -n "$ffmpeg" ]] || { echo "FAIL: no FFmpeg with libmp3lame found."; exit 1; }
+echo "Radio Node: $best"
+echo "Radio FFmpeg: $ffmpeg"
+(cd radio && npm ci --omit=dev --no-audit --no-fund && RADIO_FFMPEG="$ffmpeg" "$best" render.mjs --check)
+if [[ "$operation" == configure-radio ]]; then
+    RADIO_OP_NODE="$best" RADIO_OP_FFMPEG="$ffmpeg" RADIO_OP_MODE="$radio_mode" php -r 'echo json_encode(["RADIO_ENABLED"=>"true","RADIO_AUTO_PUBLISH"=>getenv("RADIO_OP_MODE")==="auto"?"true":"false","RADIO_NODE"=>getenv("RADIO_OP_NODE"),"RADIO_FFMPEG"=>getenv("RADIO_OP_FFMPEG")]);' | php scripts/set-env.php
+    php artisan config:cache --no-ansi
+fi
+REMOTE
+elif [[ "$mode" == radio-run ]]; then
+    ssh "${ssh_options[@]}" "$target" "cd $root && php artisan radio:edition --no-ansi && php artisan radio:work --no-ansi && php scripts/radio-ops.php status"
+elif [[ "$mode" == radio-status ]]; then
+    ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/radio-ops.php status"
+elif [[ "$mode" == radio-voice || "$mode" == radio-publish ]]; then
+    [[ "${INPUT_BULLETIN_ID:-}" =~ ^[0-9]+$ ]] || { echo "bulletin_id must be numeric."; exit 1; }
+    operation=${mode#radio-}
+    ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/radio-ops.php $operation $INPUT_BULLETIN_ID"
+    if [[ "$operation" == voice ]]; then
+        ssh "${ssh_options[@]}" "$target" "cd $root && php artisan radio:work --no-ansi && php scripts/radio-ops.php status $INPUT_BULLETIN_ID"
+    fi
 elif [[ "$mode" == configure-home ]]; then
     # The reels-first homepage (preview any time with ?home=v2).
     case "${INPUT_HOME_V2:-}" in

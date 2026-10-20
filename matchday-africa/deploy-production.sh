@@ -34,6 +34,17 @@ php artisan view:clear
 php artisan event:clear
 
 renderer=$(php scripts/deployment-settings.php renderer)
+if [[ "$(php scripts/deployment-settings.php radio)" == on ]]; then
+    radio_node=$(php scripts/deployment-settings.php radio-node)
+    radio_binary=$(command -v "$radio_node") || { echo "RADIO_NODE is unavailable."; exit 1; }
+    radio_path="$(dirname "$radio_binary"):$PATH"
+    radio_lock=$(sha256sum radio/package-lock.json | cut -d ' ' -f 1)
+    if [[ "$radio_lock" != "$(cat storage/app/radio-lock.sha 2>/dev/null || true)" || ! -d radio/node_modules ]]; then
+        (cd radio && PATH="$radio_path" npm ci --omit=dev --no-audit --no-fund)
+        printf '%s\n' "$radio_lock" > storage/app/radio-lock.sha
+    fi
+    php artisan radio:check --no-ansi
+fi
 if [[ "$renderer" == server ]]; then
     reel_node=$(php scripts/deployment-settings.php node)
     node_binary=$(command -v "$reel_node") || { echo "REEL_NODE is unavailable."; exit 1; }

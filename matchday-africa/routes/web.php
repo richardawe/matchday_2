@@ -38,6 +38,25 @@ use App\Http\Controllers\SponsorController;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/api/matchday-pulse', [HomeController::class, 'pulse'])->name('home.pulse');
 
+Route::get('/listen', [App\Http\Controllers\RadioController::class, 'index'])->name('radio.index');
+// Check readiness before implicit binding can query a table that is not migrated yet.
+Route::bind('bulletin', function ($id) {
+    abort_unless(\App\Models\RadioBulletin::available(), 404);
+
+    return \App\Models\RadioBulletin::findOrFail($id);
+});
+Route::get('/listen/feed.xml', [App\Http\Controllers\RadioController::class, 'feed'])->name('radio.feed');
+Route::get('/listen/{bulletin}/audio.mp3', [App\Http\Controllers\RadioController::class, 'audio'])->name('radio.audio');
+Route::get('/listen/{bulletin}', [App\Http\Controllers\RadioController::class, 'show'])->name('radio.show');
+
+Route::middleware(['auth', 'admin'])->prefix('admin/radio')->name('admin.radio.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Admin\RadioController::class, 'index'])->name('index');
+    Route::post('/queue', [App\Http\Controllers\Admin\RadioController::class, 'queue'])->name('queue');
+    Route::put('/{bulletin}', [App\Http\Controllers\Admin\RadioController::class, 'update'])->name('update');
+    Route::post('/{bulletin}/action', [App\Http\Controllers\Admin\RadioController::class, 'action'])->name('action');
+    Route::get('/{bulletin}/audio.mp3', [App\Http\Controllers\Admin\RadioController::class, 'audio'])->name('audio');
+});
+
 // Matchday War — native subdirectory experience
 Route::prefix('war')->name('war.')->group(function () {
     Route::get('/', [WarController::class, 'index'])->name('index');

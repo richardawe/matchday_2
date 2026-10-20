@@ -10,7 +10,7 @@ on:
       action:
         description: What to run
         type: choice
-        options: [status, buffer-channels, configure-buffer, plan-posts, reel-check, configure-reel, reel-render, configure-espn, espn-sync, reel-queue, configure-home]
+        options: [status, buffer-channels, configure-buffer, plan-posts, reel-check, configure-reel, reel-render, configure-espn, espn-sync, reel-queue, configure-home, radio-check, configure-radio, radio-run, radio-status, radio-voice, radio-publish]
         default: status
       channel_x:
         description: "configure-buffer: Buffer channel ID for X (blank = leave as is)"
@@ -56,6 +56,14 @@ on:
         type: choice
         options: [live, shadow, "off"]
         default: live
+      radio_mode:
+        description: "configure-radio: draft pilot, automatic publication, or off"
+        type: choice
+        options: [draft, auto, "off"]
+        default: draft
+      bulletin_id:
+        description: "radio-voice or radio-publish: reviewed bulletin ID"
+        required: false
 
 permissions:
   contents: read
@@ -98,4 +106,6 @@ jobs:
           INPUT_HOME_V2: ${{ inputs.home_v2 }}
           INPUT_FROM: ${{ inputs.from_date }}
           INPUT_TO: ${{ inputs.to_date }}
+          INPUT_RADIO_MODE: ${{ inputs.radio_mode }}
+          INPUT_BULLETIN_ID: ${{ inputs.bulletin_id }}
         run: bash scripts/ci/deploy-ssh.sh "$ACTION"

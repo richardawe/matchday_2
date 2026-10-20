@@ -47,6 +47,7 @@
                                     {{ __('War') }}
                                 </x-nav-link>
                                 <x-nav-link :href="route('discovery.index')" :active="request()->routeIs('discovery.*')">{{ __('Players') }}</x-nav-link>
+                                @if(\App\Models\RadioBulletin::available())<x-nav-link :href="route('radio.index')" :active="request()->routeIs('radio.*')">Listen</x-nav-link>@endif
                                 <x-nav-link :href="route('teams.index')" :active="request()->routeIs('teams.*')">
                                     {{ __('Teams') }}
                                 </x-nav-link>
@@ -140,6 +141,7 @@
                         <x-responsive-nav-link :href="route('teams.index')" :active="request()->routeIs('teams.*')">
                             {{ __('Teams') }}
                         </x-responsive-nav-link>
+                        @if(\App\Models\RadioBulletin::available())<x-responsive-nav-link :href="route('radio.index')" :active="request()->routeIs('radio.*')">Listen</x-responsive-nav-link>@endif
                         <x-responsive-nav-link :href="route('blogs.index')" :active="request()->routeIs('blogs.*')">
                             {{ __('📰 Articles') }}
                         </x-responsive-nav-link>

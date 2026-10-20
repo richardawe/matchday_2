@@ -28,6 +28,7 @@
                         <a href="{{ route('admin.blogs.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">📰 Blogs</a>
                         <a href="{{ route('admin.match-previews.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">⚽ Match Previews</a>
                         <a href="{{ route('admin.reels.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🎬 Reels</a>
+                        <a href="{{ route('admin.radio.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">📻 Radio</a>
                         <a href="{{ route('admin.twitter.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">📣 Social posts</a>
                     </div>
                 </div>
