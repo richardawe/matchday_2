@@ -18,6 +18,7 @@ export function chunks(text) {
 export function encoder(args) {
     const result = spawnSync(process.env.RADIO_FFMPEG || 'ffmpeg', args, { encoding: 'utf8', timeout: 120000, maxBuffer: 1024 * 1024 });
     if (result.error || result.status !== 0) throw new Error('FFmpeg failed: ' + (result.error?.message || result.stderr?.slice(-1000)));
+    return result.stdout + result.stderr;
 }
 
 // Original three-note ident and a soft percussive tail. No publisher/broadcast recordings.
