@@ -139,6 +139,7 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 - Homepage radio sits above reels; `/listen`, `/listen/feed.xml`, admin `/admin/radio`.
 - Only `RADIO_NEWS_SOURCES` is approved for radio; source permissions are not assumed.
 - Read `matchday-africa/docs/RADIO.md` for Node/FFmpeg setup, pilot, publishing and recovery.
+- Server operations: `radio-check`, `configure-radio` (draft/auto/off), `radio-run`, `radio-status`, `radio-voice`, `radio-publish`.
 
 - Live `APP_TIMEZONE` was verified as `Africa/Lagos` on 19 October 2026; the production
   template now matches it. Kick-off display formatting remains a separate issue (rule 5).

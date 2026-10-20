@@ -32,6 +32,14 @@ Radio must share the persistent cache store between cron and web workers. Larave
 `radio-pipeline` lock serialises workers and admin mutations. Do not use an in-memory
 array cache in production. There is no new queue daemon requirement.
 
+Server operations in GitHub Actions also supports `radio-check` (find Node/FFmpeg
+and install the locked runtime), `configure-radio` (`draft`, `auto`, or `off`),
+`radio-run` (queue and write the current edition), `radio-status` (script and facts),
+`radio-voice` (reviewed bulletin ID), and `radio-publish` (checked audio ID).
+The deployment key stays in the production environment. Configuration updates only
+the radio keys through the backed-up `.env` editor. `radio-check` also looks for the
+MP3-capable FFmpeg bundled with the existing server reel renderer.
+
 ## Sources and accuracy
 
 - By default, **no third-party news source is approved for radio**. Editions can use
