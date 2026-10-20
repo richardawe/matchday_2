@@ -212,6 +212,18 @@ class RadioTest extends TestCase
         app(RadioScript::class)->verify([['fact_keys' => ['match:1'], 'text' => 'An invented player scored.']], [$this->fact()]);
     }
 
+    public function test_radio_requests_json_mode_without_changing_article_output(): void
+    {
+        config(['services.openrouter.api_key' => 'test-key', 'services.openrouter.model' => 'test/model',
+            'services.openrouter.fallback_models' => []]);
+        Http::fake(['*' => Http::response(['model' => 'test/model', 'choices' => [['message' => ['content' => '{"ok":true}']]]])]);
+        $editor = new OpenRouterService;
+        $this->assertSame('{"ok":true}', $editor->editFootballArticle('Return JSON', true));
+        Http::assertSent(fn ($r) => $r['response_format']['type'] === 'json_object' && $r['max_tokens'] === 3500);
+        $editor->editFootballArticle('Write an article');
+        Http::assertSent(fn ($r) => ! isset($r['response_format']) && $r['max_tokens'] === 1800);
+    }
+
     public function test_factual_checker_accepts_only_true_json_even_when_markdown_fenced(): void
     {
         $editor = Mockery::mock(OpenRouterService::class);
