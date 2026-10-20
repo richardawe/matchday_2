@@ -60,11 +60,11 @@ class OpenRouterService
         }
     }
 
-    public function editFootballArticle(string $prompt): ?string
+    public function editFootballArticle(string $prompt, bool $structured = false): ?string
     {
         try {
             if (!$this->apiKey || $this->isRateLimited()) return null;
-            $response = $this->makeApiRequest($prompt);
+            $response = $this->makeApiRequest($prompt, $structured);
             $content = $this->extractContent($response);
             if ($content) $this->incrementRequestCount();
             return $content;
@@ -143,7 +143,7 @@ Format the response in HTML with proper paragraphs and emphasis.";
     /**
      * Make API request to OpenRouter
      */
-    protected function makeApiRequest($prompt)
+    protected function makeApiRequest($prompt, bool $structured = false)
     {
         $models = array_values(array_unique(array_filter([
             $this->model,
@@ -161,7 +161,7 @@ Format the response in HTML with proper paragraphs and emphasis.";
                         'Content-Type' => 'application/json',
                         'HTTP-Referer' => config('app.url'),
                         'X-Title' => 'Matchday Africa'
-                    ])->post($this->baseUrl . '/chat/completions', [
+                    ])->post($this->baseUrl . '/chat/completions', array_merge([
                         'model' => $model,
                         'messages' => [
                             [
@@ -175,7 +175,7 @@ Format the response in HTML with proper paragraphs and emphasis.";
                             'effort' => 'none',
                             'exclude' => true,
                         ],
-                    ]);
+                    ], $structured ? ['response_format' => ['type' => 'json_object'], 'max_tokens' => 3500, 'temperature' => 0.2] : []));
 
                     if ($response->successful()) {
                         $payload = $response->json();
