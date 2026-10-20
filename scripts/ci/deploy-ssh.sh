@@ -203,7 +203,7 @@ for candidate in "$(php scripts/deployment-settings.php radio-node)" "$(command 
     if "$path" -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>22||(a===22&&b>=13)?0:1)' 2>/dev/null; then best=$path; break; fi
 done
 [[ -n "$best" ]] || { echo "FAIL: radio requires Node 22.13+."; exit 1; }
-export PATH="$(dirname "$best"):$PATH"
+radio_path="$(dirname "$best"):$PATH"
 ffmpeg=""
 for candidate in "$(command -v ffmpeg || true)" /usr/bin/ffmpeg /usr/local/bin/ffmpeg "$HOME"/bin/ffmpeg reel/node_modules/@remotion/compositor-linux-*/ffmpeg; do
     [[ -n "$candidate" && -x "$candidate" ]] || continue
@@ -212,7 +212,8 @@ done
 [[ -n "$ffmpeg" ]] || { echo "FAIL: no FFmpeg with libmp3lame found."; exit 1; }
 echo "Radio Node: $best"
 echo "Radio FFmpeg: $ffmpeg"
-(cd radio && npm ci --omit=dev --no-audit --no-fund && RADIO_FFMPEG="$ffmpeg" "$best" render.mjs --check)
+# Keep cPanel's CLI PHP first for set-env/config:cache; /usr/bin/php can be CGI.
+(cd radio && PATH="$radio_path" npm ci --omit=dev --no-audit --no-fund && RADIO_FFMPEG="$ffmpeg" "$best" render.mjs --check)
 if [[ "$operation" == configure-radio ]]; then
     RADIO_OP_NODE="$best" RADIO_OP_FFMPEG="$ffmpeg" RADIO_OP_MODE="$radio_mode" php -r 'echo json_encode(["RADIO_ENABLED"=>"true","RADIO_AUTO_PUBLISH"=>getenv("RADIO_OP_MODE")==="auto"?"true":"false","RADIO_NODE"=>getenv("RADIO_OP_NODE"),"RADIO_FFMPEG"=>getenv("RADIO_OP_FFMPEG")]);' | php scripts/set-env.php
     php artisan config:cache --no-ansi
