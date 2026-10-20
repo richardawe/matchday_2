@@ -90,6 +90,13 @@ jobs:
         run: npm run build
       - name: Run application tests
         run: php vendor/bin/phpunit
+      - name: Check radio runtime and audio packaging
+        if: matrix.php == '8.2'
+        run: |
+          cd radio
+          npm ci --no-audit --no-fund
+          node render.mjs --check
+          npm test
       - name: Test deployment scripts
         if: matrix.php == '8.2'
         working-directory: .

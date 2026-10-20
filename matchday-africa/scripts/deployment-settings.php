@@ -13,6 +13,15 @@ Dotenv\Dotenv::createImmutable($root)->load();
 $value = static fn (string $key, string $default = ''): string => (string) ($_ENV[$key] ?? $default);
 $mode = $argv[1] ?? 'validate';
 
+if ($mode === 'radio') {
+    echo in_array(strtolower($value('RADIO_ENABLED', 'false')), ['true', '1'], true) ? 'on' : 'off';
+    exit(0);
+}
+if ($mode === 'radio-node') {
+    echo $value('RADIO_NODE', $value('REEL_NODE', 'node'));
+    exit(0);
+}
+
 if ($mode === 'renderer') {
     echo $value('REEL_RENDERER', 'off');
     exit(0);

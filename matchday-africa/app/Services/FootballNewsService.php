@@ -44,9 +44,9 @@ class FootballNewsService {
         return ['success'=>$published,'errors'=>$errors,'discovered'=>$discovered,'eligible'=>$candidates->count(),'message'=>"Discovered {$discovered}; eligible {$candidates->count()}; published {$published}; failed {$errors}"];
     }
 
-    public function discover(): int {
+    public function discover(?array $sources = null): int {
         $count=0;
-        foreach(config('news.sources',[]) as $source){
+        foreach($sources ?? config('news.sources',[]) as $source){
             $response=Http::timeout(20)->withHeaders(['User-Agent'=>'MatchdayAfrica/1.0'])->get($source['url']);
             if(!$response->successful()){Log::warning('Football news feed request failed',['source'=>$source['name'],'status'=>$response->status()]);continue;}
             $xml=@simplexml_load_string($response->body(),'SimpleXMLElement',LIBXML_NOCDATA);

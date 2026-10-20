@@ -132,6 +132,14 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `BUFFER_MONTHLY_REQUESTS` / `_SOFT_LIMIT` / `_HARD_LIMIT` | 3000 / 2500 / 2900 | Buffer API budget, counted in `buffer_usage`; posting stops at the hard limit |
 
 ## 7. Open items and known issues
+### Matchday Radio (20 Oct 2026)
+- `radio:edition` at 06:00/12:00/18:00 Africa/Lagos; `radio:work` every minute in the background.
+- `RADIO_ENABLED=false` and `RADIO_AUTO_PUBLISH=false` by default; new table `radio_bulletins`.
+- Kokoro runtime in `matchday-africa/radio/` is independent of the unmerged reel voice branch.
+- Homepage radio sits above reels; `/listen`, `/listen/feed.xml`, admin `/admin/radio`.
+- Only `RADIO_NEWS_SOURCES` is approved for radio; source permissions are not assumed.
+- Read `matchday-africa/docs/RADIO.md` for Node/FFmpeg setup, pilot, publishing and recovery.
+
 - Live `APP_TIMEZONE` was verified as `Africa/Lagos` on 19 October 2026; the production
   template now matches it. Kick-off display formatting remains a separate issue (rule 5).
 - West Ham has no statue (`art => null`); it isn't in the 2026–27 Premier League. Wolves uses the approved `wolf-warband` exception.

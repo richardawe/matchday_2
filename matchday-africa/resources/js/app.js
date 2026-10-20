@@ -1,4 +1,5 @@
 import './bootstrap';
+import './radio';
 
 import Alpine from 'alpinejs';
 

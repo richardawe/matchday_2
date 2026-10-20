@@ -28,6 +28,9 @@ Schedule::command('predictions:score')->everyFiveMinutes()->withoutOverlapping(1
 Schedule::command('news:publish-daily --limit=1')->dailyAt('07:30')->withoutOverlapping(30)->name('news-morning');
 Schedule::command('news:publish-daily --limit=1')->dailyAt('12:00')->withoutOverlapping(30)->name('news-midday');
 Schedule::command('news:publish-daily --limit=1')->dailyAt('16:30')->withoutOverlapping(30)->name('news-evening');
+// Three daily editions, not four: no midnight bulletin. Worker also services admin drafts.
+Schedule::command('radio:edition')->cron('0 6,12,18 * * *')->timezone('Africa/Lagos')->withoutOverlapping(5)->name('radio-editions');
+Schedule::command('radio:work')->everyMinute()->withoutOverlapping(30)->runInBackground()->name('radio-worker');
 Schedule::command('twitter:engage')->everyTenMinutes()->withoutOverlapping(10)->name('x-timeline-planner');
 Schedule::command('matches:enrich-events')->everyThirtyMinutes()->withoutOverlapping(20)->name('match-event-enrichment');
 Schedule::command('statsbomb:import-open')->weeklyOn(1,'01:30')->withoutOverlapping(120)->name('statsbomb-open-data-weekly');

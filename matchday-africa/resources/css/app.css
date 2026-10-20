@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Matchday Radio: native playback works before JavaScript loads. */
+.md-radio-home{padding:2rem 0;background:#0b100c;border-bottom:1px solid var(--md-line)}
+.md-radio{padding:clamp(1rem,3vw,2rem);background:#131a14;border:1px solid var(--md-line);border-top:3px solid var(--md-gold);color:var(--md-paper)}
+.md-radio-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
+.md-radio h2{font:400 clamp(1.5rem,4vw,2.2rem)/1.1 Georgia,serif;margin:.4rem 0}.md-radio p{color:#c4cabe;line-height:1.6}
+.md-radio audio,.md-radio-draft audio{display:block;width:100%;margin:1rem 0;color-scheme:dark}
+.md-radio-meta{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;color:#b5beaf;font-size:.8rem}
+.md-radio-meta>span{flex:1;min-width:12rem}.md-radio-meta a,.md-radio a{color:var(--md-gold-bright)}
+.md-radio-meta select{background:#0b100c;color:var(--md-paper);border:1px solid var(--md-line);padding:.35rem;margin-left:.3rem}
+.md-radio-transcript{border-top:1px solid var(--md-line);padding-top:1rem;margin-top:1rem}.md-radio-transcript summary{font-weight:700;color:var(--md-gold-bright);padding:.5rem 0;cursor:pointer}
+.md-radio-transcript p{margin:1rem 0}.md-radio-transcript ul{list-style:disc;padding-left:1.4rem;line-height:1.8}.md-radio-transcript h3{font:400 1.3rem Georgia,serif}
+.md-radio .md-radio-disclosure{padding:.8rem 1rem;background:#1c2c1c}.md-radio-delayed{border-left:3px solid var(--md-gold);padding-left:1rem}
+.md-radio-page{padding-block:3rem}.md-radio-page h1{font:400 clamp(2rem,5vw,3.5rem)/1.05 Georgia,serif}.md-radio-archive{padding-block:2rem}.md-radio-archive h2{font:400 1.6rem Georgia,serif;margin-bottom:1rem}
+.md-radio-archive>a{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-bottom:1px solid var(--md-line);padding:1.2rem 0;color:var(--md-paper)}.md-radio-archive span{color:var(--md-muted);font-size:.85rem}
+.md-radio-desk{display:grid;gap:1.5rem}.md-radio-draft{padding:1.5rem;background:#101610;border:1px solid var(--md-line)}.md-radio-draft h2{font:400 1.7rem Georgia,serif}.md-radio-edit{display:grid;gap:.5rem;margin:1rem 0}.md-radio-edit textarea{min-height:9rem;background:#080c09;color:var(--md-paper);border:1px solid var(--md-line);padding:1rem;width:100%;font-size:1rem}.md-radio-actions{display:flex;gap:1rem;flex-wrap:wrap;margin-top:1rem}.md-radio-script{white-space:pre-wrap}
+@media(max-width:640px){.md-radio-home{padding:1rem 0}.md-radio-head .md-secondary{width:100%;text-align:center}.md-radio-meta select{min-height:44px}.md-radio-meta a{padding-block:.6rem}.md-radio-draft{padding:1rem}}
+
 .md-ngr-ad{padding:1.3rem 0;background:#090909;border-block:1px solid #2c332d;color:#fff}.md-ngr-ad>.md-wrap{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:2rem}.md-ngr-ad>div>div{display:flex;align-items:center;gap:.8rem}.md-ngr-ad small{padding:.35rem .5rem;border:1px solid #566159;color:#9aa49d;font-size:.5rem;letter-spacing:.16em}.md-ngr-ad strong{font:900 2rem/1 Arial,sans-serif;letter-spacing:-.08em}.md-ngr-ad strong span{color:#6ed66e}.md-ngr-ad p{color:#aeb5af}.md-ngr-ad a{padding:.8rem 1rem;background:#fff;color:#090909;font-size:.65rem;font-weight:900;letter-spacing:.1em}.md-ngr-ad a:hover{background:#6ed66e}
 @media(max-width:650px){.md-ngr-ad>.md-wrap{grid-template-columns:1fr;gap:.8rem}.md-ngr-ad a{text-align:center}}
 
