@@ -10,7 +10,7 @@ $app = require dirname(__DIR__).'/bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 $action = $argv[1] ?? 'status';
 $id = $argv[2] ?? null;
-if (! in_array($action, ['status', 'voice', 'publish'], true)) {
+if (! in_array($action, ['status', 'voice', 'publish', 'retry'], true)) {
     throw new RuntimeException('Unknown radio operation.');
 }
 if (! Illuminate\Support\Facades\Schema::hasTable('radio_bulletins')) {
@@ -29,6 +29,11 @@ if ($action !== 'status') {
         $service = app(App\Services\RadioService::class);
         if ($action === 'publish') {
             $service->publish($b);
+        } elseif ($action === 'retry') {
+            if ($b->status !== 'failed') {
+                throw new RuntimeException('Only a failed edition can be retried.');
+            }
+            $b->update(['status' => 'queued', 'attempts' => 0, 'failure_reason' => null]);
         } else {
             if ($b->status !== 'draft') {
                 throw new RuntimeException('Only a reviewed draft can be voiced.');
