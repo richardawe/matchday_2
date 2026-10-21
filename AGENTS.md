@@ -132,7 +132,11 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `BUFFER_MONTHLY_REQUESTS` / `_SOFT_LIMIT` / `_HARD_LIMIT` | 3000 / 2500 / 2900 | Buffer API budget, counted in `buffer_usage`; posting stops at the hard limit |
 
 ## 7. Open items and known issues
-### Matchday Radio (20 Oct 2026)
+### Matchday Radio (21 Oct 2026)
+- Live automatic publishing is enabled at 06:00/12:00/18:00 Lagos time; the minute cron is verified.
+- Morning pilot published at `/listen/2` (100 seconds, 24 kbps Kokoro `bm_george`).
+- Publisher feeds remain unconfigured; current editions use Matchday results and fixtures.
+- RSS XML headers must split the opening characters in Blade: production enables PHP short tags.
 - `radio:edition` at 06:00/12:00/18:00 Africa/Lagos; `radio:work` every minute in the background.
 - `RADIO_ENABLED=false` and `RADIO_AUTO_PUBLISH=false` by default; new table `radio_bulletins`.
 - Kokoro runtime in `matchday-africa/radio/` is independent of the unmerged reel voice branch.
