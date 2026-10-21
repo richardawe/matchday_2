@@ -90,6 +90,10 @@ jobs:
         run: npm run build
       - name: Run application tests
         run: php vendor/bin/phpunit
+      - name: Check radio feed with production PHP short tags
+        run: |
+          php artisan view:clear
+          php -d short_open_tag=1 vendor/bin/phpunit --filter test_rss_uses_real_lengths_stable_guids_and_escapes_text
       - name: Check radio runtime and audio packaging
         if: matrix.php == '8.2'
         run: |
