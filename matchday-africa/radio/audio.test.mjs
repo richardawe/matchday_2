@@ -3,7 +3,21 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { chunks, encode } from './audio.mjs';
+import { chunks, encode, timedSpeech } from './audio.mjs';
+
+test('story cues follow the real audio samples and chunk pauses', async () => {
+    const cues = [];
+    const paragraphs = ['Welcome to Matchday Africa.', 'Football news follows here.', 'That is your update.'];
+    const synthesize = async () => ({ sampling_rate: 24000, audio: new Float32Array(48000) });
+    const samples = [];
+    for await (const piece of timedSpeech(paragraphs, synthesize, cues)) samples.push(piece);
+    assert.equal(samples.length, 3);
+    assert.equal(cues[0].start, 1.2);
+    assert.ok(Math.abs(cues[1].start - 3.38) < 0.001);
+    assert.ok(Math.abs(cues[1].end - 5.56) < 0.001);
+    assert.equal(cues[1].end, cues[2].start);
+    assert.equal(cues[1].paragraph, 1);
+});
 
 test('long scripts are split without losing or duplicating words', () => {
     const text = ('Welcome to Matchday Africa. Scores and fixtures follow. ').repeat(70).trim();

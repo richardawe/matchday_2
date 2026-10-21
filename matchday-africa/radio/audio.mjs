@@ -60,3 +60,18 @@ export async function encode(out, pieces, rate = 24000) {
         await unlink(raw).catch(() => {});
     }
 }
+
+// Cue boundaries come from actual PCM samples, including the ident and chunk pauses.
+export async function* timedSpeech(paragraphs, synthesize, cues, rate = 24000) {
+    let cursor = 1.2;
+    for (const [index, paragraph] of paragraphs.entries()) {
+        const start = cursor;
+        for (const part of chunks(paragraph.replace(/(\d)\s*[–-]\s*(\d)/g, '$1 $2'))) {
+            const audio = await synthesize(part);
+            if (audio.sampling_rate !== rate) throw new Error('Unexpected Kokoro sample rate');
+            cursor += audio.audio.length / rate + 0.18;
+            yield audio.audio;
+        }
+        cues.push({ paragraph: index, start, end: cursor });
+    }
+}

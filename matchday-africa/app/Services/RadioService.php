@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\RadioBulletin;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -11,7 +10,7 @@ use RuntimeException;
 
 class RadioService
 {
-    public function queue(): RadioBulletin
+    public function queue(bool $fresh = false): RadioBulletin
     {
         $now = now('Africa/Lagos');
         $slot = $now->copy()->startOfDay();
@@ -24,7 +23,7 @@ class RadioService
             $slot = $now->copy()->subDay()->setTime(18, 0);
         }
 
-        return RadioBulletin::firstOrCreate(['slot' => $slot->format('Y-m-d-H')], [
+        return RadioBulletin::firstOrCreate(['slot' => $slot->format('Y-m-d-H').($fresh ? '-r'.$now->format('His') : '')], [
             'title' => match ($slot->hour) {
                 6 => 'The morning update', 12 => 'The midday update', default => 'The evening update'
             },
@@ -52,7 +51,7 @@ class RadioService
             if (! $bulletin) {
                 return 'No radio work due.';
             }
-            if (Carbon::createFromFormat('Y-m-d-H', $bulletin->slot, 'Africa/Lagos')->startOfHour()->lt(now('Africa/Lagos')->subHours(6))) {
+            if ($bulletin->slotTime()->lt(now('Africa/Lagos')->subHours(6))) {
                 $bulletin->update(['status' => 'held', 'failure_reason' => 'Edition expired before completion. Queue the current edition.']);
 
                 return 'Held an expired edition.';
@@ -105,7 +104,7 @@ class RadioService
     {
         return 'Welcome to Matchday Africa. Here is your '.Str::lower(str_replace('The ', '', $bulletin->title)).'.'
             ."\n\n".collect($segments)->pluck('text')->implode("\n\n")
-            ."\n\nThat is your update. Find the transcript and sources at Matchday Africa.";
+            ."\n\nThat is your update. Join us again on Matchday Africa.";
     }
 
     public function publish(RadioBulletin $bulletin): void

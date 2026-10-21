@@ -16,7 +16,14 @@ class RadioFacts
     {
         $approved = collect(config('news.sources'))->whereIn('name', config('radio.news_sources'))->values()->all();
         if ($approved) {
-            app(FootballNewsService::class)->discover($approved);
+            // A failed publisher must not prevent the remaining sources or match roundup.
+            foreach ($approved as $source) {
+                try {
+                    app(FootballNewsService::class)->discover([$source]);
+                } catch (\Throwable $error) {
+                    \Illuminate\Support\Facades\Log::warning('Radio source unavailable', ['source' => $source['name']]);
+                }
+            }
         }
         $covered = RadioBulletin::published()->where('published_at', '>=', now()->subDays(3))
             ->pluck('facts')->flatten(1)->where('kind', 'news')->values();
@@ -59,7 +66,11 @@ class RadioFacts
                 })->orWhere(function ($q) use ($utc) {
                     $q->whereIn('status', ['SCHEDULED', 'TIMED'])->whereBetween('match_date', [$utc, $utc->copy()->addHours(18)]);
                 });
-            })->get()->sortBy(fn ($m) => [$m->league?->competition_rank ?? 999, $m->match_date->timestamp])->take(8);
+            })->get()->filter(fn ($m) => $m->homeTeam && $m->awayTeam && $m->league)
+            ->sortBy(fn ($m) => [$m->league?->competition_rank ?? 999, $m->match_date->timestamp]);
+        // Reserve space for fixtures as well as results; never fill the bulletin with a score list.
+        $matches = $matches->whereIn('status', ['FINISHED', 'FT'])->filter(fn ($m) => $m->home_score !== null && $m->away_score !== null)->take(3)
+            ->concat($matches->whereIn('status', ['SCHEDULED', 'TIMED'])->take(3));
         foreach ($matches as $m) {
             if (! $m->homeTeam || ! $m->awayTeam || ! $m->league) {
                 continue;

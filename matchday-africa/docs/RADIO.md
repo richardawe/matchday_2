@@ -34,7 +34,7 @@ array cache in production. There is no new queue daemon requirement.
 
 Server operations in GitHub Actions also supports `radio-check` (find Node/FFmpeg
 and install the locked runtime), `configure-radio` (`draft`, `auto`, or `off`),
-`radio-run` (queue and write the current edition), `radio-status` (script and facts),
+`radio-run` (queue and write the current edition), `radio-refresh` (a new recording for the current slot without overwriting published audio), `radio-status` (script and facts),
 `radio-voice` (reviewed bulletin ID), `radio-publish` (checked audio ID), and
 `radio-retry` (explicit retry of a failed bulletin ID).
 The deployment key stays in the production environment. Configuration updates only
@@ -123,3 +123,11 @@ The Node tests exercise chunk continuity and actual FFmpeg MP3 encoding/decoding
 without downloading a model. The optional Kokoro audition proves inference on the
 target host. Monitor the first day's script lengths, source balance, pronunciation,
 render time, failures and OpenRouter usage before leaving automatic publishing on.
+
+## Player and editorial update — 21 October 2026
+
+The compact player shows Listen and Share. Native sharing opens the phone share sheet; other browsers copy the episode link. Without JavaScript, native audio controls remain. Transcript, AI information and sources sit under About this bulletin on episode pages; archives and RSS have no prominent links on the player.
+
+The owner explicitly instructed use of BBC Sport and Guardian feeds with attribution on 21 October; this instruction is not evidence of a publisher licence. Configure names through Server operations configure-radio, radio_sources: BBC Sport,The Guardian Football. Terms at /terms credit the publishers without claiming permission. Each news story has a spoken source credit and an original source link. Scripts lead with news and group a maximum of three results, then up to three upcoming fixtures; repeated fact IDs and repeated match-centre credits are rejected.
+
+Story images appear after playback begins. New renders save audio_cues measured from actual Kokoro samples, including ident and pauses. The player follows currentTime after seeking; old audio has no guessed cues. Club artwork comes from rights-safe army assets; other stories use the original football illustration, with no publisher photos. The audio_cues migration is required before rendering new audio.

@@ -38,6 +38,8 @@ use App\Http\Controllers\SponsorController;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/api/matchday-pulse', [HomeController::class, 'pulse'])->name('home.pulse');
 
+Route::view('/terms', 'terms')->name('terms');
+
 Route::get('/listen', [App\Http\Controllers\RadioController::class, 'index'])->name('radio.index');
 // Check readiness before implicit binding can query a table that is not migrated yet.
 Route::bind('bulletin', function ($id) {

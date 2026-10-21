@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 
 class RadioEdition extends Command
 {
-    protected $signature = 'radio:edition';
+    protected $signature = 'radio:edition {--fresh : Publish a separate updated recording for the current slot}';
 
     protected $description = 'Queue the current 06:00, 12:00 or 18:00 Lagos bulletin once';
 
@@ -19,7 +19,7 @@ class RadioEdition extends Command
 
             return self::SUCCESS;
         }
-        $this->info('Edition '.$radio->queue()->slot.' is queued or already exists.');
+        $this->info('Edition '.$radio->queue((bool) $this->option('fresh'))->slot.' is queued or already exists.');
 
         return self::SUCCESS;
     }

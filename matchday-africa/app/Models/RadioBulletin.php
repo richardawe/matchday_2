@@ -10,7 +10,7 @@ class RadioBulletin extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
-        'facts' => 'array', 'segments' => 'array',
+        'facts' => 'array', 'segments' => 'array', 'audio_cues' => 'array',
         'recorded_at' => 'datetime', 'published_at' => 'datetime',
     ];
 
@@ -49,9 +49,14 @@ class RadioBulletin extends Model
         return sprintf('%d:%02d', intdiv((int) $this->duration_seconds, 60), $this->duration_seconds % 60);
     }
 
+    public function slotTime(): \Carbon\Carbon
+    {
+        return \Carbon\Carbon::createFromFormat('Y-m-d-H', substr($this->slot, 0, 13), 'Africa/Lagos')->startOfHour();
+    }
+
     public function getIsDelayedAttribute(): bool
     {
-        $slot = \Carbon\Carbon::createFromFormat('Y-m-d-H', $this->slot, 'Africa/Lagos')->startOfHour();
+        $slot = $this->slotTime();
         $next = $slot->copy()->setTime(match ($slot->hour) {
             6 => 12, 12 => 18, default => 6
         }, 0);

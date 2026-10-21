@@ -5,7 +5,7 @@ set -Eeuo pipefail
 
 mode=${1:-}
 case "$mode" in
-    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|radio-check|configure-radio|radio-run|radio-status|radio-voice|radio-publish|radio-retry) ;;
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|radio-check|configure-radio|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
     *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home"; exit 2 ;;
 esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
@@ -186,11 +186,13 @@ elif [[ "$mode" == reel-queue ]]; then
 elif [[ "$mode" == radio-check || "$mode" == configure-radio ]]; then
     radio_mode=${INPUT_RADIO_MODE:-draft}
     [[ "$radio_mode" == draft || "$radio_mode" == auto || "$radio_mode" == off ]] || { echo "Invalid radio mode."; exit 1; }
-    ssh "${ssh_options[@]}" "$target" "bash -s -- $root $mode $radio_mode" <<'REMOTE'
+    printf -v radio_sources '%q' "${INPUT_RADIO_SOURCES:-unchanged}"
+    ssh "${ssh_options[@]}" "$target" "bash -s -- $root $mode $radio_mode $radio_sources" <<'REMOTE'
 set -Eeuo pipefail
 cd "$1"
 operation=$2
 radio_mode=$3
+radio_sources=$4
 if [[ "$operation" == configure-radio && "$radio_mode" == off ]]; then
     printf '%s' '{"RADIO_ENABLED":"false","RADIO_AUTO_PUBLISH":"false"}' | php scripts/set-env.php
     php artisan config:cache --no-ansi
@@ -215,10 +217,12 @@ echo "Radio FFmpeg: $ffmpeg"
 # Keep cPanel's CLI PHP first for set-env/config:cache; /usr/bin/php can be CGI.
 (cd radio && PATH="$radio_path" npm ci --omit=dev --no-audit --no-fund && RADIO_FFMPEG="$ffmpeg" "$best" render.mjs --check)
 if [[ "$operation" == configure-radio ]]; then
-    RADIO_OP_NODE="$best" RADIO_OP_FFMPEG="$ffmpeg" RADIO_OP_MODE="$radio_mode" php -r 'echo json_encode(["RADIO_ENABLED"=>"true","RADIO_AUTO_PUBLISH"=>getenv("RADIO_OP_MODE")==="auto"?"true":"false","RADIO_NODE"=>getenv("RADIO_OP_NODE"),"RADIO_FFMPEG"=>getenv("RADIO_OP_FFMPEG")]);' | php scripts/set-env.php
+    RADIO_OP_NODE="$best" RADIO_OP_FFMPEG="$ffmpeg" RADIO_OP_MODE="$radio_mode" RADIO_OP_SOURCES="$radio_sources" php -r '$set=["RADIO_ENABLED"=>"true","RADIO_AUTO_PUBLISH"=>getenv("RADIO_OP_MODE")==="auto"?"true":"false","RADIO_NODE"=>getenv("RADIO_OP_NODE"),"RADIO_FFMPEG"=>getenv("RADIO_OP_FFMPEG")]; $sources=getenv("RADIO_OP_SOURCES"); if($sources!=="unchanged") { $names=array_values(array_filter(array_map("trim",explode(",",$sources)))); $allowed=array_column((require "config/news.php")["sources"],"name"); if(array_diff($names,$allowed)) {fwrite(STDERR,"Unknown radio source.\n");exit(1);} $set["RADIO_NEWS_SOURCES"]=implode(",",$names); } echo json_encode($set);' | php scripts/set-env.php
     php artisan config:cache --no-ansi
 fi
 REMOTE
+elif [[ "$mode" == radio-refresh ]]; then
+    ssh "${ssh_options[@]}" "$target" "cd $root && php artisan radio:edition --fresh --no-ansi && php artisan radio:work --no-ansi && php scripts/radio-ops.php status"
 elif [[ "$mode" == radio-run ]]; then
     ssh "${ssh_options[@]}" "$target" "cd $root && php artisan radio:edition --no-ansi && php artisan radio:work --no-ansi && php scripts/radio-ops.php status"
 elif [[ "$mode" == radio-status ]]; then

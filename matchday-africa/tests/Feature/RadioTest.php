@@ -105,7 +105,11 @@ class RadioTest extends TestCase
         $html = $this->get('/?home=v2')->assertOk()->getContent();
         $this->assertLessThan(strpos($html, 'id="reels-hero"'), strpos($html, 'id="matchday-radio"'));
         $this->assertStringContainsString('preload="none"', $html);
-        $this->assertLessThan(strpos($html, config('radio.disclosure')), strpos($html, 'Transcript &amp; sources'));
+        $this->assertStringContainsString('data-radio-share', $html);
+        $this->assertStringNotContainsString('Past editions &amp; RSS', $html);
+        $this->assertStringNotContainsString('Transcript &amp; sources', $html);
+        $this->assertStringNotContainsString(config('radio.disclosure'), $html);
+        $this->get(route('radio.show', $b))->assertSee(config('radio.disclosure'))->assertSee('About this bulletin');
         $this->get(route('radio.audio', ['bulletin' => $b, 'download' => true]))->assertDownload('matchday-'.$b->slot.'.mp3');
     }
 
@@ -201,6 +205,53 @@ class RadioTest extends TestCase
             'text' => 'The club may make a bid and discussions could begin over the next few weeks.'];
         $this->expectException(\RuntimeException::class);
         app(RadioScript::class)->validate([['fact_keys' => ['news:a'], 'text' => 'Club desk says the club has completed the signing.']], [$fact]);
+    }
+
+    public function test_duplicate_stories_and_repeated_match_credits_are_rejected(): void
+    {
+        $fact = $this->fact();
+        $second = array_replace($fact, ['key' => 'match:2']);
+        foreach ([
+            [['fact_keys' => [$fact['key']], 'text' => 'Arsenal beat Chelsea 2 to 1.'],
+                ['fact_keys' => [$fact['key']], 'text' => 'Chelsea lost to Arsenal 2 to 1.']],
+            [['fact_keys' => [$fact['key']], 'text' => 'Matchday match centre: Arsenal won 2 to 1.'],
+                ['fact_keys' => [$second['key']], 'text' => 'Matchday match centre: Chelsea lost 2 to 1.']],
+        ] as $segments) {
+            try {
+                app(RadioScript::class)->validate($segments, [$fact, $second]);
+                $this->fail('Repetitive copy was accepted.');
+            } catch (\RuntimeException $error) {
+                $this->assertNotEmpty($error->getMessage());
+            }
+        }
+    }
+
+    public function test_fresh_recording_preserves_the_published_edition_and_schedule(): void
+    {
+        $original = $this->published(['slot' => '2026-10-20-12']);
+        $this->travelTo(\Carbon\Carbon::parse('2026-10-20 13:20:00', 'Africa/Lagos'));
+        $fresh = app(RadioService::class)->queue(true);
+        $this->assertNotSame($original->id, $fresh->id);
+        $this->assertSame('2026-10-20-12-r132000', $fresh->slot);
+        $this->assertSame(12, $fresh->slotTime()->hour);
+        $this->assertFalse($fresh->is_delayed);
+        $this->assertSame('published', $original->fresh()->status);
+        $this->assertSame($original->id, app(RadioService::class)->queue()->id);
+    }
+
+    public function test_story_images_use_recorded_cues_and_only_matchday_art(): void
+    {
+        $fact = array_replace($this->fact(), ['headline' => 'Arsenal v Chelsea']);
+        $b = $this->published(['facts' => [$fact],
+            'segments' => [['fact_keys' => [$fact['key']], 'text' => $fact['text']]],
+            'audio_cues' => [['paragraph' => 1, 'start' => 4.5, 'end' => 12.2]]]);
+        $slides = app(\App\Services\RadioVisuals::class)->slides($b);
+        $this->assertSame(4.5, $slides[0]['start']);
+        $this->assertSame('Arsenal v Chelsea', $slides[0]['title']);
+        $this->assertStringContainsString('/war/army/roman-legion-480.webp', $slides[0]['image']);
+        $this->get('/listen')->assertSee('data-start="4.5"', false)->assertSee('Matchday illustration');
+        $b->update(['audio_cues' => null]);
+        $this->assertSame([], app(\App\Services\RadioVisuals::class)->slides($b->fresh()));
     }
 
     public function test_factual_checker_fails_closed(): void
