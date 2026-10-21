@@ -6,6 +6,16 @@ document.querySelectorAll('[data-radio-player]').forEach((player) => {
     const feedback = player.querySelector('[data-radio-feedback]');
     const seek = player.querySelector('[data-radio-seek]');
     const elapsed = player.querySelector('[data-radio-elapsed]');
+    const stories = player.querySelector('[data-radio-stories]');
+    const slides = [...player.querySelectorAll('[data-radio-story]')];
+    const syncStory = () => {
+        if (!slides.length) return;
+        let active = 0;
+        slides.forEach((slide, index) => { if (audio.currentTime >= Number(slide.dataset.start)) active = index; });
+        slides.forEach((slide, index) => { slide.hidden = index !== active; });
+    };
+    ['timeupdate', 'seeked', 'loadedmetadata'].forEach(event => audio.addEventListener(event, syncStory));
+    audio.addEventListener('play', () => { if (stories) { stories.hidden = false; syncStory(); } });
     if (play) {
         player.querySelector('[data-radio-controls]').hidden = false;
         audio.controls = false;

@@ -239,6 +239,21 @@ class RadioTest extends TestCase
         $this->assertSame($original->id, app(RadioService::class)->queue()->id);
     }
 
+    public function test_story_images_use_recorded_cues_and_only_matchday_art(): void
+    {
+        $fact = array_replace($this->fact(), ['headline' => 'Arsenal v Chelsea']);
+        $b = $this->published(['facts' => [$fact],
+            'segments' => [['fact_keys' => [$fact['key']], 'text' => $fact['text']]],
+            'audio_cues' => [['paragraph' => 1, 'start' => 4.5, 'end' => 12.2]]]);
+        $slides = app(\App\Services\RadioVisuals::class)->slides($b);
+        $this->assertSame(4.5, $slides[0]['start']);
+        $this->assertSame('Arsenal v Chelsea', $slides[0]['title']);
+        $this->assertStringContainsString('/war/army/roman-legion-480.webp', $slides[0]['image']);
+        $this->get('/listen')->assertSee('data-start="4.5"', false)->assertSee('Matchday illustration');
+        $b->update(['audio_cues' => null]);
+        $this->assertSame([], app(\App\Services\RadioVisuals::class)->slides($b->fresh()));
+    }
+
     public function test_factual_checker_fails_closed(): void
     {
         $editor = Mockery::mock(OpenRouterService::class);

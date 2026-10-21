@@ -2,6 +2,17 @@
  <p class="md-eyebrow">MATCHDAY RADIO</p>
  <div class="md-radio-heading"><h2 id="radio-title-{{ $bulletin->id }}">{{ $bulletin->title }}</h2><span>{{ $bulletin->duration_label }}</span></div>
  <p class="md-radio-time">{{ $bulletin->recorded_at->copy()->timezone('Africa/Lagos')->format('j M · H:i') }} WAT</p>
+ @php($slides = app(\App\Services\RadioVisuals::class)->slides($bulletin))
+ @if($slides)
+ <div class="md-radio-stories" data-radio-stories hidden aria-label="Stories in this bulletin">
+ @foreach($slides as $slide)
+ <figure class="md-radio-story" data-radio-story data-start="{{ $slide['start'] }}" data-end="{{ $slide['end'] }}" @if(!$loop->first) hidden @endif>
+ <img src="{{ $slide['image'] }}" alt="{{ $slide['alt'] }}" loading="lazy" width="960" height="540">
+ <figcaption><span>{{ $slide['label'] }} · {{ $loop->iteration }}/{{ count($slides) }}</span><h3>{{ $slide['title'] }}</h3><small>Matchday illustration</small></figcaption>
+ </figure>
+ @endforeach
+ </div>
+ @endif
  <audio controls preload="none" aria-label="Listen to {{ $bulletin->title }}" src="{{ route('radio.audio', $bulletin) }}"></audio>
  <div class="md-radio-controls" data-radio-controls hidden>
   <button type="button" class="md-radio-play" data-radio-play aria-label="Listen now" aria-pressed="false"><span data-radio-icon aria-hidden="true">▶</span><span data-radio-label>Listen now</span></button>

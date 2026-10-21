@@ -10,7 +10,7 @@ class RadioBulletin extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
-        'facts' => 'array', 'segments' => 'array',
+        'facts' => 'array', 'segments' => 'array', 'audio_cues' => 'array',
         'recorded_at' => 'datetime', 'published_at' => 'datetime',
     ];
 

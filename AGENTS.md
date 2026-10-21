@@ -140,6 +140,7 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 - `radio:edition` at 06:00/12:00/18:00 Africa/Lagos; `radio:work` every minute in the background.
 - `RADIO_ENABLED=false` and `RADIO_AUTO_PUBLISH=false` by default; new table `radio_bulletins`.
 - Kokoro runtime in `matchday-africa/radio/` is independent of the unmerged reel voice branch.
+- Compact Listen/Share player shows timed story illustrations during playback. audio_cues are measured from Kokoro samples, never estimated; only rights-safe Matchday artwork is used.
 - Homepage radio sits above reels; `/listen`, `/listen/feed.xml`, admin `/admin/radio`.
 - Only `RADIO_NEWS_SOURCES` is approved for radio; source permissions are not assumed.
 - Read `matchday-africa/docs/RADIO.md` for Node/FFmpeg setup, pilot, publishing and recovery.

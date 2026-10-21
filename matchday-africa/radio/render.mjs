@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { chunks, encode, encoder } from './audio.mjs';
+import { encode, encoder, timedSpeech } from './audio.mjs';
 
 const args = process.argv.slice(2);
 const value = key => args[args.indexOf(key) + 1];
@@ -26,15 +26,13 @@ async function main() {
     const tts = await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX', {
         dtype: 'q8', device: 'cpu', session_options: { intraOpNumThreads: 2, interOpNumThreads: 1 },
     });
-    const text = props.text.replace(/(\d)\s*[–-]\s*(\d)/g, '$1 $2');
-    async function* speech() {
-        for (const part of chunks(text)) {
-            const audio = await tts.generate(part, { voice: props.voice || 'bm_george', speed: 1 });
-            if (audio.sampling_rate !== 24000) throw new Error('Unexpected Kokoro sample rate');
-            yield audio.audio;
-        }
-    }
-    console.log(JSON.stringify(await encode(value('--out'), speech())));
+    const paragraphs = props.paragraphs || [props.text];
+    if (!Array.isArray(paragraphs) || !paragraphs.length || paragraphs.some(p => typeof p !== 'string' || !p.trim())
+        || paragraphs.join('\n\n') !== props.text) throw new Error('Paragraphs do not match the speech script');
+    const cues = [];
+    const speech = timedSpeech(paragraphs, part => tts.generate(part, { voice: props.voice || 'bm_george', speed: 1 }), cues);
+    const result = await encode(value('--out'), speech);
+    console.log(JSON.stringify({ ...result, cues }));
 }
 
 main().catch(error => { console.error('Radio renderer: ' + error.message); process.exitCode = 1; });

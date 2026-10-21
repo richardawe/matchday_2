@@ -18,7 +18,11 @@ class RadioAudio
         $id = (string) Str::uuid();
         $props = $dir.'/'.$id.'.json';
         $path = 'radio/'.$bulletin->id.'/'.$id.'.mp3';
-        File::put($props, json_encode(['text' => $bulletin->script, 'voice' => config('radio.voice')], JSON_THROW_ON_ERROR));
+        $intro = strstr($bulletin->script, "\n\n", true);
+        $outro = substr($bulletin->script, strrpos($bulletin->script, "\n\n") + 2);
+        $paragraphs = array_merge([$intro], collect($bulletin->segments)->pluck('text')->all(), [$outro]);
+        File::put($props, json_encode(['text' => $bulletin->script, 'paragraphs' => $paragraphs,
+            'voice' => config('radio.voice')], JSON_THROW_ON_ERROR));
         try {
             $process = new Process([config('radio.node'), base_path('radio/render.mjs'), '--props', $props,
                 '--out', storage_path('app/'.$path)], base_path('radio'), [
@@ -32,7 +36,21 @@ class RadioAudio
                 throw new RuntimeException('Audio failed duration or file checks.');
             }
 
-            return ['audio_path' => $path, 'audio_bytes' => filesize(storage_path('app/'.$path)),
+            $cues = $result['cues'] ?? [];
+            if (count($cues) !== count($paragraphs)) {
+                throw new RuntimeException('Audio story timing is missing.');
+            }
+            $previous = 0;
+            foreach ($cues as $index => $cue) {
+                if (($cue['paragraph'] ?? null) !== $index || ! is_numeric($cue['start'] ?? null)
+                    || ! is_numeric($cue['end'] ?? null) || $cue['start'] < $previous
+                    || $cue['end'] <= $cue['start'] || $cue['end'] > $result['seconds'] + 0.01) {
+                    throw new RuntimeException('Audio story timing is invalid.');
+                }
+                $previous = $cue['end'];
+            }
+
+            return ['audio_cues' => array_values(array_slice($cues, 1, count($paragraphs) - 2)), 'audio_path' => $path, 'audio_bytes' => filesize(storage_path('app/'.$path)),
                 'duration_seconds' => (int) ceil($result['seconds']), 'voice' => config('radio.voice')];
         } finally {
             File::delete($props);
