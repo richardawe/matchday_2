@@ -46,11 +46,20 @@ if ($action !== 'status') {
     }
 }
 $latest = $id ? App\Models\RadioBulletin::findOrFail($id) : App\Models\RadioBulletin::orderByDesc('slot')->first();
+$feedHealth = null;
+if (App\Models\RadioBulletin::available()) {
+    try {
+        $feedHealth = ['status' => app(App\Http\Controllers\RadioController::class)->feed()->getStatusCode()];
+    } catch (Throwable $error) {
+        $feedHealth = ['error' => get_class($error), 'message' => $error->getMessage()];
+    }
+}
 echo json_encode([
     'enabled' => config('radio.enabled'), 'auto_publish' => config('radio.auto_publish'),
     'voice' => config('radio.voice'), 'node' => config('radio.node'), 'ffmpeg' => config('radio.ffmpeg'),
     'editor_model' => config('services.openrouter.model'),
     'news_sources' => config('radio.news_sources'),
+    'feed_health' => $feedHealth,
     'bulletin' => $latest?->only(['id', 'slot', 'status', 'stage', 'attempts', 'failure_reason', 'script', 'facts',
         'duration_seconds', 'audio_bytes', 'recorded_at', 'published_at']),
 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR).PHP_EOL;
