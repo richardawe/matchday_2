@@ -74,7 +74,7 @@
                 </div>
                 <div class="flex space-x-6 mt-4 md:mt-0">
                     <a href="#" class="text-black hover:text-gray-600 text-sm transition-colors">Privacy Policy</a>
-                    <a href="#" class="text-black hover:text-gray-600 text-sm transition-colors">Terms of Service</a>
+                    <a href="{{ route('terms') }}" class="text-black hover:text-gray-600 text-sm transition-colors">Terms of Service</a>
                     <a href="#" class="text-black hover:text-gray-600 text-sm transition-colors">Cookie Policy</a>
                 </div>
             </div>
