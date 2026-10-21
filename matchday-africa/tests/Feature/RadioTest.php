@@ -144,6 +144,17 @@ class RadioTest extends TestCase
         $this->assertStringContainsString('News & results <today>', (string) $xml->channel->item->title);
     }
 
+    public function test_audio_ranges_use_an_extensionless_url_and_private_cache(): void
+    {
+        $b = $this->published();
+        $this->assertStringEndsWith('/audio', route('radio.audio', $b));
+        $response = $this->withHeader('Range', 'bytes=10-19')->get(route('radio.audio', $b));
+        $response->assertStatus(206)->assertHeader('Content-Range', 'bytes 10-19/'.$b->audio_bytes)
+            ->assertHeader('Content-Length', '10');
+        $this->assertStringContainsString('private', $response->headers->get('Cache-Control'));
+        $this->withoutHeader('Range')->get('/listen/'.$b->id.'/audio.mp3')->assertOk();
+    }
+
     public function test_failures_and_missing_files_keep_the_last_playable_edition(): void
     {
         $old = $this->published(['slot' => '2026-10-20-06']);

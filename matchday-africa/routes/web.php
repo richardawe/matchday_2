@@ -48,7 +48,9 @@ Route::bind('bulletin', function ($id) {
     return \App\Models\RadioBulletin::findOrFail($id);
 });
 Route::get('/listen/feed.xml', [App\Http\Controllers\RadioController::class, 'feed'])->name('radio.feed');
-Route::get('/listen/{bulletin}/audio.mp3', [App\Http\Controllers\RadioController::class, 'audio'])->name('radio.audio');
+// An extensionless URL avoids the host's static MP3 cache, which strips range requests.
+Route::get('/listen/{bulletin}/audio', [App\Http\Controllers\RadioController::class, 'audio'])->name('radio.audio');
+Route::get('/listen/{bulletin}/audio.mp3', [App\Http\Controllers\RadioController::class, 'audio'])->name('radio.audio.legacy');
 Route::get('/listen/{bulletin}', [App\Http\Controllers\RadioController::class, 'show'])->name('radio.show');
 
 Route::middleware(['auth', 'admin'])->prefix('admin/radio')->name('admin.radio.')->group(function () {

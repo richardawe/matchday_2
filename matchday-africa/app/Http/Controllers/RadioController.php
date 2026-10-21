@@ -29,7 +29,7 @@ class RadioController extends Controller
 
         return request()->boolean('download')
             ? response()->download($file, 'matchday-'.$bulletin->slot.'.mp3', ['Content-Type' => 'audio/mpeg'])
-            : response()->file($file, ['Content-Type' => 'audio/mpeg', 'Cache-Control' => 'private, max-age=0, must-revalidate']);
+            : response()->file($file, ['Content-Type' => 'audio/mpeg'])->setCache(['private' => true, 'max_age' => 0, 'must_revalidate' => true]);
     }
 
     public function feed()
