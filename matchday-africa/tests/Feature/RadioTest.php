@@ -207,6 +207,20 @@ class RadioTest extends TestCase
         app(RadioScript::class)->validate([['fact_keys' => ['news:a'], 'text' => 'Club desk says the club has completed the signing.']], [$fact]);
     }
 
+    public function test_writer_adds_exact_source_credits_from_facts(): void
+    {
+        $fact = ['key' => 'news:a', 'kind' => 'news', 'source' => 'BBC Sport', 'rumour' => false,
+            'text' => 'A striker announces retirement at the age of 36.'];
+        $editor = Mockery::mock(OpenRouterService::class);
+        $editor->shouldReceive('editFootballArticle')->once()->andReturn(json_encode(['segments' => [
+            ['fact_keys' => ['news:a'], 'text' => 'The striker is retiring from football aged 36.'],
+        ]]));
+        $writer = new RadioScript($editor);
+        $segments = $writer->write([$fact]);
+        $this->assertStringStartsWith('According to BBC Sport, ', $segments[0]['text']);
+        $writer->validate($segments, [$fact]);
+    }
+
     public function test_duplicate_stories_and_repeated_match_credits_are_rejected(): void
     {
         $fact = $this->fact();
