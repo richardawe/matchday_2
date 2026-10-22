@@ -8,6 +8,7 @@ use App\Models\Team;
 use App\Services\MatchStoryService;
 use App\Services\ReelService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
@@ -138,5 +139,18 @@ class GriotReelTest extends TestCase
         $this->travel(10)->minutes();
         $this->artisan('reel:render')->expectsOutput('REEL_RENDERER is off; nothing rendered.')->assertSuccessful();
         $this->get(route('matches.reel', $this->match))->assertNotFound();
+    }
+
+    public function test_reel_ranges_use_an_extensionless_url(): void
+    {
+        $this->match->update(['metadata' => ['reel' => ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]]]);
+        File::ensureDirectoryExists(storage_path('app/reels'));
+        File::put(storage_path("app/reels/{$this->match->id}.mp4"), str_repeat('m', 100));
+
+        $this->assertStringEndsWith("/matches/{$this->match->id}/reel", route('matches.reel', $this->match));
+        $this->withHeader('Range', 'bytes=10-19')->get(route('matches.reel', $this->match))
+            ->assertStatus(206)->assertHeader('Content-Range', 'bytes 10-19/100')->assertHeader('Content-Length', '10');
+        $this->withoutHeader('Range')->get("/matches/{$this->match->id}/reel.mp4")->assertOk();
+        File::delete(storage_path("app/reels/{$this->match->id}.mp4"));
     }
 }

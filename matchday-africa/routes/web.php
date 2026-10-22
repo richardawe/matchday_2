@@ -95,7 +95,10 @@ Route::get('/matches', [MatchController::class, 'index'])->name('matches.index')
 Route::get('/matches/{match}/chronicle', [MatchController::class, 'chronicle'])->name('matches.chronicle');
 Route::get('/matches/{match}/live', [MatchController::class, 'live'])->name('matches.live');
 Route::get('/matches/{match}/card.png', [App\Http\Controllers\MomentCardController::class, 'fixture'])->name('matches.card');
-Route::get('/matches/{match}/reel.mp4', [App\Http\Controllers\ReelController::class, 'show'])->name('matches.reel');
+// An extensionless URL avoids the host's static MP4 cache, which strips range requests: iPhones
+// then can't play the reel and Buffer can't read it.
+Route::get('/matches/{match}/reel', [App\Http\Controllers\ReelController::class, 'show'])->name('matches.reel');
+Route::get('/matches/{match}/reel.mp4', [App\Http\Controllers\ReelController::class, 'show'])->name('matches.reel.legacy');
 Route::get('/matches/{match}/reel.jpg', [App\Http\Controllers\ReelController::class, 'poster'])->name('matches.reel-poster');
 Route::get('/reels/{match}/props', [App\Http\Controllers\ReelController::class, 'props'])->middleware('signed')->name('reels.props');
 Route::get('/moments/{moment}/card/{voice}/{format}.png', [App\Http\Controllers\MomentCardController::class, 'show'])
