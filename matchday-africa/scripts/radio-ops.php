@@ -57,7 +57,7 @@ if (App\Models\RadioBulletin::available()) {
 echo json_encode([
     'enabled' => config('radio.enabled'), 'auto_publish' => config('radio.auto_publish'),
     'voice' => config('radio.voice'), 'node' => config('radio.node'), 'ffmpeg' => config('radio.ffmpeg'),
-    'editor_model' => config('services.openrouter.model'),
+    'editor_model' => config('radio.model') ?: config('services.openrouter.model'),
     'news_sources' => config('radio.news_sources'),
     'feed_health' => $feedHealth,
     'bulletin' => $latest?->only(['id', 'slot', 'status', 'stage', 'attempts', 'failure_reason', 'script', 'facts',

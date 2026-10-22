@@ -10,7 +10,7 @@ on:
       action:
         description: What to run
         type: choice
-        options: [status, buffer-channels, configure-buffer, plan-posts, clear-drafts, reel-check, configure-reel, reel-render, configure-espn, espn-sync, reel-queue, configure-home, radio-check, configure-radio, radio-run, radio-refresh, radio-status, radio-voice, radio-publish, radio-retry]
+        options: [status, buffer-channels, configure-buffer, plan-posts, clear-drafts, reel-check, configure-reel, reel-render, configure-espn, espn-sync, reel-queue, configure-home, radio-check, configure-radio, configure-radio-model, radio-run, radio-refresh, radio-status, radio-voice, radio-publish, radio-retry]
         default: status
       channel_x:
         description: "configure-buffer: Buffer channel ID for X (blank = leave as is)"
@@ -65,6 +65,10 @@ on:
         description: "configure-radio: comma-separated source names, unchanged to keep current sources"
         required: false
         default: unchanged
+      radio_model:
+        description: "configure-radio-model: OpenRouter model ID for radio scripts, e.g. anthropic/claude-haiku-5.5 (default = site model)"
+        required: false
+        default: default
       bulletin_id:
         description: "radio-voice or radio-publish: reviewed bulletin ID"
         required: false
@@ -113,4 +117,5 @@ jobs:
           INPUT_RADIO_SOURCES: ${{ inputs.radio_sources }}
           INPUT_RADIO_MODE: ${{ inputs.radio_mode }}
           INPUT_BULLETIN_ID: ${{ inputs.bulletin_id }}
+          INPUT_RADIO_MODEL: ${{ inputs.radio_model }}
         run: bash scripts/ci/deploy-ssh.sh "$ACTION"

@@ -10,6 +10,9 @@ return [
     'node' => env('RADIO_NODE', env('REEL_NODE', 'node')),
     'ffmpeg' => env('RADIO_FFMPEG', 'ffmpeg'),
     'voice' => env('RADIO_VOICE', 'bm_george'),
+    // OpenRouter model for the script writer and fact checker (e.g. anthropic/claude-haiku-5.5). Empty uses
+    // OPENROUTER_MODEL; when set, OPENROUTER_MODEL and its fallbacks stay behind it if it fails.
+    'model' => env('RADIO_MODEL'),
     'cache' => env('RADIO_TTS_CACHE', storage_path('app/tts-cache')),
     'timeout' => 1200,
     'max_attempts' => 3,

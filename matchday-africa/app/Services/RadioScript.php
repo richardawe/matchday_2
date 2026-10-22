@@ -9,7 +9,12 @@ class RadioScript
 {
     private const RUMOUR_LABEL = '/\b(rumou?r|unconfirmed|reportedly|not confirmed)\b/i';
 
-    public function __construct(private OpenRouterService $editor) {}
+    private OpenRouterService $editor;
+
+    public function __construct(OpenRouterService $editor)
+    {
+        $this->editor = config('radio.model') ? $editor->withModel(config('radio.model')) : $editor;
+    }
 
     /** The JSON object in a model reply, which may come fenced or with a remark before or after it. */
     private static function decode(?string $response): ?array
