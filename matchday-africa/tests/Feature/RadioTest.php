@@ -232,6 +232,36 @@ class RadioTest extends TestCase
         $writer->validate($segments, [$fact]);
     }
 
+    public function test_credits_vary_and_forgotten_rumour_labels_are_added(): void
+    {
+        $facts = collect(range(1, 5))->map(fn ($i) => ['key' => "news:{$i}", 'kind' => 'news', 'source' => 'BBC Sport', 'rumour' => $i === 5,
+            'text' => "Story number {$i} is about a club in the news this week."])->all();
+        $editor = Mockery::mock(OpenRouterService::class);
+        $editor->shouldReceive('editFootballArticle')->once()->andReturn(json_encode(['segments' => collect(range(1, 5))->map(fn ($i) => [
+            'fact_keys' => ["news:{$i}"], 'text' => "The club featured in story {$i} has news."])->all()]));
+        $writer = new RadioScript($editor);
+        $texts = collect($writer->write($facts))->pluck('text');
+
+        $this->assertSame([
+            'According to BBC Sport, The club featured in story 1 has news.',
+            'The club featured in story 2 has news, BBC Sport reports.',
+            'BBC Sport reports: The club featured in story 3 has news.',
+            'The club featured in story 4 has news, says BBC Sport.',
+            'In an unconfirmed report from BBC Sport: The club featured in story 5 has news.',
+        ], $texts->all());
+        $writer->validate(collect($texts)->map(fn ($t, $i) => ['fact_keys' => ['news:'.($i + 1)], 'text' => $t])->all(), $facts);
+    }
+
+    public function test_a_credited_rumour_without_a_label_is_labelled(): void
+    {
+        $fact = ['key' => 'news:a', 'kind' => 'news', 'source' => 'BBC Sport', 'rumour' => true, 'text' => 'A midfielder could leave in January, the gossip says.'];
+        $editor = Mockery::mock(OpenRouterService::class);
+        $editor->shouldReceive('editFootballArticle')->once()->andReturn(json_encode(['segments' => [
+            ['fact_keys' => ['news:a'], 'text' => 'BBC Sport says a midfielder might move on in January.']]]));
+        $segments = (new RadioScript($editor))->write([$fact]);
+        $this->assertSame('Unconfirmed for now: BBC Sport says a midfielder might move on in January.', $segments[0]['text']);
+    }
+
     public function test_duplicate_stories_and_repeated_match_credits_are_rejected(): void
     {
         $fact = $this->fact();
