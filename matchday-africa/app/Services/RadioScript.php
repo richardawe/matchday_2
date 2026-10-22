@@ -68,7 +68,7 @@ class RadioScript
             .'Do not read promotional language, calls to action or marketing claims from press releases. Attribute announcements to the issuing body. '
             .'Never pad or repeat facts. Do not include an introduction, sign-off, AI disclosure or time greeting; these are handled separately. '
             .'Use plain text, not HTML. Return JSON only: {"segments":[{"fact_keys":["exact supplied key"],"text":"original spoken paragraph"}]}. '
-            .'Each paragraph must cite its supporting fact_keys. Paraphrase news without copying sentences. '
+            .'Each paragraph must cite its supporting fact_keys. Retell news entirely in your own words: never reuse more than 6 words in a row from a source, including its headline. '
             .'Keep all numeric facts as digits so automated checks can verify them. Facts: '.json_encode($facts, JSON_UNESCAPED_UNICODE);
         $response = $this->editor->editFootballArticle($prompt, true);
         $json = self::decode($response);
@@ -141,7 +141,7 @@ class RadioScript
                 $said = implode(' ', $normal($text));
                 for ($i = 0; $i <= count($words) - 12; $i++) {
                     if (str_contains($said, implode(' ', array_slice($words, $i, 12)))) {
-                        throw new RuntimeException('News paragraph copies too much source wording.');
+                        throw new RuntimeException('News paragraph copies too much source wording ('.$fact['key'].').');
                     }
                 }
             }
