@@ -5,8 +5,8 @@ set -Eeuo pipefail
 
 mode=${1:-}
 case "$mode" in
-    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|radio-check|configure-radio|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
-    *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home"; exit 2 ;;
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|radio-check|configure-radio|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
+    *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home"; exit 2 ;;
 esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
     [[ -n "${!variable:-}" ]] || { echo "Missing production secret: $variable"; exit 1; }
@@ -83,12 +83,16 @@ php artisan migrate:status --no-ansi | grep -E "social_posts|x_outbox|match_mome
 grep -E '^(APP_URL|APP_TIMEZONE|ESPN_ENABLED|ESPN_SHADOW|REEL_RENDERER|BUFFER_[A-Z_]+)=' .env \
     | sed -E 's/^(BUFFER_API_KEY=).+$/\1<set>/' || true
 echo "Scheduler cron:"; crontab -l 2>/dev/null | grep -F artisan || echo "  none found"
-php artisan tinker --execute='echo "Posts by channel and status: ".json_encode(DB::table("growth_posts")->selectRaw("channel, status, count(*) n")->groupBy("channel", "status")->get()).PHP_EOL; echo "Planned posts, last 24h:".PHP_EOL; foreach (DB::table("growth_posts")->where("updated_at", ">=", now()->subDay())->where("status", "!=", "draft")->latest("updated_at")->limit(15)->get() as $p) { echo "  {$p->updated_at} {$p->channel} {$p->type} {$p->content_key} {$p->status} ".($p->last_error ?? "").PHP_EOL; } echo "Live posts, last 24h:".PHP_EOL; foreach (DB::table("social_posts")->where("updated_at", ">=", now()->subDay())->latest("updated_at")->limit(15)->get() as $p) { echo "  {$p->updated_at} {$p->channel} {$p->subject} {$p->status} ".($p->error ?? "").PHP_EOL; }' 2>/dev/null || true
+php artisan tinker --execute='echo "Posts by channel and status: ".json_encode(DB::table("growth_posts")->selectRaw("channel, status, count(*) n")->groupBy("channel", "status")->get()).PHP_EOL; echo "Planned posts, last 24h:".PHP_EOL; foreach (DB::table("growth_posts")->where("updated_at", ">=", now()->subDay())->where("status", "!=", "draft")->latest("updated_at")->limit(15)->get() as $p) { echo "  {$p->updated_at} {$p->channel} {$p->type} {$p->content_key} {$p->status} ".($p->last_error ?? "").PHP_EOL; } echo "Live posts, last 24h:".PHP_EOL; foreach (DB::table("social_posts")->where("updated_at", ">=", now()->subDay())->latest("updated_at")->limit(15)->get() as $p) { echo "  {$p->updated_at} {$p->channel} {$p->subject} {$p->status} ".($p->error ?? "").PHP_EOL; } echo "Latest failures per channel, any age:".PHP_EOL; foreach (["x", "instagram", "tiktok"] as $c) { foreach (DB::table("growth_posts")->where(["channel" => $c, "status" => "failed"])->latest("updated_at")->limit(3)->get() as $p) { echo "  {$p->updated_at} {$c} {$p->type} {$p->content_key} attempts {$p->attempts}: ".($p->last_error ?? "").PHP_EOL; } }' 2>/dev/null || true
 REMOTE
 elif [[ "$mode" == buffer-channels ]]; then
     ssh "${ssh_options[@]}" "$target" "cd $root && php artisan buffer:publish --channels --no-ansi"
 elif [[ "$mode" == plan-posts ]]; then
     ssh "${ssh_options[@]}" "$target" "cd $root && php artisan twitter:engage --no-ansi && php artisan buffer:publish --no-ansi || true"
+elif [[ "$mode" == clear-drafts ]]; then
+    # Deletes unsent X drafts. With BUFFER_AUTO on, the planner re-queues any draft still in date,
+    # so the drafts left are out of date and are not planned again.
+    ssh "${ssh_options[@]}" "$target" "cd $root && php artisan tinker --execute='echo \"Deleted X drafts: \".DB::table(\"growth_posts\")->where([\"channel\" => \"x\", \"status\" => \"draft\"])->delete().PHP_EOL;'"
 elif [[ "$mode" == configure-buffer ]]; then
     # Settings travel as JSON on stdin, so the API key never appears in a command line or log.
     # shellcheck disable=SC2016 # the single-quoted program is PHP, not shell
