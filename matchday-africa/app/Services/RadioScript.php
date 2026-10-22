@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -14,6 +15,21 @@ class RadioScript
     public function __construct(OpenRouterService $editor)
     {
         $this->editor = config('radio.model') ? $editor->withModel(config('radio.model')) : $editor;
+    }
+
+    /** A copied run of twelve words from a news source; short headlines and club names are not articles. */
+    private static function copies(string $text, array $fact): bool
+    {
+        $normal = fn ($s) => preg_split('/\s+/u', Str::lower(trim(preg_replace('/[^\pL\pN ]/u', ' ', $s))));
+        $words = $normal($fact['text']);
+        $said = implode(' ', $normal($text));
+        for ($i = 0; $i <= count($words) - 12; $i++) {
+            if (str_contains($said, implode(' ', array_slice($words, $i, 12)))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** The JSON object in a model reply, which may come fenced or with a remark before or after it. */
@@ -90,6 +106,18 @@ class RadioScript
             $segment['text'] = $this->credit(trim($segment['text']), $credits->implode(' and '), $credits->count() > 1, $unlabelled, $credits->isNotEmpty() ? $credited++ : 0);
         }
         unset($segment);
+        // One story retold too close to its source shouldn't sink the edition: leave it out. If that
+        // leaves no news, validate() still fails the edition.
+        $segments = array_values(array_filter($segments, function ($segment) use ($lookup) {
+            $copied = is_array($segment) && is_string($segment['text'] ?? null) && is_array($segment['fact_keys'] ?? null)
+                ? $lookup->only($segment['fact_keys'])->where('kind', 'news')->first(fn ($fact) => self::copies($segment['text'], $fact))
+                : null;
+            if ($copied) {
+                Log::warning('Radio left out a story that copied its source', ['fact' => $copied['key']]);
+            }
+
+            return ! $copied;
+        }));
         $this->validate($segments, $facts);
 
         return $segments;
@@ -135,14 +163,8 @@ class RadioScript
                 if ($fact['rumour'] && ! preg_match(self::RUMOUR_LABEL, $text)) {
                     throw new RuntimeException('Unconfirmed news must be labelled.');
                 }
-                // Reject a copied run of twelve words; short headlines/club names are not articles.
-                $normal = fn ($s) => preg_split('/\s+/u', Str::lower(trim(preg_replace('/[^\pL\pN ]/u', ' ', $s))));
-                $words = $normal($fact['text']);
-                $said = implode(' ', $normal($text));
-                for ($i = 0; $i <= count($words) - 12; $i++) {
-                    if (str_contains($said, implode(' ', array_slice($words, $i, 12)))) {
-                        throw new RuntimeException('News paragraph copies too much source wording ('.$fact['key'].').');
-                    }
+                if (self::copies($text, $fact)) {
+                    throw new RuntimeException('News paragraph copies too much source wording ('.$fact['key'].').');
                 }
             }
         }

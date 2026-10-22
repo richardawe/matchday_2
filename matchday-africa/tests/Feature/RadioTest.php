@@ -289,6 +289,26 @@ class RadioTest extends TestCase
         $this->assertSame(['anthropic/claude-haiku-5.5', 'openrouter/free'], $models);
     }
 
+    public function test_a_story_copied_from_its_source_is_left_out_and_the_rest_airs(): void
+    {
+        $copied = ['key' => 'news:a', 'kind' => 'news', 'source' => 'BBC Sport', 'rumour' => false,
+            'text' => 'Crawley Town sack head coach Colin Kazim-Richards with the side five points adrift at the bottom of League Two.'];
+        $fine = ['key' => 'news:b', 'kind' => 'news', 'source' => 'BBC Sport', 'rumour' => false, 'text' => 'A striker announces retirement at the age of 36.'];
+        $editor = Mockery::mock(OpenRouterService::class);
+        $editor->shouldReceive('editFootballArticle')->twice()->andReturn(json_encode(['segments' => [
+            ['fact_keys' => ['news:a'], 'text' => 'Crawley Town have sacked Colin Kazim-Richards with the side five points adrift at the bottom of League Two.'],
+            ['fact_keys' => ['news:b'], 'text' => 'BBC Sport says the striker is retiring aged 36.'],
+        ]]), json_encode(['segments' => [
+            ['fact_keys' => ['news:a'], 'text' => 'Crawley Town have sacked Colin Kazim-Richards with the side five points adrift at the bottom of League Two.'],
+        ]]));
+        $writer = new RadioScript($editor);
+
+        $this->assertSame(['news:b'], collect($writer->write([$copied, $fine]))->pluck('fact_keys')->flatten()->all());
+        // With nothing left to air, the edition still fails.
+        $this->expectException(\RuntimeException::class);
+        $writer->write([$copied]);
+    }
+
     public function test_duplicate_stories_and_repeated_match_credits_are_rejected(): void
     {
         $fact = $this->fact();
