@@ -10,7 +10,7 @@ on:
       action:
         description: What to run
         type: choice
-        options: [status, buffer-channels, configure-buffer, plan-posts, reel-check, configure-reel, reel-render, configure-espn, espn-sync, reel-queue, configure-home, radio-check, configure-radio, radio-run, radio-refresh, radio-status, radio-voice, radio-publish, radio-retry]
+        options: [status, buffer-channels, configure-buffer, plan-posts, clear-drafts, reel-check, configure-reel, reel-render, configure-espn, espn-sync, reel-queue, configure-home, radio-check, configure-radio, radio-run, radio-refresh, radio-status, radio-voice, radio-publish, radio-retry]
         default: status
       channel_x:
         description: "configure-buffer: Buffer channel ID for X (blank = leave as is)"
