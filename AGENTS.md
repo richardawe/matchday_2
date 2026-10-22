@@ -143,6 +143,8 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 - Compact Listen/Share player shows timed story illustrations during playback. audio_cues are measured from Kokoro samples, never estimated; only rights-safe Matchday artwork is used.
 - Homepage radio sits above reels; `/listen`, `/listen/feed.xml`, admin `/admin/radio`.
 - Only `RADIO_NEWS_SOURCES` is approved for radio; source permissions are not assumed.
+- 22 Oct 2026: the owner decided radio may repeat source wording as long as the source is credited on air; the 12-word copy check was removed. Credits and rumour labels are still enforced.
+- Radio uses its own model: `RADIO_MODEL` (production: `anthropic/claude-haiku-5.5`, medium reasoning kept out of the reply), falling back to `OPENROUTER_MODEL`.
 - Read `matchday-africa/docs/RADIO.md` for Node/FFmpeg setup, pilot, publishing and recovery.
 - Server operations: `radio-check`, `configure-radio` (draft/auto/off), `configure-radio-model` (`RADIO_MODEL`, e.g. `anthropic/claude-haiku-5.5`; `default` = `OPENROUTER_MODEL`), `radio-run`, `radio-status`, `radio-voice`, `radio-publish`.
 
