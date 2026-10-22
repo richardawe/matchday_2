@@ -11,6 +11,17 @@ class RadioScript
 
     public function __construct(private OpenRouterService $editor) {}
 
+    /** The JSON object in a model reply, which may come fenced or with a remark before or after it. */
+    private static function decode(?string $response): ?array
+    {
+        $text = trim((string) $response);
+        $start = strpos($text, '{');
+        $end = strrpos($text, '}');
+        $json = $start === false || $end === false ? null : json_decode(substr($text, $start, $end - $start + 1), true);
+
+        return is_array($json) ? $json : null;
+    }
+
     /**
      * Names a paragraph's sources (and labels a rumour) in one of several phrasings, so a run of
      * news stories doesn't open "According to BBC Sport" every time. The nth credited paragraph
@@ -55,7 +66,7 @@ class RadioScript
             .'Each paragraph must cite its supporting fact_keys. Paraphrase news without copying sentences. '
             .'Keep all numeric facts as digits so automated checks can verify them. Facts: '.json_encode($facts, JSON_UNESCAPED_UNICODE);
         $response = $this->editor->editFootballArticle($prompt, true);
-        $json = json_decode(preg_replace('/^```(?:json)?\s*|\s*```$/i', '', trim((string) $response)), true);
+        $json = self::decode($response);
         $segments = $json['segments'] ?? [];
         if (! is_array($segments) || ! $segments) {
             throw new RuntimeException('Writer returned no JSON story paragraphs: '.Str::limit(strip_tags((string) $response), 250));
@@ -153,7 +164,7 @@ class RadioScript
         if (! trim((string) $response)) {
             throw new RuntimeException('Factual checker returned no answer. Check OpenRouter availability.');
         }
-        $result = json_decode(preg_replace('/^```(?:json)?\s*|\s*```$/i', '', trim((string) $response)), true);
+        $result = self::decode($response);
         if (($result['ok'] ?? null) !== true) {
             $reason = is_string($result['reason'] ?? null) ? Str::limit(strip_tags($result['reason']), 350) : 'The checker did not return valid approval JSON.';
             throw new RuntimeException('Factual review did not approve the script: '.$reason);
