@@ -262,6 +262,16 @@ class RadioTest extends TestCase
         $this->assertSame('Unconfirmed for now: BBC Sport says a midfielder might move on in January.', $segments[0]['text']);
     }
 
+    public function test_writer_json_is_read_through_fences_and_remarks(): void
+    {
+        $fact = ['key' => 'news:a', 'kind' => 'news', 'source' => 'BBC Sport', 'rumour' => false, 'text' => 'A striker announces retirement at the age of 36.'];
+        $json = json_encode(['segments' => [['fact_keys' => ['news:a'], 'text' => 'BBC Sport says the striker is retiring aged 36.']]]);
+        $editor = Mockery::mock(OpenRouterService::class);
+        $editor->shouldReceive('editFootballArticle')->once()->andReturn("Here is the bulletin:\n```json\n{$json}\n```\nLet me know if you need changes.");
+        $segments = (new RadioScript($editor))->write([$fact]);
+        $this->assertSame('BBC Sport says the striker is retiring aged 36.', $segments[0]['text']);
+    }
+
     public function test_duplicate_stories_and_repeated_match_credits_are_rejected(): void
     {
         $fact = $this->fact();
