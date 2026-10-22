@@ -13,7 +13,7 @@ class ReelController extends Controller
         $file = $reels->path($match);
         abort_unless($file, 404);
 
-        return response()->file($file, ['Content-Type' => 'video/mp4', 'Cache-Control' => 'public, max-age=86400']);
+        return response()->file($file, ['Content-Type' => 'video/mp4'])->setCache(['private' => true, 'max_age' => 86400]);
     }
 
     /** The reel's poster frame (a still from the first big moment). */

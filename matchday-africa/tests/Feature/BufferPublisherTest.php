@@ -225,4 +225,19 @@ class BufferPublisherTest extends TestCase
         $this->artisan('buffer:publish')->expectsOutput('BUFFER_API_KEY is not set; nothing sent.');
         Http::assertNothingSent();
     }
+
+    public function test_reel_posts_move_to_the_extensionless_url_and_unreadable_ones_retry(): void
+    {
+        $row = fn (string $key, string $status, ?string $error = null) => \App\Models\GrowthPost::create(['content_key' => $key, 'channel' => 'tiktok', 'type' => 'reel', 'message' => 'm',
+            'video_url' => "https://matchday.africa/matches/1/reel.mp4?v=1", 'status' => $status, 'attempts' => 3, 'last_error' => $error, 'scheduled_at' => now()]);
+        $failed = $row('a', 'failed', 'Invalid post: Video could not be read from its URL.');
+        $other = $row('b', 'failed', 'Channel disconnected');
+        $sent = $row('c', 'sent');
+
+        (require database_path('migrations/2026_10_22_000000_move_reel_posts_to_extensionless_url.php'))->up();
+
+        $this->assertSame(['queued', 0, null, 'https://matchday.africa/matches/1/reel?v=1'], [$failed->fresh()->status, $failed->fresh()->attempts, $failed->fresh()->last_error, $failed->fresh()->video_url]);
+        $this->assertSame(['failed', 'https://matchday.africa/matches/1/reel?v=1'], [$other->fresh()->status, $other->fresh()->video_url]);
+        $this->assertSame('https://matchday.africa/matches/1/reel.mp4?v=1', $sent->fresh()->video_url);
+    }
 }
