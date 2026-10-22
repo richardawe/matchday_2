@@ -73,7 +73,7 @@ class HomeShowcase
             'id' => $m->id,
             'match' => $m,
             'title' => $this->club($m->homeTeam)." {$m->home_score}–{$m->away_score} ".$this->club($m->awayTeam),
-            'video' => route('matches.reel', ['match' => $m, 'v' => $readyAt]),
+            'video' => app(ReelService::class)->url($m),
             'poster' => $this->reels->posterPath($m) ? route('matches.reel-poster', ['match' => $m, 'v' => $readyAt]) : null,
             'link' => route('matches.show', $m).'#match-story',
             'played' => Carbon::parse($m->match_date->format('Y-m-d H:i:s'), 'UTC'),

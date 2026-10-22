@@ -44,13 +44,14 @@ class GrowthPostGenerator
         FootballMatch::with(['homeTeam', 'awayTeam', 'league'])->where('match_date', '>=', now('UTC')->subDays(14))->whereNotNull('metadata')->get()
             ->filter(fn ($m) => data_get($m->metadata, 'reel.status') === 'ready' && data_get($m->metadata, 'reel.ready_at'))
             ->each(function (FootballMatch $match) use (&$created) {
-                $readyAt = Carbon::parse(data_get($match->metadata, 'reel.ready_at'));
                 $final = $this->stories->chapters($match)->firstWhere('type', 'full_time');
                 $verdict = $final ? implode(' ', $this->griot->tell($final)) : '';
                 $body = $this->name($match->homeTeam)." {$match->home_score}–{$match->away_score} ".$this->name($match->awayTeam)
                     .": the whole match in 20 seconds 🎬\n\n{$verdict}\n\nFull story, stats and predictions on Matchday Africa 👇";
                 $link = route('matches.show', $match);
-                $video = route('matches.reel', ['match' => $match, 'v' => $readyAt->timestamp]);
+                if (!$video = app(ReelService::class)->url($match)) {
+                    return; // Marked ready but the file is missing: a reel post without its video says nothing.
+                }
                 $created += $this->plan("reel:{$match->id}", 'reel', XText::compose($body, $link, $this->tags($match)), null, $link, now(), $this->nextRound($match), $video);
             });
 

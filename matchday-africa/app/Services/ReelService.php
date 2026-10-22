@@ -210,6 +210,35 @@ class ReelService
             + 4 * $moments->where('type', 'red_card')->count() + 6 * $big;
     }
 
+    /**
+     * Where the reel plays from: a static copy in the web root. The host serves static files with
+     * byte ranges, which iPhones and Buffer need, but drops them from anything PHP sends.
+     * Falls back to the PHP route if the copy can't be made.
+     */
+    public function url(FootballMatch $match): ?string
+    {
+        $file = $this->path($match);
+        if (!$file) {
+            return null;
+        }
+        $readyAt = data_get($match->metadata, 'reel.ready_at');
+        $version = ['v' => $readyAt ? Carbon::parse($readyAt)->timestamp : filemtime($file)];
+        $public = $this->publicPath($match);
+        try {
+            if ($file !== $public && (!is_file($public) || filesize($public) !== filesize($file) || filemtime($public) < filemtime($file))) {
+                File::ensureDirectoryExists(dirname($public));
+                File::copy($file, "{$public}.part");
+                rename("{$public}.part", $public);
+            }
+
+            return asset("generated/reels/{$match->id}/{$match->id}.mp4").'?'.http_build_query($version);
+        } catch (Throwable $e) {
+            Log::warning('Reel could not be published as a static file', ['match_id' => $match->id, 'error' => $e->getMessage()]);
+
+            return route('matches.reel', ['match' => $match] + $version);
+        }
+    }
+
     /** The reel's poster frame, when the render made one. */
     public function posterPath(FootballMatch $match): ?string
     {

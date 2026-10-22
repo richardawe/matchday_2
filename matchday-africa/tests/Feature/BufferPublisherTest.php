@@ -19,6 +19,12 @@ class BufferPublisherTest extends TestCase
 
     private FootballMatch $match;
 
+    protected function tearDown(): void
+    {
+        File::delete(storage_path("app/reels/{$this->match->id}.mp4"));
+        parent::tearDown();
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -72,7 +78,7 @@ class BufferPublisherTest extends TestCase
         $this->match->update(['metadata' => ['reel' => ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]]]);
         File::ensureDirectoryExists(storage_path('app/reels'));
         File::put(storage_path("app/reels/{$this->match->id}.mp4"), 'mp4');
-        $video = route('matches.reel', ['match' => $this->match, 'v' => now()->timestamp]);
+        $video = asset("generated/reels/{$this->match->id}/{$this->match->id}.mp4").'?v='.now()->timestamp;
         Http::fake([$video => Http::response('m', 206, ['Content-Type' => 'video/mp4'])]);
 
         $this->artisan('twitter:engage');
@@ -92,9 +98,11 @@ class BufferPublisherTest extends TestCase
         config(['buffer.x.auto' => true]);
         $this->fakeBuffer();
         $this->match->update(['status' => 'FINISHED', 'metadata' => ['reel' => ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]]]);
+        File::ensureDirectoryExists(storage_path('app/reels'));
+        File::put(storage_path("app/reels/{$this->match->id}.mp4"), 'mp4');
         $this->travel(31)->minutes();
         $this->artisan('twitter:engage');
-        Http::fake([url('/matches').'/*' => Http::response('m', 206, ['Content-Type' => 'video/mp4'])]);
+        Http::fake([url('/generated/reels').'/*' => Http::response('m', 206, ['Content-Type' => 'video/mp4'])]);
 
         // 19:31 on the matchday itself: held back.
         $this->artisan('buffer:publish')->expectsOutput('Buffer: 0 sent, 0 failed');
@@ -113,6 +121,8 @@ class BufferPublisherTest extends TestCase
         $next = FootballMatch::create(['league_id' => $this->match->league_id, 'home_team_id' => $this->match->away_team_id, 'away_team_id' => $this->match->home_team_id,
             'match_date' => now('UTC')->addDays(6)->setTime(14, 0), 'status' => 'TIMED']);
         $this->match->update(['status' => 'FINISHED', 'metadata' => ['reel' => ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]]]);
+        File::ensureDirectoryExists(storage_path('app/reels'));
+        File::put(storage_path("app/reels/{$this->match->id}.mp4"), 'mp4');
 
         $this->artisan('twitter:engage');
 
@@ -126,7 +136,9 @@ class BufferPublisherTest extends TestCase
         $this->fakeBuffer();
         $this->travelTo(now('Africa/Lagos')->addDay()->setTime(8, 30));
         $this->match->update(['status' => 'FINISHED', 'metadata' => ['reel' => ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]]]);
-        Http::fake([url('/matches').'/*' => Http::response('', 404)]);
+        File::ensureDirectoryExists(storage_path('app/reels'));
+        File::put(storage_path("app/reels/{$this->match->id}.mp4"), 'mp4');
+        Http::fake([url('/generated/reels').'/*' => Http::response('', 404)]);
 
         $this->artisan('twitter:engage');
         $this->artisan('buffer:publish')->expectsOutput('Buffer: 0 sent, 3 failed');
@@ -187,10 +199,23 @@ class BufferPublisherTest extends TestCase
         config(['buffer.x.auto' => true]);
         $this->match->update(['status' => 'FINISHED', 'match_date' => now('UTC')->subDays(3),
             'metadata' => ['reel' => ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]]]);
+        File::ensureDirectoryExists(storage_path('app/reels'));
+        File::put(storage_path("app/reels/{$this->match->id}.mp4"), 'mp4');
 
         $this->artisan('twitter:engage');
 
         $this->assertSame(['instagram', 'tiktok', 'x'], \App\Models\GrowthPost::where('type', 'reel')->orderBy('channel')->pluck('channel')->all());
+        $this->assertStringStartsWith(asset("generated/reels/{$this->match->id}/{$this->match->id}.mp4"), \App\Models\GrowthPost::where('channel', 'tiktok')->value('video_url'));
+    }
+
+    public function test_a_reel_marked_ready_without_its_file_is_not_planned(): void
+    {
+        config(['buffer.x.auto' => true]);
+        $this->match->update(['status' => 'FINISHED', 'metadata' => ['reel' => ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]]]);
+
+        $this->artisan('twitter:engage');
+
+        $this->assertSame(0, \App\Models\GrowthPost::where('type', 'reel')->count());
     }
 
     public function test_a_timed_out_post_is_never_retried_automatically(): void

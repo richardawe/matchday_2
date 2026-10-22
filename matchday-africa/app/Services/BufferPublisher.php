@@ -84,6 +84,10 @@ class BufferPublisher
             // The claim above bypassed the model; without this, putting it back to queued is a no-op.
             $post->forceFill(['status' => 'sending'])->syncOriginal();
 
+            if ($post->type === 'reel' && ($match = FootballMatch::find((int) Str::after($post->content_key, 'reel:'))) && ($url = app(ReelService::class)->url($match))) {
+                // Reels queued before they moved to static files still name the PHP route, which Buffer can't read.
+                $post->video_url = $url;
+            }
             $image = $post->image_url && $this->reachable($post->image_url, 'image/') ? $post->image_url : null;
             $video = $post->video_url && $this->reachable($post->video_url, 'video/') ? $post->video_url : null;
             $missing = ($post->video_url && !$video) ? $post->video_url : (($post->image_url && !$image && $channel !== 'x') ? $post->image_url : null);
