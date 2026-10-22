@@ -7,7 +7,33 @@ use RuntimeException;
 
 class RadioScript
 {
+    private const RUMOUR_LABEL = '/\b(rumou?r|unconfirmed|reportedly|not confirmed)\b/i';
+
     public function __construct(private OpenRouterService $editor) {}
+
+    /**
+     * Names a paragraph's sources (and labels a rumour) in one of several phrasings, so a run of
+     * news stories doesn't open "According to BBC Sport" every time. The nth credited paragraph
+     * takes the nth phrasing.
+     */
+    private function credit(string $text, string $source, bool $plural, bool $rumour, int $n): string
+    {
+        if ($source === '') {
+            return $rumour ? 'Unconfirmed for now: '.$text : $text;
+        }
+        if ($rumour) {
+            return 'In an unconfirmed report from '.$source.': '.$text;
+        }
+        $body = rtrim($text, " .!?");
+        $reports = $plural ? 'report' : 'reports';
+
+        return [
+            'According to '.$source.', '.$text,
+            $body.', '.$source.' '.$reports.'.',
+            $source.' '.$reports.': '.$text,
+            $body.', says '.$source.'.',
+        ][$n % 4];
+    }
 
     public function write(array $facts): array
     {
@@ -35,15 +61,17 @@ class RadioScript
             throw new RuntimeException('Writer returned no JSON story paragraphs: '.Str::limit(strip_tags((string) $response), 250));
         }
         $lookup = collect($facts)->keyBy('key');
+        $credited = 0;
         foreach ($segments as &$segment) {
             if (! is_array($segment) || ! is_string($segment['text'] ?? null) || ! is_array($segment['fact_keys'] ?? null)) {
                 continue;
             }
-            $credits = $lookup->only($segment['fact_keys'])->where('kind', 'news')->pluck('source')->unique()
+            $news = $lookup->only($segment['fact_keys'])->where('kind', 'news');
+            $credits = $news->pluck('source')->unique()
                 ->reject(fn ($source) => Str::contains(Str::lower($segment['text']), Str::lower($source)));
-            if ($credits->isNotEmpty()) {
-                $segment['text'] = 'According to '.$credits->implode(' and ').', '.$segment['text'];
-            }
+            // The writer sometimes forgets the rumour label; add it rather than lose the edition.
+            $unlabelled = $news->contains('rumour', true) && ! preg_match(self::RUMOUR_LABEL, $segment['text']);
+            $segment['text'] = $this->credit(trim($segment['text']), $credits->implode(' and '), $credits->count() > 1, $unlabelled, $credits->isNotEmpty() ? $credited++ : 0);
         }
         unset($segment);
         $this->validate($segments, $facts);
@@ -88,7 +116,7 @@ class RadioScript
                 if (! Str::contains(Str::lower($text), Str::lower($fact['source']))) {
                     throw new RuntimeException('News must credit its source in the spoken script.');
                 }
-                if ($fact['rumour'] && ! preg_match('/\b(rumou?r|unconfirmed|reportedly|not confirmed)\b/i', $text)) {
+                if ($fact['rumour'] && ! preg_match(self::RUMOUR_LABEL, $text)) {
                     throw new RuntimeException('Unconfirmed news must be labelled.');
                 }
                 // Reject a copied run of twelve words; short headlines/club names are not articles.
