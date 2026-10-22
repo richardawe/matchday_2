@@ -1,12 +1,14 @@
 // The reel's soundtrack, synthesised from scratch so there is no music licence to clear:
 // a low horn on the title, a crowd bed that swells, a talking-drum hit (pitch bending down,
 // like a squeezed dùndún) on every goal, a heavy thud on a red card, and a drum roll at the end.
+// Optional commentary (radio/speak.mjs: 24 kHz mono lines with start times) is laid on top, with
+// the crowd and drums dipped while the commentator speaks.
 import { writeFile } from 'node:fs/promises';
 import { buildTimeline, FPS, TOTAL } from './src/timeline.js';
 
 const RATE = 44100;
 
-export async function writeSoundtrack(beats, file) {
+export async function writeSoundtrack(beats, file, voices = []) {
     const length = Math.ceil((TOTAL / FPS) * RATE);
     const mix = new Float32Array(length);
     let seed = 7;
@@ -58,6 +60,8 @@ export async function writeSoundtrack(beats, file) {
         }
     }
 
+    addVoices(mix, voices);
+
     // Soft limiter, then 16-bit PCM WAV.
     const pcm = Buffer.alloc(44 + length * 2);
     pcm.write('RIFF', 0); pcm.writeUInt32LE(36 + length * 2, 4); pcm.write('WAVEfmt ', 8);
@@ -70,4 +74,25 @@ export async function writeSoundtrack(beats, file) {
         pcm.writeInt16LE(Math.round(Math.tanh(mix[i] * 1.2) * tail * 32000), 44 + i * 2);
     }
     await writeFile(file, pcm);
+}
+
+// Dips the bed to 40% under each line (50 ms ramps), then adds the line resampled from 24 kHz.
+export function addVoices(mix, voices, rate = RATE, voiceRate = 24000) {
+    const ramp = Math.round(rate * 0.05);
+    for (const { at, samples } of voices) {
+        const from = Math.max(0, Math.floor(at * rate));
+        const length = Math.min(mix.length - from, Math.floor((samples.length / voiceRate) * rate));
+        if (length <= 0) continue;
+        for (let i = -ramp; i < length + ramp; i++) {
+            const j = from + i;
+            if (j < 0 || j >= mix.length) continue;
+            const edge = i < 0 ? -i / ramp : i >= length ? (i - length) / ramp : 0;
+            mix[j] *= 0.4 + 0.6 * Math.min(1, edge);
+        }
+        for (let i = 0; i < length; i++) {
+            const pos = (i * voiceRate) / rate, k = Math.floor(pos), f = pos - k;
+            const sample = (samples[k] ?? 0) * (1 - f) + (samples[k + 1] ?? 0) * f;
+            mix[from + i] += 1.6 * sample;
+        }
+    }
 }

@@ -19,6 +19,11 @@ return [
     // Wait this long after full time so late corrections (VAR, stoppage-time events) make the cut.
     'delay_minutes' => (int) env('REEL_DELAY_MINUTES', 3),
     'voice' => env('REEL_VOICE', 'en'),
+    // Spoken commentary over the reel (Kokoro, from radio/): one factual line per scene. Needs the
+    // radio runtime (Node 22.13+, radio/node_modules); server renderer only. A failed voice step
+    // leaves the reel without commentary rather than failing it.
+    'narration' => (bool) env('REEL_NARRATION', false),
+    'narration_voice' => env('REEL_NARRATION_VOICE', 'bm_george'),
     'github' => [
         'repo' => env('REEL_GITHUB_REPO', 'richardawe/matchday_2'),
         'token' => env('REEL_GITHUB_TOKEN'),

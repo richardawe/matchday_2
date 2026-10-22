@@ -35,6 +35,16 @@ class GriotReelTest extends TestCase
         app(MatchStoryService::class)->syncRecent();
     }
 
+    public function test_props_carry_factual_commentary_longest_first(): void
+    {
+        $props = app(ReelService::class)->props($this->match);
+
+        $this->assertSame(['Arsenal against Chelsea.'], $props['title']['say']);
+        $goal = collect($props['beats'])->firstWhere('type', 'goal');
+        $this->assertSame(['Saka scores, 41 minutes! Arsenal 1, Chelsea 0.', 'Saka scores! Arsenal 1, Chelsea 0.', 'Goal, Saka! 1 nil.', 'Saka scores!', 'Goal!'], $goal['say']);
+        $this->assertSame(['Full time. Arsenal 1, Chelsea 0.', 'Full time.'], $props['final']['say']);
+    }
+
     public function test_props_tell_the_story_with_crest_free_art(): void
     {
         $props = app(ReelService::class)->props($this->match);

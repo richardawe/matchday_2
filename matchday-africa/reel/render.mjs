@@ -31,7 +31,14 @@ export async function renderReel(props, out, { composition = 'Reel', log = conso
             delete inputProps[side].art_path;
             delete inputProps[side].art_url;
         }
-        await writeSoundtrack(inputProps.beats, path.join(stage, 'soundtrack.wav'));
+        // Commentary lines from radio/speak.mjs, when the site spoke them (REEL_NARRATION).
+        const voices = [];
+        for (const { at, file } of inputProps.narration ?? []) {
+            const bytes = await readFile(file);
+            voices.push({ at, samples: new Float32Array(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)) });
+        }
+        delete inputProps.narration;
+        await writeSoundtrack(inputProps.beats, path.join(stage, 'soundtrack.wav'), voices);
         inputProps.audio = 'soundtrack.wav';
 
         const serveUrl = await bundle({ entryPoint: path.join(here, 'src/index.jsx'), publicDir: stage });
