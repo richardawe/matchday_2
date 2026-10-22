@@ -52,7 +52,7 @@ class RadioFacts
             $facts[] = ['key' => $key, 'kind' => 'news', 'headline' => $n->title,
                 'text' => $n->title.'. '.strip_tags((string) $n->summary), 'source' => $n->source,
                 'url' => $n->source_url, 'at' => $n->source_published_at->toIso8601String(),
-                'rumour' => (bool) preg_match('/\b(rumou?r|gossip|reportedly|linked|could|may|talks|interest)\b/i', $n->title.' '.$n->summary)];
+                'rumour' => (bool) preg_match('/\b(rumou?r|gossip|reportedly|linked|talks|interest)\b/i', $n->title.' '.$n->summary)];
             if (count($facts) >= 5) {
                 break;
             }

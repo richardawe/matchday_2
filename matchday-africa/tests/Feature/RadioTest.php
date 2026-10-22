@@ -287,6 +287,9 @@ class RadioTest extends TestCase
         $this->assertSame('BBC Sport says the striker is retiring aged 36.', $segments[0]['text']);
         $models = collect(\Illuminate\Support\Facades\Http::recorded())->map(fn ($pair) => $pair[0]['model'])->unique()->values()->all();
         $this->assertSame(['anthropic/claude-haiku-5.5', 'openrouter/free'], $models);
+        $first = \Illuminate\Support\Facades\Http::recorded()[0][0];
+        $this->assertSame(['effort' => 'medium', 'exclude' => true], $first['reasoning']);
+        $this->assertSame(16000, $first['max_tokens']);
     }
 
     public function test_a_story_copied_from_its_source_is_left_out_and_the_rest_airs(): void
