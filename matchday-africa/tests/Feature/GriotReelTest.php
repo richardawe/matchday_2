@@ -151,6 +151,11 @@ class GriotReelTest extends TestCase
         $this->withHeader('Range', 'bytes=10-19')->get(route('matches.reel', $this->match))
             ->assertStatus(206)->assertHeader('Content-Range', 'bytes 10-19/100')->assertHeader('Content-Length', '10');
         $this->withoutHeader('Range')->get("/matches/{$this->match->id}/reel.mp4")->assertOk();
+
+        // Pages link a static copy, which the host serves with ranges (PHP responses lose them).
+        $url = app(ReelService::class)->url($this->match->fresh());
+        $this->assertSame(asset("generated/reels/{$this->match->id}/{$this->match->id}.mp4").'?v='.now()->timestamp, $url);
+        $this->assertFileEquals(storage_path("app/reels/{$this->match->id}.mp4"), public_path("generated/reels/{$this->match->id}/{$this->match->id}.mp4"));
         File::delete(storage_path("app/reels/{$this->match->id}.mp4"));
     }
 }

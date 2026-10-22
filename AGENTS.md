@@ -29,7 +29,9 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 3. **Every new feature is off until switched on in `.env`** (`ESPN_ENABLED`, `REEL_RENDERER`, `BUFFER_*`)
    and stays quiet until its migration exists (`MatchStoryService::ready()`, `Schema::hasTable` guards). Keep it that way.
 4. **Never delete or overwrite on the server:** `.env`, `storage/` (incl. `storage/app/story-cards`,
-   `storage/app/reels`), `public/storage`, `public/generated/` (GitHub-rendered reels, one folder per match), `vendor/`.
+   `storage/app/reels`), `public/storage`, `public/generated/` (reels, one folder per match, and published radio audio), `vendor/`.
+   Media goes out as static files from `public/generated/`: the host serves static files with byte ranges but
+   drops them from PHP responses, and iPhones and Buffer need ranges (`ReelService::url()`, `RadioBulletin::audioUrl()`).
 5. **Times:** `matches.match_date` holds **UTC wall-clock** values (that's how the football-data.org sync
    writes them) while `APP_TIMEZONE` is `Africa/Lagos`. Compare kick-offs against `now('UTC')` and
    reinterpret with `Carbon::parse($m->match_date->format('Y-m-d H:i:s'), 'UTC')` (see

@@ -44,6 +44,32 @@ class RadioBulletin extends Model
         return is_file($file) && filesize($file) === (int) $this->audio_bytes ? $file : null;
     }
 
+    /**
+     * Where a published edition plays from: a static copy in the web root, which the host serves
+     * with byte ranges (iPhones need them to play and seek; PHP responses lose them). Drafts stay
+     * private behind the PHP route.
+     */
+    public function audioUrl(): string
+    {
+        $file = $this->audioFile();
+        if ($file && $this->status === 'published') {
+            $public = public_path('generated/radio/'.$this->id.'/'.basename($file));
+            try {
+                if (! is_file($public) || filesize($public) !== filesize($file)) {
+                    \Illuminate\Support\Facades\File::ensureDirectoryExists(dirname($public));
+                    \Illuminate\Support\Facades\File::copy($file, $public.'.part');
+                    rename($public.'.part', $public);
+                }
+
+                return asset('generated/radio/'.$this->id.'/'.basename($file));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Radio audio could not be published as a static file', ['bulletin' => $this->id, 'error' => $e->getMessage()]);
+            }
+        }
+
+        return route('radio.audio', $this);
+    }
+
     public function getDurationLabelAttribute(): string
     {
         return sprintf('%d:%02d', intdiv((int) $this->duration_seconds, 60), $this->duration_seconds % 60);

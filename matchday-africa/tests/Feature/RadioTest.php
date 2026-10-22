@@ -144,6 +144,18 @@ class RadioTest extends TestCase
         $this->assertStringContainsString('News & results <today>', (string) $xml->channel->item->title);
     }
 
+    public function test_published_audio_plays_from_a_static_copy_and_drafts_stay_private(): void
+    {
+        $b = $this->published();
+        $url = $b->audioUrl();
+        $this->assertSame(asset('generated/radio/'.$b->id.'/'.basename($b->audio_path)), $url);
+        $this->assertFileEquals($b->audioFile(), public_path('generated/radio/'.$b->id.'/'.basename($b->audio_path)));
+        $this->get(route('radio.show', $b))->assertSee($url, false);
+
+        $b->update(['status' => 'draft']);
+        $this->assertSame(route('radio.audio', $b), $b->fresh()->audioUrl());
+    }
+
     public function test_audio_ranges_use_an_extensionless_url_and_private_cache(): void
     {
         $b = $this->published();

@@ -13,7 +13,7 @@
  @endforeach
  </div>
  @endif
- <audio controls preload="none" aria-label="Listen to {{ $bulletin->title }}" src="{{ route('radio.audio', $bulletin) }}"></audio>
+ <audio controls preload="none" aria-label="Listen to {{ $bulletin->title }}" src="{{ $bulletin->audioUrl() }}"></audio>
  <div class="md-radio-controls" data-radio-controls hidden>
   <button type="button" class="md-radio-play" data-radio-play aria-label="Listen now" aria-pressed="false"><span data-radio-icon aria-hidden="true">▶</span><span data-radio-label>Listen now</span></button>
   <button type="button" class="md-radio-share" data-radio-share><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V3m-5 5 5-5 5 5M5 13v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg> Share</button>

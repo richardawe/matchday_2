@@ -35,7 +35,7 @@ class ArenaService
         }
         $home = \App\Support\Armies::for($match->homeTeam);
         $away = \App\Support\Armies::for($match->awayTeam);
-        $reel = $state === 'finished' && app(\App\Services\ReelService::class)->path($match) ? route('matches.reel', $match) : null;
+        $reel = $state === 'finished' ? app(\App\Services\ReelService::class)->url($match) : null;
 
         return [
             'match' => $match, 'state' => $state, 'home' => $home, 'away' => $away, 'reel' => $reel,

@@ -11,7 +11,7 @@
  <link>{{ route('radio.show', $edition) }}</link><guid isPermaLink="true">{{ route('radio.show', $edition) }}</guid>
  <pubDate>{{ $edition->published_at->copy()->utc()->toRfc2822String() }}</pubDate>
  <description>{{ \Illuminate\Support\Str::limit($edition->script, 600) }} Transcript and sources: {{ route('radio.show', $edition) }}</description>
- <enclosure url="{{ route('radio.audio', $edition) }}" length="{{ $edition->audio_bytes }}" type="audio/mpeg" />
+ <enclosure url="{{ $edition->audioUrl() }}" length="{{ $edition->audio_bytes }}" type="audio/mpeg" />
  <itunes:duration>{{ $edition->duration_seconds }}</itunes:duration></item>
  @endforeach
 </channel></rss>
