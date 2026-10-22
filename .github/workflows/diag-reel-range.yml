@@ -25,6 +25,17 @@ jobs:
           done
           echo "=== HEAD"
           curl -sS -I -A "$ua" "$URL" | tr -d '\r'
+      - name: Compare static files and radio audio
+        run: |
+          ua='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
+          audio=$(curl -sS https://matchday.africa/listen/feed.xml | grep -oE 'https://matchday\.africa/listen/[0-9]+/audio[^"<]*' | head -1)
+          gen=$(curl -sS https://matchday.africa/ | grep -oE '/generated/reels/[0-9]+/[^"]*\.mp4' | head -1)
+          for u in https://matchday.africa/war/matchday-warriors-trailer.mp4 https://matchday.africa/images/logo.png ${gen:+https://matchday.africa$gen} "$audio"; do
+            for enc in "" "gzip, deflate, br"; do
+              echo "=== $u  Range: bytes=0-1  Accept-Encoding: ${enc:-none}"
+              curl -sS -o /dev/null -D - -A "$ua" ${enc:+-H "Accept-Encoding: $enc"} -H "Range: bytes=0-1" "$u" | tr -d '\r' | grep -iE '^HTTP|content-(type|length|range|encoding)|transfer-encoding' || true
+            done
+          done
       - name: Inspect the video file
         run: |
           sudo apt-get install -y -qq ffmpeg >/dev/null
