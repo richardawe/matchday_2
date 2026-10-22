@@ -110,7 +110,7 @@ masked, cron, post counts), `buffer-channels` (channel IDs), `configure-buffer` 
 the production secret of that name plus channel IDs, `BUFFER_AUTO`, `BUFFER_SLOTS` into `.env` through
 `matchday-africa/scripts/set-env.php`, which backs `.env` up first, then `config:cache`), `plan-posts` (plan and
 send once), `clear-drafts` (delete unsent X drafts), `reel-check` (recent PL matches with events/chapters/reel state, finds Node 18+, `npm ci` + `node check.mjs`
-in `reel/`), `configure-reel` (`REEL_RENDERER`, `REEL_NODE`, `REEL_GITHUB_TOKEN` from the production secret),
+in `reel/`), `configure-reel` (`REEL_RENDERER`, `REEL_NODE`, `REEL_GITHUB_TOKEN` from the production secret), `configure-reel-voice` (Kokoro commentary over new reels: `REEL_NARRATION` on/off),
 `reel-render` (rebuild one match's chapters and render its reel now), `configure-espn` (`live`, `shadow` or `off`),
 `espn-sync` (fixtures, live and details passes now, unmatched fixtures listed), `reel-queue` (backfill reels between two Lagos dates), `configure-home` (`HOME_V2` on or off). From a terminal: `gh workflow run server-ops.yml -f action=status`.
 
@@ -124,6 +124,7 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `REEL_RENDERER` | off | `server` (this host runs Node + Remotion) or `github` |
 | `REEL_NODE` | node | Path to the Node binary for the scheduler |
 | `REEL_VOICE` | en | Caption voice in reels: en, pcm, sw, za |
+| `REEL_NARRATION` / `REEL_NARRATION_VOICE` | false / bm_george | Kokoro commentary over new reels (`radio/speak.mjs`, server renderer only; a failure renders without it) |
 | `REEL_DELAY_MINUTES` | 3 | Wait after full time before rendering |
 | `REEL_GITHUB_REPO` / `REEL_GITHUB_TOKEN` | this repo / empty | For the GitHub fallback |
 | `BUFFER_API_KEY` | empty | Buffer API key |

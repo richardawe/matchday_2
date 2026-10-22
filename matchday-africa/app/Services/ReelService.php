@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 use Throwable;
 
@@ -73,22 +74,49 @@ class ReelService
         return [
             'format' => 'story',
             'competition' => 'PREMIER LEAGUE',
-            'title' => ['headline' => "{$home['army']} v {$away['army']}", 'line' => "{$home['club']} v {$away['club']}"],
+            'title' => ['headline' => "{$home['army']} v {$away['army']}", 'line' => "{$home['club']} v {$away['club']}",
+                'say' => ["{$home['club']} against {$away['club']}."]],
             'home' => $home,
             'away' => $away,
-            'beats' => $chapters->whereNotIn('type', ['full_time'])->map(function (MatchMoment $chapter) use ($voice) {
+            'beats' => $chapters->whereNotIn('type', ['full_time'])->map(function (MatchMoment $chapter) use ($voice, $home, $away) {
                 [$headline, $line] = $this->griot->tell($chapter, $voice);
 
                 return ['type' => $chapter->type, 'tag' => $this->griot->tag($chapter), 'side' => $chapter->side,
-                    'home_score' => $chapter->home_score, 'away_score' => $chapter->away_score, 'headline' => $headline, 'line' => $line];
+                    'home_score' => $chapter->home_score, 'away_score' => $chapter->away_score, 'headline' => $headline, 'line' => $line,
+                    'say' => $this->say($chapter, $home['club'], $away['club'])];
             })->values()->all(),
             'stats' => [
                 ['label' => 'POSSESSION %', 'home' => $match->home_possession, 'away' => $match->away_possession],
                 ['label' => 'SHOTS', 'home' => $match->home_shots, 'away' => $match->away_shots],
                 ['label' => 'ON TARGET', 'home' => $match->home_shots_on_target, 'away' => $match->away_shots_on_target],
             ],
-            'final' => $final ? array_combine(['headline', 'line'], $this->griot->tell($final, $voice)) : ['headline' => 'Full time', 'line' => ''],
+            'final' => ($final ? array_combine(['headline', 'line'], $this->griot->tell($final, $voice)) : ['headline' => 'Full time', 'line' => ''])
+                + ['say' => ["Full time. {$home['club']} {$home['score']}, {$away['club']} {$away['score']}.", 'Full time.']],
         ];
+    }
+
+    /**
+     * The commentary for one chapter, longest wording first: radio/speak.mjs uses the longest that
+     * fits the scene (a beat lasts 2.8 to 14 seconds). Only facts from the chapter: who, when, the
+     * score, called the way a commentator would ("Saka scores! … 1 nil").
+     */
+    private function say(MatchMoment $chapter, string $home, string $away): array
+    {
+        $score = "{$home} {$chapter->home_score}, {$away} {$chapter->away_score}.";
+        $short = implode(' ', array_map(fn ($n) => $n === 0 ? 'nil' : (string) $n, [(int) $chapter->home_score, (int) $chapter->away_score])).'.';
+        $team = ['home' => $home, 'away' => $away][$chapter->side] ?? null;
+        $name = $chapter->player_name ? Str::afterLast(trim($chapter->player_name), ' ') : null;
+        $when = $chapter->minute ? $chapter->minute.($chapter->extra_minute ? " plus {$chapter->extra_minute}" : '').' minutes' : null;
+        $scores = $name ? "{$name} scores" : ($team ? "{$team} score" : null);
+
+        return array_values(array_filter(match ($chapter->type) {
+            'goal' => [$scores && $when ? "{$scores}, {$when}! {$score}" : null, $scores ? "{$scores}! {$score}" : null,
+                $name ? "Goal, {$name}! {$short}" : "Goal! {$short}", $scores ? "{$scores}!" : null, 'Goal!'],
+            'red_card' => [$name && $when ? "Red card! {$name} is off, {$when}." : null, $name ? "Red card, {$name}!" : null, 'Red card!'],
+            'kickoff' => ["Kick-off. {$home} against {$away}.", 'Kick-off.'],
+            'half_time' => ["Half-time. {$score}", "Half-time, {$short}", 'Half-time.'],
+            default => [],
+        }));
     }
 
     public function make(FootballMatch $match): string
@@ -113,7 +141,13 @@ class ReelService
         $propsFile = "{$dir}/{$match->id}.json";
         $out = "{$dir}/{$match->id}.mp4";
         $poster = "{$dir}/{$match->id}.jpg";
-        File::put($propsFile, json_encode($this->props($match), JSON_UNESCAPED_UNICODE));
+        $props = $this->props($match);
+        $voiceDir = "{$dir}/{$match->id}-voice";
+        if (config('reel.narration')) {
+            File::put($propsFile, json_encode($props, JSON_UNESCAPED_UNICODE));
+            $props['narration'] = $this->speak($propsFile, $voiceDir, $match);
+        }
+        File::put($propsFile, json_encode($props, JSON_UNESCAPED_UNICODE));
 
         $process = new Process([config('reel.node'), base_path('reel/render.mjs'), '--props', $propsFile, '--out', $out, '--poster', $poster], base_path('reel'), null, null, config('reel.timeout'));
         try {
@@ -128,6 +162,31 @@ class ReelService
             return 'failed';
         } finally {
             File::delete($propsFile);
+            File::deleteDirectory($voiceDir);
+        }
+    }
+
+    /**
+     * Voices the commentary with Kokoro (radio/speak.mjs, run with the radio's Node) and returns the
+     * lines for render.mjs to mix in. A failure leaves the reel without commentary, never without a reel.
+     */
+    private function speak(string $propsFile, string $voiceDir, FootballMatch $match): array
+    {
+        $process = new Process([config('radio.node'), base_path('radio/speak.mjs'), '--props', $propsFile, '--out-dir', $voiceDir], base_path('radio'),
+            ['RADIO_TTS_CACHE' => config('radio.cache'), 'REEL_NARRATION_VOICE' => config('reel.narration_voice')], null, config('reel.timeout'));
+        try {
+            $process->mustRun();
+            $lines = json_decode(collect(explode("\n", trim($process->getOutput())))->last() ?? '', true);
+            if (!is_array($lines)) {
+                throw new \RuntimeException('No commentary lines returned');
+            }
+
+            return array_values(array_filter($lines, fn ($line) => is_array($line) && is_numeric($line['at'] ?? null)
+                && is_string($line['file'] ?? null) && str_starts_with(realpath($line['file']) ?: '', realpath($voiceDir) ?: "\0")));
+        } catch (Throwable $e) {
+            Log::warning('Reel commentary failed; rendering without it', ['match_id' => $match->id, 'error' => mb_substr($process->getErrorOutput() ?: $e->getMessage(), 0, 500)]);
+
+            return [];
         }
     }
 
