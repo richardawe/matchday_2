@@ -5,7 +5,7 @@ set -Eeuo pipefail
 
 mode=${1:-}
 case "$mode" in
-    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|radio-check|configure-radio|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|radio-check|configure-radio|configure-radio-model|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
     *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home"; exit 2 ;;
 esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
@@ -225,6 +225,12 @@ if [[ "$operation" == configure-radio ]]; then
     php artisan config:cache --no-ansi
 fi
 REMOTE
+elif [[ "$mode" == configure-radio-model ]]; then
+    # "default" clears RADIO_MODEL, so radio uses OPENROUTER_MODEL again.
+    radio_model=${INPUT_RADIO_MODEL:-}
+    [[ "$radio_model" == default ]] && radio_model=""
+    [[ -z "$radio_model" || "$radio_model" =~ ^[a-z0-9][a-z0-9._/:-]*$ ]] || { echo "Invalid OpenRouter model ID."; exit 1; }
+    ssh "${ssh_options[@]}" "$target" "cd $root && printf '%s' '{\"RADIO_MODEL\":\"$radio_model\"}' | php scripts/set-env.php && php artisan config:cache --no-ansi && php -r 'require \"vendor/autoload.php\"; \$app = require \"bootstrap/app.php\"; \$app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); echo \"Radio model: \".(config(\"radio.model\") ?: config(\"services.openrouter.model\").\" (site default)\").PHP_EOL;'"
 elif [[ "$mode" == radio-refresh ]]; then
     ssh "${ssh_options[@]}" "$target" "cd $root && php artisan radio:edition --fresh --no-ansi && php artisan radio:work --no-ansi && php scripts/radio-ops.php status"
 elif [[ "$mode" == radio-run ]]; then

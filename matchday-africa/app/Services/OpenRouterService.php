@@ -23,6 +23,16 @@ class OpenRouterService
         $this->maxRetries = 3;
     }
 
+    /** A copy that asks for this model first, keeping the configured models as fallbacks. */
+    public function withModel(string $model): static
+    {
+        $copy = clone $this;
+        $copy->fallbackModels = [$this->model, ...$this->fallbackModels];
+        $copy->model = $model;
+
+        return $copy;
+    }
+
     /**
      * Generate match preview using AI
      */

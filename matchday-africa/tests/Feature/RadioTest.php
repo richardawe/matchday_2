@@ -272,6 +272,23 @@ class RadioTest extends TestCase
         $this->assertSame('BBC Sport says the striker is retiring aged 36.', $segments[0]['text']);
     }
 
+    public function test_radio_asks_its_own_model_first_with_the_site_model_behind_it(): void
+    {
+        config(['services.openrouter.api_key' => 'key', 'services.openrouter.model' => 'openrouter/free',
+            'services.openrouter.fallback_models' => [], 'radio.model' => 'anthropic/claude-haiku-5.5']);
+        $fact = ['key' => 'news:a', 'kind' => 'news', 'source' => 'BBC Sport', 'rumour' => false, 'text' => 'A striker announces retirement at the age of 36.'];
+        $script = json_encode(['segments' => [['fact_keys' => ['news:a'], 'text' => 'BBC Sport says the striker is retiring aged 36.']]]);
+        \Illuminate\Support\Facades\Http::fake(['openrouter.ai/*' => \Illuminate\Support\Facades\Http::sequence()
+            ->push(['error' => ['message' => 'Insufficient credits']], 402)
+            ->push(['model' => 'some/free-model', 'choices' => [['message' => ['content' => $script]]]])]);
+
+        $segments = app(RadioScript::class)->write([$fact]);
+
+        $this->assertSame('BBC Sport says the striker is retiring aged 36.', $segments[0]['text']);
+        $models = collect(\Illuminate\Support\Facades\Http::recorded())->map(fn ($pair) => $pair[0]['model'])->unique()->values()->all();
+        $this->assertSame(['anthropic/claude-haiku-5.5', 'openrouter/free'], $models);
+    }
+
     public function test_duplicate_stories_and_repeated_match_credits_are_rejected(): void
     {
         $fact = $this->fact();
