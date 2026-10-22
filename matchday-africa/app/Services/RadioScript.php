@@ -14,7 +14,7 @@ class RadioScript
 
     public function __construct(OpenRouterService $editor)
     {
-        $this->editor = config('radio.model') ? $editor->withModel(config('radio.model')) : $editor;
+        $this->editor = config('radio.model') ? $editor->withModel(config('radio.model'), 'medium') : $editor;
     }
 
     /** A copied run of twelve words from a news source; short headlines and club names are not articles. */

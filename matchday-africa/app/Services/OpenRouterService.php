@@ -13,6 +13,8 @@ class OpenRouterService
     protected $model;
     protected $fallbackModels;
     protected $maxRetries;
+    // Reasoning stays off unless withModel() asks for it (it is then kept out of the reply).
+    protected string $reasoningEffort = 'none';
 
     public function __construct()
     {
@@ -23,12 +25,16 @@ class OpenRouterService
         $this->maxRetries = 3;
     }
 
-    /** A copy that asks for this model first, keeping the configured models as fallbacks. */
-    public function withModel(string $model): static
+    /**
+     * A copy that asks for this model first, keeping the configured models as fallbacks. Claude
+     * models without reasoning think aloud in the reply ("4-4 draw... wait"), so pass an effort.
+     */
+    public function withModel(string $model, string $reasoningEffort = 'none'): static
     {
         $copy = clone $this;
         $copy->fallbackModels = [$this->model, ...$this->fallbackModels];
         $copy->model = $model;
+        $copy->reasoningEffort = $reasoningEffort;
 
         return $copy;
     }
@@ -182,10 +188,10 @@ Format the response in HTML with proper paragraphs and emphasis.";
                         'max_tokens' => 1800,
                         'temperature' => 0.4,
                         'reasoning' => [
-                            'effort' => 'none',
+                            'effort' => $this->reasoningEffort,
                             'exclude' => true,
                         ],
-                    ], $structured ? ['response_format' => ['type' => 'json_object'], 'max_tokens' => 3500, 'temperature' => 0.2] : []));
+                    ], $structured ? ['response_format' => ['type' => 'json_object'], 'max_tokens' => $this->reasoningEffort === 'none' ? 3500 : 16000, 'temperature' => 0.2] : []));
 
                     if ($response->successful()) {
                         $payload = $response->json();
