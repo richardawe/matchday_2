@@ -5,7 +5,7 @@ set -Eeuo pipefail
 
 mode=${1:-}
 case "$mode" in
-    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-growth|radio-check|configure-radio|configure-radio-model|configure-radio-voice|configure-reel-voice|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-growth|radio-check|configure-radio|configure-radio-model|configure-radio-voice|configure-griot|configure-reel-voice|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
     *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-growth"; exit 2 ;;
 esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
@@ -236,6 +236,16 @@ elif [[ "$mode" == configure-radio-voice ]]; then
     radio_voice=${INPUT_RADIO_VOICE:-griot}
     [[ "$radio_voice" =~ ^(griot|[a-z]{2}_[a-z]+)$ ]] || { echo "Invalid radio voice."; exit 1; }
     ssh "${ssh_options[@]}" "$target" "cd $root && printf '%s' '{\"RADIO_VOICE\":\"$radio_voice\"}' | php scripts/set-env.php && php artisan config:cache --no-ansi && echo 'Radio voice: $radio_voice'"
+elif [[ "$mode" == configure-griot ]]; then
+    # GRIOT_TIMELINE / GRIOT_VOICE; "unchanged" leaves a setting alone. Voice clips need the radio Node runtime.
+    settings=""
+    for pair in "GRIOT_TIMELINE:${INPUT_GRIOT_TIMELINE:-unchanged}" "GRIOT_VOICE:${INPUT_GRIOT_VOICE:-unchanged}"; do
+        key=${pair%%:*}; value=${pair#*:}
+        case "$value" in on) value=true ;; off) value=false ;; unchanged) continue ;; *) echo "Invalid $key setting."; exit 1 ;; esac
+        settings="$settings${settings:+,}\"$key\":\"$value\""
+    done
+    [[ -n "$settings" ]] || { echo "Nothing to change."; exit 0; }
+    ssh "${ssh_options[@]}" "$target" "cd $root && printf '%s' '{$settings}' | php scripts/set-env.php && php artisan config:cache --no-ansi && php artisan migrate:status --no-ansi | grep -i griot; grep -E '^(GRIOT_TIMELINE|GRIOT_VOICE|RADIO_VOICE)=' .env; test -d radio/node_modules && echo 'Radio runtime: installed' || echo 'Radio runtime: missing (voice clips need it; run radio-check)'"
 elif [[ "$mode" == configure-reel-voice ]]; then
     # Kokoro commentary over new reels (REEL_NARRATION); uses the radio runtime already on the server.
     case "${INPUT_REEL_VOICE:-off}" in on) narration=true ;; off) narration=false ;; *) echo "Invalid reel voice setting."; exit 1 ;; esac
