@@ -160,6 +160,10 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   English only (Kokoro has no Pidgin/Swahili voice).
 - Picker and writer are not trained yet: the teacher labelling needs `OPENROUTER_API_KEY` (`griot-ml/label.py`) and the
   writer fine-tune a GPU. Until then the strict rules pick and the templates speak.
+- Next step proposed (not built yet, waiting for the owner's go-ahead): "Plan A" writer the Requstory way: OpenRouter writes a large
+  library of Griot lines with slots per moment kind; a CPU-trained bge-small head (as in requstory-ml `train.py`) chooses the
+  line; slots are filled from facts. No GPU. "Plan B" (later): LoRA on Qwen3-0.6B on a Mac (`mps`) or Colab.
+  Needs `OPENROUTER_API_KEY` in the environment to run fetch → label → train.
 
 ### Matchday Radio (21 Oct 2026)
 - Live automatic publishing is enabled at 06:00/12:00/18:00 Lagos time; the minute cron is verified.
