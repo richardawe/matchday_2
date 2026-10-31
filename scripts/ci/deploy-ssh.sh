@@ -5,7 +5,7 @@ set -Eeuo pipefail
 
 mode=${1:-}
 case "$mode" in
-    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-growth|radio-check|configure-radio|configure-radio-model|configure-reel-voice|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-growth|radio-check|configure-radio|configure-radio-model|configure-radio-voice|configure-reel-voice|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
     *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-growth"; exit 2 ;;
 esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
@@ -231,6 +231,11 @@ elif [[ "$mode" == configure-radio-model ]]; then
     [[ "$radio_model" == default ]] && radio_model=""
     [[ -z "$radio_model" || "$radio_model" =~ ^[a-z0-9][a-z0-9._/:-]*$ ]] || { echo "Invalid OpenRouter model ID."; exit 1; }
     ssh "${ssh_options[@]}" "$target" "cd $root && printf '%s' '{\"RADIO_MODEL\":\"$radio_model\"}' | php scripts/set-env.php && php artisan config:cache --no-ansi && php -r 'require \"vendor/autoload.php\"; \$app = require \"bootstrap/app.php\"; \$app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); echo \"Radio model: \".(config(\"radio.model\") ?: config(\"services.openrouter.model\").\" (site default)\").PHP_EOL;'"
+elif [[ "$mode" == configure-radio-voice ]]; then
+    # The voice of the daily bulletins: "griot" (radio/griot-sound.mjs) or a stock Kokoro voice ID.
+    radio_voice=${INPUT_RADIO_VOICE:-griot}
+    [[ "$radio_voice" =~ ^(griot|[a-z]{2}_[a-z]+)$ ]] || { echo "Invalid radio voice."; exit 1; }
+    ssh "${ssh_options[@]}" "$target" "cd $root && printf '%s' '{\"RADIO_VOICE\":\"$radio_voice\"}' | php scripts/set-env.php && php artisan config:cache --no-ansi && echo 'Radio voice: $radio_voice'"
 elif [[ "$mode" == configure-reel-voice ]]; then
     # Kokoro commentary over new reels (REEL_NARRATION); uses the radio runtime already on the server.
     case "${INPUT_REEL_VOICE:-off}" in on) narration=true ;; off) narration=false ;; *) echo "Invalid reel voice setting."; exit 1 ;; esac

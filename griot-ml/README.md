@@ -48,6 +48,8 @@ python3 train_writer.py eval                  # held-out fact-check pass rate
 python3 train_writer.py export                # 4-bit ONNX for transformers.js -> models/griot-writer
 ```
 
+No GPU? Open `train_writer_colab.ipynb` in Google Colab (free T4) for the train / eval / export steps.
+
 `python3 train_picker.py --rules-as-labels` runs the whole picker pipeline without labels (a smoke test).
 
 ## Ship

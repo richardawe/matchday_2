@@ -146,7 +146,8 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `WHATSAPP_CHANNEL_URL` | empty | WhatsApp channel invite link for the homepage/match CTA |
 | `BUFFER_MONTHLY_REQUESTS` / `_SOFT_LIMIT` / `_HARD_LIMIT` | 3000 / 2500 / 2900 | Buffer API budget, counted in `buffer_usage`; posting stops at the hard limit |
 | `GRIOT_TIMELINE` | false | Store ESPN commentary as plays and show the live Griot timeline on match pages |
-| `GRIOT_VOICE` / `GRIOT_VOICE_BLEND` / `GRIOT_VOICE_SPEED` | false / bm_george:0.6,am_onyx:0.4 / 0.92 | Kokoro clips per post in the Griot's voice (blend of two Kokoro voices, lowered, warmed, talking-drum call); files in `public/generated/griot/` |
+| `GRIOT_VOICE` / `GRIOT_VOICE_BLEND` / `GRIOT_VOICE_SPEED` | false / bm_george:0.6,am_onyx:0.4 / 0.92 | Kokoro clips per post in the Griot's voice (blend of two Kokoro voices, lowered, warmed) over a talking-drum groove with whistles, crowd and drum effects (`radio/griot-sound.mjs`); files in `public/generated/griot/`. Blend and speed also shape the radio's Griot voice |
+| `RADIO_VOICE` | griot | Daily bulletin voice: `griot` (with groove and effects) or a Kokoro voice ID |
 | `GRIOT_WRITER` / `GRIOT_WRITER_MODEL` | false / storage/app/griot/writer | Fine-tuned Qwen3-0.6B writer (transformers.js); every caption fact-checked, templates otherwise |
 | `GRIOT_PICKER_MODEL` | storage/app/griot/picker.json | Learned moment picker; missing file = strict rules |
 
@@ -172,9 +173,12 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 - Homepage radio sits above reels; `/listen`, `/listen/feed.xml`, admin `/admin/radio`.
 - Only `RADIO_NEWS_SOURCES` is approved for radio; source permissions are not assumed.
 - 22 Oct 2026: the owner decided radio may repeat source wording as long as the source is credited on air; the 12-word copy check was removed. Credits and rumour labels are still enforced.
+- 31 Oct 2026: the owner chose the Griot as the radio voice (`RADIO_VOICE=griot`, the default): blended Kokoro voice over a
+  synthesised talking-drum groove with sound effects (`radio/griot-sound.mjs`, shared with the live timeline clips).
+  Switch with Server operations → `configure-radio-voice` (`griot` or a Kokoro voice ID such as `bm_george`).
 - Radio uses its own model: `RADIO_MODEL` (production: `anthropic/claude-haiku-5.5`, medium reasoning kept out of the reply), falling back to `OPENROUTER_MODEL`.
 - Read `matchday-africa/docs/RADIO.md` for Node/FFmpeg setup, pilot, publishing and recovery.
-- Server operations: `radio-check`, `configure-radio` (draft/auto/off), `configure-radio-model` (`RADIO_MODEL`, e.g. `anthropic/claude-haiku-5.5`; `default` = `OPENROUTER_MODEL`), `radio-run`, `radio-status`, `radio-voice`, `radio-publish`.
+- Server operations: `radio-check`, `configure-radio` (draft/auto/off), `configure-radio-model` (`RADIO_MODEL`, e.g. `anthropic/claude-haiku-5.5`; `default` = `OPENROUTER_MODEL`), `radio-run`, `radio-status`, `radio-voice`, `radio-publish`, `configure-radio-voice`.
 
 - Live `APP_TIMEZONE` was verified as `Africa/Lagos` on 19 October 2026; the production
   template now matches it. Kick-off display formatting remains a separate issue (rule 5).
