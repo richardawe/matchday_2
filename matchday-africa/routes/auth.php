@@ -47,6 +47,10 @@ Route::middleware('guest')->group(function () {
         Route::get('auth/google/redirect', [SocialAuthController::class, 'handleGoogleRedirect'])
             ->name('auth.google.redirect.alt');
         
+        // Server-side start of the Google sign-in (one tap from the guest prediction prompt).
+        Route::get('auth/google', [SocialAuthController::class, 'redirectToGoogle'])
+            ->name('auth.google.start');
+
         Route::get('auth/twitter/callback', [SocialAuthController::class, 'handleTwitterCallback'])
             ->name('auth.twitter.callback');
 });

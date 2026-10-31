@@ -131,6 +131,10 @@ Route::get('/premium', [CommerceController::class, 'premium'])->name('premium.in
 Route::get('/sponsors/{sponsor}/go', [SponsorController::class, 'click'])->name('sponsors.click');
 Route::post('/stripe/webhook', StripeWebhookController::class)->name('stripe.webhook');
 
+// Predictions: open to visitors too (a guest pick is saved and moves onto the account at signup).
+Route::post('/matches/{match}/prediction', [App\Http\Controllers\MatchPredictionController::class, 'store'])->middleware('throttle:20,1')->name('matches.prediction.store');
+Route::get('/prediction-leagues/invite/{code}', [ExperienceController::class, 'invite'])->where('code', '[A-Za-z0-9]{4,10}')->name('groups.invite');
+
 // Chat routes (viewing is public)
 Route::get('/matches/{match}/chats', [ChatController::class, 'getMessages'])->name('matches.chats');
 
@@ -150,7 +154,6 @@ Route::get('/api/popular-content', [SocialSharingController::class, 'getPopularC
 // ============================================================================
 
 Route::middleware('auth')->group(function () {
-    Route::post('/matches/{match}/prediction', [App\Http\Controllers\MatchPredictionController::class, 'store'])->name('matches.prediction.store');
     Route::get('/checkout/success', [CommerceController::class, 'success'])->name('commerce.success');
     Route::post('/checkout/{product:slug}', [CommerceController::class, 'checkout'])->name('commerce.checkout');
     Route::get('/library', [CommerceController::class, 'library'])->name('library.index');

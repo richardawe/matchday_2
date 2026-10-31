@@ -587,3 +587,26 @@
 .md-follow-list small{color:var(--md-muted);font-size:.75rem}
 @media(max-width:640px){.md-follow-list{width:100%}.md-follow-list li{flex:1 1 100%}}
 .md-room-follow{display:flex;align-items:center;justify-content:center;gap:.9rem;margin-top:1rem;font-size:.68rem;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--md-muted)}
+
+/* Guest prediction prompt and one-tap signup */
+.md-save-pick{margin-top:1.5rem;padding:1.2rem;border:1px solid var(--md-gold);background:#0c0d0b;color:var(--md-paper)}
+.md-save-pick.is-new{animation:md-pick-in .4s ease-out}
+@keyframes md-pick-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.md-save-pick h3{font:700 1.5rem/1.1 Georgia,serif;margin-bottom:.4rem}
+.md-save-pick>p:not(.md-eyebrow){color:var(--md-muted);font-size:.92rem;margin-bottom:1rem}
+.md-signup-options{display:grid;gap:.6rem}
+.md-google{display:flex;align-items:center;justify-content:center;gap:.6rem;min-height:3rem;background:#fff;color:#1f1f1f!important;font-weight:700;border-radius:.25rem}
+.md-signup-or{text-align:center;color:var(--md-muted);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase}
+.md-signup-email{display:grid;gap:.5rem}
+.md-signup-email input{width:100%;min-height:2.9rem;padding:.6rem .8rem;background:#080907;border:1px solid #554735;color:var(--md-paper)}
+.md-signup-email .md-primary{min-height:3rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.md-signup-error{color:#f28b82;font-size:.85rem}
+.md-signup-login{font-size:.82rem;color:var(--md-muted)}.md-signup-login a{color:var(--md-gold-bright);text-decoration:underline}
+.md-league-tabs{display:flex;gap:.5rem;margin:1.5rem 0 .5rem}
+.md-league-tabs a{padding:.5rem .9rem;border:1px solid var(--md-line);color:var(--md-muted)!important;font-size:.72rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.md-league-tabs a.is-active{border-color:var(--md-gold);color:var(--md-gold-bright)!important}
+.md-league-week{color:var(--md-muted);font-size:.85rem}
+.md-table>div.is-me{background:rgba(210,160,82,.08)}
+.md-table small{color:var(--md-muted);font-size:.75rem;margin-left:.4rem}
+.md-league-invite{margin:2rem 0}.md-league-invite p{color:var(--md-muted);margin:.4rem 0}
+.md-join-panel{margin-top:1.5rem;max-width:28rem}.md-join-panel>p{color:var(--md-muted);margin:.4rem 0 1rem}
