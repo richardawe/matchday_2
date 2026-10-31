@@ -610,3 +610,11 @@
 .md-table small{color:var(--md-muted);font-size:.75rem;margin-left:.4rem}
 .md-league-invite{margin:2rem 0}.md-league-invite p{color:var(--md-muted);margin:.4rem 0}
 .md-join-panel{margin-top:1.5rem;max-width:28rem}.md-join-panel>p{color:var(--md-muted);margin:.4rem 0 1rem}
+
+/* Share bar (WhatsApp, X, copy link) */
+.md-share-bar{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-top:1rem}
+.md-share-label{font-size:.68rem;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--md-muted);margin-right:.25rem}
+.md-share-bar a,.md-share-bar button{display:inline-flex;align-items:center;gap:.45rem;min-height:2.6rem;padding:.5rem .85rem;border:1px solid #5b4933;background:#0c0d0b;color:var(--md-paper)!important;font-size:.75rem;font-weight:800;letter-spacing:.06em;cursor:pointer}
+.md-share-bar a:hover,.md-share-bar button:hover{border-color:var(--md-gold);color:var(--md-gold-bright)!important}
+.md-share-bar [data-share-network=whatsapp] svg{color:#25d366}
+.md-room-head .md-share-bar{justify-content:center}

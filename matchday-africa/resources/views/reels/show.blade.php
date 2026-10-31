@@ -13,6 +13,7 @@
                 <a class="md-primary" href="{{ $reel['link'] }}">Full story and stats</a>
                 <a class="md-secondary" href="{{ $reel['video'] }}" download>Save the video</a>
             </div>
+            <x-share-bar :url="$reel['page']" :text="'Watch '.$reel['title'].' in 20 seconds.'" campaign="reel" />
             @if($more->isNotEmpty())
                 <p class="md-eyebrow">MORE REELS</p>
                 <div class="md-reels-rail" role="list" aria-label="More reels">

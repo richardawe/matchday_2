@@ -19,7 +19,7 @@
             <h2>Invite your people</h2>
             <p>Anyone with this link can join. New fans sign up in one tap and land straight in the table.</p>
             <input type="text" readonly value="{{ $inviteUrl }}" aria-label="Invite link" onclick="this.select()">
-            <a class="md-primary" href="https://wa.me/?text={{ rawurlencode('Join my prediction league '.$group->name.' on Matchday Africa: '.$inviteUrl) }}" target="_blank" rel="noopener">Share on WhatsApp</a>
+            <x-share-bar :url="$inviteUrl" :text="'Join my prediction league '.$group->name.' on Matchday Africa. Call the scores, top the weekly table.'" campaign="league_invite" />
         </div>
     @endif
     <a class="md-secondary" href="{{ route('matches.index') }}">Make this week's picks</a>

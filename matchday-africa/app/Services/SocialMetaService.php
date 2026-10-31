@@ -176,7 +176,7 @@ class SocialMetaService
             'og:description' => $this->getContentDescription($match),
             'og:image' => $this->generateSocialImage($match),
             'og:image:width' => '1200',
-            'og:image:height' => '630',
+            'og:image:height' => request()->query('moment') ? '630' : '675',
             'og:image:alt' => "{$homeTeam} vs {$awayTeam} in {$league}",
         ];
     }
@@ -257,17 +257,18 @@ class SocialMetaService
      */
     protected function getMatchSocialImage(FootballMatch $match): string
     {
-        // A shared chapter link (?moment=) previews that chapter; otherwise the latest one.
+        // A shared chapter link (?moment=) previews that chapter's card.
         $stories = app(\App\Services\MatchStoryService::class);
-        if ($stories->ready()) {
-            $chapters = $stories->chapters($match);
-            $chapter = $chapters->firstWhere('id', (int) request()->query('moment')) ?? $chapters->last();
+        if (request()->query('moment') && $stories->ready()) {
+            $chapter = $stories->chapters($match)->firstWhere('id', (int) request()->query('moment'));
             if ($chapter) {
                 return $chapter->cardUrl(\App\Services\Griot::voiceFor(request()), 'og');
             }
         }
 
-        return route('images.social-default', ['v' => '20260823']);
+        // Otherwise the match card (fixture before, result after); the version changes with the
+        // score so link previews refresh at full time.
+        return route('matches.card', ['match' => $match, 'v' => substr(md5($match->status.'|'.$match->home_score.'|'.$match->away_score), 0, 8)]);
     }
 
     /**

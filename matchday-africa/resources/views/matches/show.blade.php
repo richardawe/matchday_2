@@ -5,6 +5,8 @@
     <div class="md-scoreboard"><div>@if($warTeams['home'])<img class="md-war-avatar" src="{{ $warTeams['home'] }}" alt="">@elseif($match->homeTeam?->logo)<img class="md-war-avatar" src="{{ $match->homeTeam->logo }}" alt="">@endif<strong>{{ $match->homeTeam?->name }}</strong></div><b><span id="match-home-score">{{ $match->home_score ?? '–' }}</span> <i>:</i> <span id="match-away-score">{{ $match->away_score ?? '–' }}</span></b><div>@if($warTeams['away'])<img class="md-war-avatar" src="{{ $warTeams['away'] }}" alt="">@elseif($match->awayTeam?->logo)<img class="md-war-avatar" src="{{ $match->awayTeam->logo }}" alt="">@endif<strong>{{ $match->awayTeam?->name }}</strong></div></div>
     <p class="text-center mt-4"><span id="match-status">{{ $match->live_label }}</span> · {{ $match->match_date->format('D, j M · H:i') }}@if($match->venue_name) · {{ $match->venue_name }}@endif @if($match->referee_name) · Referee {{ $match->referee_name }}@endif</p>
     <div class="md-room-actions"><a class="md-primary" href="#prediction-arena">Predict this match</a><a class="md-primary" href="{{ route('war.match',$match) }}#game">Kick off Matchday War</a><button class="md-secondary md-share" data-share-title="{{ $match->homeTeam?->name }} vs {{ $match->awayTeam?->name }}" data-share-text="Make your prediction on Matchday Africa.">Share</button></div>
+    @php($matchTitle = $match->homeTeam?->name.($match->isFinished() ? " {$match->home_score}–{$match->away_score} " : ' v ').$match->awayTeam?->name)
+    <x-share-bar :url="route('matches.show', $match)" :text="$match->isFinished() ? $matchTitle.': the story, the reel and the stats.' : $matchTitle.': who wins? Make your call on Matchday Africa.'" campaign="match" />
     <div class="md-room-follow"><span>Follow Matchday Africa</span><x-social-follow /></div>
 </div></section>
 
@@ -20,6 +22,9 @@
         @php($pickAway = auth()->check() ? $pick?->away_score_prediction : $pick?->away_score)
         @if($predictionOpen)<form method="POST" action="{{ route('matches.prediction.store',$match) }}" class="mt-6">@csrf<div class="flex items-end justify-center gap-4"><label class="text-center text-sm">{{ $match->homeTeam?->short_code ?: 'HOME' }}<input name="home_score" required type="number" min="0" max="20" value="{{ old('home_score',$pickHome) }}" class="block mt-2 w-20 rounded-xl bg-white text-gray-950 text-3xl font-black text-center"></label><b class="text-3xl pb-3">:</b><label class="text-center text-sm">{{ $match->awayTeam?->short_code ?: 'AWAY' }}<input name="away_score" required type="number" min="0" max="20" value="{{ old('away_score',$pickAway) }}" class="block mt-2 w-20 rounded-xl bg-white text-gray-950 text-3xl font-black text-center"></label></div><button class="w-full mt-5 rounded-xl bg-red-600 hover:bg-red-700 py-3 font-bold">{{ $pick?'Update prediction':'Lock in prediction' }}</button>@guest<p class="mt-3 text-center text-sm text-gray-400">No account needed to make your call.</p>@endguest</form>
         @else<p class="mt-6 rounded-xl bg-gray-800 p-4 font-bold">Predictions are closed.</p>@endif
+        @if($pick && $pickHome !== null)
+            <x-share-bar :url="route('matches.show', $match).'#prediction-arena'" :text="'I\'ve called '.$match->homeTeam?->name.' '.$pickHome.'–'.$pickAway.' '.$match->awayTeam?->name.'. Think you know better?'" campaign="prediction" label="Share your pick" />
+        @endif
         @guest
             @if($guestPick ?? null)
                 <div @class(['md-save-pick', 'is-new' => session('guest_pick')]) id="save-pick" role="region" aria-labelledby="save-pick-title">

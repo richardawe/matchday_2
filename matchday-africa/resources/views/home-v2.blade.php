@@ -21,7 +21,7 @@
                 <p class="md-reels-now"><span data-reels-title>{{ $featured['title'] }}</span></p>
                 <div class="md-home-actions">
                     <a class="md-primary" data-reels-link href="{{ $featured['link'] }}">Full story and stats</a>
-                    <a class="md-secondary" data-reels-share href="https://wa.me/?text={{ rawurlencode('Watch '.$featured['title'].' in 20 seconds '.$featured['link']) }}" target="_blank" rel="noopener">Share on WhatsApp</a>
+                    <a class="md-secondary" data-reels-share href="https://wa.me/?text={{ rawurlencode('Watch '.$featured['title'].' in 20 seconds '.\App\Support\ShareLink::tagged($featured['page'], 'whatsapp', 'reel')) }}" target="_blank" rel="noopener">Share on WhatsApp</a>
                 </div>
             @else
                 <p class="md-reels-now">Every Premier League match gets a 20-second reel minutes after the final whistle. This round's reels appear here.</p>
@@ -30,7 +30,7 @@
             @if($reels['rail']->isNotEmpty())
                 <div class="md-reels-rail" role="list" aria-label="More reels">
                     @foreach($reels['rail'] as $reel)
-                        <button type="button" role="listitem" class="md-reels-thumb" data-reel-video="{{ $reel['video'] }}" data-reel-poster="{{ $reel['poster'] }}" data-reel-title="{{ $reel['title'] }}" data-reel-link="{{ $reel['link'] }}">
+                        <button type="button" role="listitem" class="md-reels-thumb" data-reel-video="{{ $reel['video'] }}" data-reel-poster="{{ $reel['poster'] }}" data-reel-title="{{ $reel['title'] }}" data-reel-link="{{ $reel['link'] }}" data-reel-share="{{ \App\Support\ShareLink::tagged($reel['page'], 'whatsapp', 'reel') }}">
                             @if($reel['poster'])<img src="{{ $reel['poster'] }}" alt="" loading="lazy" width="108" height="192">@endif
                             <span>{{ $reel['title'] }}</span>
                         </button>

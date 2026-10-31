@@ -214,7 +214,7 @@
         <script>
         (()=>{let id=document.cookie.match(/md_visitor=([^;]+)/)?.[1];if(!id){id=(crypto.randomUUID?.()||Date.now()+'-'+Math.random());document.cookie='md_visitor='+id+';path=/;max-age=31536000;SameSite=Lax'}
         const track=(event,properties={})=>fetch('{{ route('analytics.track') }}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content},body:JSON.stringify({event,path:location.pathname,properties}),keepalive:true}).catch(()=>{});
-        track('page_view');document.addEventListener('click',e=>{const share=e.target.closest('.md-share');if(share){const data={title:share.dataset.shareTitle,text:share.dataset.shareText,url:location.href};track('share_started',{title:data.title});navigator.share?navigator.share(data):navigator.clipboard.writeText(location.href).then(()=>{share.textContent='Link copied'})}});})();
+        track('page_view');document.addEventListener('click',e=>{const net=e.target.closest('[data-share-network]');if(net){track('share_click',{network:net.dataset.shareNetwork,campaign:net.closest('[data-share-campaign]')?.dataset.shareCampaign});}if(e.target.closest('.md-copy-link'))return;const share=e.target.closest('.md-share');if(share){const data={title:share.dataset.shareTitle,text:share.dataset.shareText,url:location.href};track('share_started',{title:data.title});navigator.share?navigator.share(data):navigator.clipboard.writeText(location.href).then(()=>{share.textContent='Link copied'})}});})();
         </script>
     </body>
 </html>
