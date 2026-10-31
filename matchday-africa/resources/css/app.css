@@ -647,3 +647,17 @@
 .md-community-chats a{display:grid;gap:.3rem;padding:1rem;border:1px solid var(--md-line);background:var(--md-panel);color:var(--md-paper)!important}
 .md-community-chats small{color:var(--md-muted);font-size:.72rem}
 .md-community-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(18rem,1fr));gap:1rem;margin:1rem 0 2rem}
+
+/* Signup nudge (guests, after 3 pages or a reel play) */
+.md-nudge{position:fixed;z-index:60;right:1rem;bottom:1rem;width:min(24rem,calc(100% - 2rem));padding:1.3rem;background:var(--md-panel);border:1px solid var(--md-gold);color:var(--md-paper);box-shadow:0 24px 60px rgba(0,0,0,.55);animation:md-pick-in .35s ease-out}
+.md-nudge[hidden]{display:none}
+.md-nudge h2{font:700 1.45rem/1.1 Georgia,serif;margin-bottom:.7rem;padding-right:1.5rem}
+.md-nudge ul{display:grid;gap:.55rem;margin-bottom:1rem}
+.md-nudge li{font-size:.86rem;color:var(--md-muted);line-height:1.35}
+.md-nudge li b{display:block;color:var(--md-paper);font-size:.8rem;letter-spacing:.06em;text-transform:uppercase}
+.md-nudge-actions{display:grid;gap:.5rem}
+.md-nudge-actions .md-primary{display:flex;align-items:center;justify-content:center;min-height:2.9rem;font-size:.75rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.md-nudge-close{position:absolute;top:.5rem;right:.7rem;font-size:1.5rem;line-height:1;color:var(--md-muted);background:none;border:0;cursor:pointer}
+.md-nudge-later{font-size:.78rem;color:var(--md-muted);background:none;border:0;text-decoration:underline;cursor:pointer}
+@media(max-width:640px){.md-nudge{left:0;right:0;bottom:0;width:100%;border-width:1px 0 0}}
+@media(prefers-reduced-motion:reduce){.md-nudge,.md-save-pick.is-new{animation:none}}
