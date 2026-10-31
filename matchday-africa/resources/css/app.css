@@ -618,3 +618,14 @@
 .md-share-bar a:hover,.md-share-bar button:hover{border-color:var(--md-gold);color:var(--md-gold-bright)!important}
 .md-share-bar [data-share-network=whatsapp] svg{color:#25d366}
 .md-room-head .md-share-bar{justify-content:center}
+
+/* WhatsApp channel CTA */
+.md-wa-channel{padding:1.4rem 0;border-bottom:1px solid var(--md-line);background:linear-gradient(100deg,#0b1a12,#0c0d0b 70%)}
+.md-wa-inner{display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap}
+.md-wa-inner>svg{color:#25d366;flex:none}
+.md-wa-inner>div{flex:1 1 18rem}
+.md-wa-channel h2{font:700 clamp(1.25rem,2.6vw,1.6rem)/1.15 Georgia,serif}
+.md-wa-channel p:not(.md-eyebrow){color:var(--md-muted);font-size:.9rem;margin-top:.25rem}
+.md-wa-join{display:inline-flex;align-items:center;justify-content:center;min-height:3rem;padding:.75rem 1.2rem;background:#25d366;color:#04140a!important;font-size:.75rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.md-wa-join:hover{background:#3be07b}
+@media(max-width:640px){.md-wa-join{width:100%}}

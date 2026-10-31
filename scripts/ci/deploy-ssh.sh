@@ -5,8 +5,8 @@ set -Eeuo pipefail
 
 mode=${1:-}
 case "$mode" in
-    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|radio-check|configure-radio|configure-radio-model|configure-reel-voice|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
-    *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home"; exit 2 ;;
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-growth|radio-check|configure-radio|configure-radio-model|configure-reel-voice|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
+    *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-growth"; exit 2 ;;
 esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
     [[ -n "${!variable:-}" ]] || { echo "Missing production secret: $variable"; exit 1; }
@@ -256,6 +256,15 @@ elif [[ "$mode" == configure-home ]]; then
         *) echo "home_v2 must be on or off."; exit 1 ;;
     esac
     printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/set-env.php && php artisan config:cache --no-ansi"
+elif [[ "$mode" == configure-growth ]]; then
+    # The "Join our WhatsApp channel" CTA: a channel invite link, or none to hide it.
+    url=${INPUT_WHATSAPP_CHANNEL_URL:-none}
+    if [[ "$url" == none ]]; then
+        url=''
+    elif [[ ! "$url" =~ ^https://(www\.)?whatsapp\.com/channel/[A-Za-z0-9_-]+$ ]]; then
+        echo "whatsapp_channel_url must look like https://whatsapp.com/channel/XXXX (or none)."; exit 1
+    fi
+    printf '{"WHATSAPP_CHANNEL_URL":"%s"}' "$url" | ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/set-env.php && php artisan config:cache --no-ansi"
 else
     [[ "${GITHUB_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || { echo "Missing release commit SHA."; exit 1; }
     ssh "${ssh_options[@]}" "$target" "bash -s -- $root $GITHUB_SHA" <<'REMOTE'

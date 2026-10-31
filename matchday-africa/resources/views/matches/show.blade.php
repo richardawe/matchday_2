@@ -10,6 +10,7 @@
     <div class="md-room-follow"><span>Follow Matchday Africa</span><x-social-follow /></div>
 </div></section>
 
+<x-whatsapp-channel context="match" />
 <div id="match-story">@include('partials.match-story')</div>
 @if(!empty($reel))<x-social-follow variant="block" context="match" title="Follow for every reel like this one." />@endif
 
