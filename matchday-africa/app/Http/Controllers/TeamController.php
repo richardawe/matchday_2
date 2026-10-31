@@ -128,7 +128,7 @@ class TeamController extends Controller
                 'upcomingMatches', 
                 'teamStats',
                 'playersByPosition'
-            ));
+            ))->with('content', $team);
 
         } catch (\Exception $e) {
             \Log::error('Team show error: ' . $e->getMessage());

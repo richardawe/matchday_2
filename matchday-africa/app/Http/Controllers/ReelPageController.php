@@ -26,6 +26,18 @@ class ReelPageController extends Controller
         $more = collect([$list['featured']])->filter()->concat($list['rail'])
             ->reject(fn ($r) => $r['id'] === $match->id)->take(6)->values();
 
-        return view('reels.show', ['match' => $match, 'reel' => $reel, 'more' => $more])->with('content', $match);
+        return view('reels.show', ['match' => $match, 'reel' => $reel, 'more' => $more])->with('content', [
+            'title' => "{$reel['title']} in 20 seconds: the match reel | Matchday Africa",
+            'description' => "Watch every goal and red card from {$match->homeTeam?->name} v {$match->awayTeam?->name} ({$match->league?->name}) in a 20-second reel, made minutes after full time.",
+            'url' => $reel['page'],
+            'type' => 'video.other',
+            'image' => route('matches.card', ['match' => $match, 'v' => substr(md5($match->status.'|'.$match->home_score.'|'.$match->away_score), 0, 8)]),
+            'image_width' => '1200', 'image_height' => '675',
+            'video' => $reel['video'],
+            'json_ld' => array_filter(['@context' => 'https://schema.org', '@type' => 'VideoObject', 'name' => "{$reel['title']}: the 20-second reel",
+                'description' => "Every goal and red card from {$match->homeTeam?->name} v {$match->awayTeam?->name} in twenty seconds.",
+                'thumbnailUrl' => [$reel['poster'] ?? route('matches.card', $match)], 'uploadDate' => data_get($match->metadata, 'reel.ready_at') ?? $match->updated_at?->toIso8601String(),
+                'duration' => 'PT20S', 'contentUrl' => $reel['video'], 'embedUrl' => $reel['page']]),
+        ]);
     }
 }

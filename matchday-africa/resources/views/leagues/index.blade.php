@@ -1,4 +1,6 @@
 @extends('layouts.public')
+@section('meta_title', 'Football leagues and competitions: tables and fixtures | Matchday Africa')
+@section('meta_description', 'Tables, fixtures and results for the Premier League, AFCON, NPFL and the competitions African fans follow.')
 
 @section('content')
     <!-- Header -->

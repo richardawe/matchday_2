@@ -1,4 +1,6 @@
 @extends('layouts.public')
+@section('meta_title', 'Live scores, fixtures and results today | Matchday Africa')
+@section('meta_description', 'Live football scores, today\'s fixtures and results from the Premier League, AFCON, NPFL and more. Predict any match free.')
 
 @section('content')
 @php

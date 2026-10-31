@@ -6,62 +6,32 @@ use App\Services\SocialMetaService;
 use Illuminate\View\Component;
 use Illuminate\View\View;
 
+/**
+ * The <head> tags for SEO and link previews. A page passes its subject as $content, or sets
+ * @section('meta_title'), @section('meta_description'), @section('meta_image') and
+ * @section('meta_robots') for pages without one.
+ */
 class SocialMeta extends Component
 {
-    public $content;
-    public $metaData;
+    public array $metaData;
 
-    /**
-     * Create a new component instance.
-     */
-    public function __construct($content = null)
+    public function __construct(public $content = null)
     {
-        $this->content = $content;
-        
-        if ($content) {
-            $socialMetaService = app(SocialMetaService::class);
-            $this->metaData = $socialMetaService->getSocialPreviewData($content);
-        } else {
-            // Default meta data for pages without specific content
-            $this->metaData = $this->getDefaultMetaData();
-        }
+        $views = app('view');
+        $sections = array_filter([
+            'title' => trim($views->yieldContent('meta_title')),
+            'description' => trim($views->yieldContent('meta_description')),
+            'image' => trim($views->yieldContent('meta_image')),
+            'robots' => trim($views->yieldContent('meta_robots')),
+        ]);
+        // Section text arrives HTML-escaped; the meta view escapes again on output.
+        $sections = array_map(fn ($v) => html_entity_decode($v, ENT_QUOTES | ENT_HTML5), $sections);
+
+        $this->metaData = app(SocialMetaService::class)->getSocialPreviewData($content, $sections);
     }
 
-    /**
-     * Get the view / contents that represent the component.
-     */
     public function render(): View
     {
         return view('components.social-meta');
-    }
-
-    /**
-     * Get default meta data for pages without specific content
-     */
-    protected function getDefaultMetaData(): array
-    {
-        return [
-            'title' => 'Matchday Africa - Football Match Tracking & Predictions',
-            'description' => 'Your ultimate destination for football match tracking, live scores, predictions, and more! Follow your favorite teams and leagues.',
-            'image' => route('images.social-default', ['v' => '20260823']),
-            'url' => config('app.url'),
-            'open_graph' => [
-                'og:type' => 'website',
-                'og:site_name' => config('app.name', 'Matchday Africa'),
-                'og:title' => 'Matchday Africa - Football Match Tracking & Predictions',
-                'og:description' => 'Your ultimate destination for football match tracking, live scores, predictions, and more!',
-                'og:image' => route('images.social-default', ['v' => '20260823']),
-                'og:image:width' => '1200',
-                'og:image:height' => '630',
-                'og:url' => config('app.url'),
-            ],
-            'twitter_card' => [
-                'twitter:card' => 'summary_large_image',
-                'twitter:site' => '@matchdayafrica',
-                'twitter:title' => 'Matchday Africa - Football Match Tracking & Predictions',
-                'twitter:description' => 'Your ultimate destination for football match tracking, live scores, predictions, and more!',
-                'twitter:image' => route('images.social-default', ['v' => '20260823']),
-            ],
-        ];
     }
 }

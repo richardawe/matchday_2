@@ -5,7 +5,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>Account — Matchday Africa</title>
+        <x-social-meta :content="request()->routeIs('register')
+            ? ['title' => 'Join Matchday Africa free: predictions league, match alerts and radio', 'description' => 'Create a free account to save your predictions, join leagues with friends, get match alerts and listen to Matchday Radio.']
+            : ['title' => 'Your account | Matchday Africa', 'robots' => 'noindex, follow']" />
         <x-favicon />
 
         <!-- Fonts -->

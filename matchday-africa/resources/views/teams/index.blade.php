@@ -1,4 +1,6 @@
 @extends('layouts.public')
+@section('meta_title', 'Football teams: fixtures, results and squads | Matchday Africa')
+@section('meta_description', 'Find your club: fixtures, results, live scores and squads for every team Matchday Africa follows.')
 
 @section('content')
 <div class="py-8">

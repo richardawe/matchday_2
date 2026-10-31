@@ -1,4 +1,6 @@
 @extends('layouts.public')
+@section('meta_title', '20-second match reels: every Premier League game | Matchday Africa')
+@section('meta_description', 'Every Premier League match told in 20 seconds, minutes after the final whistle. Watch, then share to WhatsApp Status, TikTok or Reels.')
 @section('content')
 <section class="md-phase"><div class="md-wrap">
     <p class="md-eyebrow">THE 20-SECOND REELS</p>

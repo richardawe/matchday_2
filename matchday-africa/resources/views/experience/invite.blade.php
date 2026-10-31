@@ -1,4 +1,6 @@
 @extends('layouts.public')
+@section('meta_title', 'Join '.$group->name.', a football prediction league | Matchday Africa')
+@section('meta_description', 'You\'re invited to '.$group->name.' on Matchday Africa. Call the scores, top the weekly table. Free to join.')
 @section('content')
 <section class="md-phase"><div class="md-wrap md-narrow">
     <p class="md-eyebrow">YOU'RE INVITED · PREDICTION LEAGUE</p>

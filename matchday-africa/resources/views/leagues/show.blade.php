@@ -1,4 +1,6 @@
 @extends('layouts.public')
+@section('meta_title', $league->name.': table, fixtures and results | Matchday Africa')
+@section('meta_description', 'The '.$league->name.' table, fixtures, results and live scores. Predict every match free on Matchday Africa.')
 
 @section('content')
 <div class="py-12">
