@@ -1,2 +1,9 @@
 User-agent: *
-Disallow:
+Disallow: /admin
+Disallow: /api/
+Disallow: /checkout/
+Disallow: /library
+Disallow: /creator-studio
+Disallow: /reels/*/props
+
+Sitemap: https://matchday.africa/sitemap.xml

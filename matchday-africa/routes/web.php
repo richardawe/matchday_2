@@ -39,6 +39,12 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/api/matchday-pulse', [HomeController::class, 'pulse'])->name('home.pulse');
 
 Route::view('/terms', 'terms')->name('terms');
+Route::view('/privacy', 'legal.privacy')->name('privacy');
+Route::view('/cookies', 'legal.cookies')->name('cookies');
+Route::permanentRedirect('/privacy-policy', '/privacy');
+Route::permanentRedirect('/cookie-policy', '/cookies');
+Route::get('/community', [App\Http\Controllers\CommunityController::class, 'index'])->name('community');
+Route::get('/sitemap.xml', App\Http\Controllers\SitemapController::class)->name('sitemap');
 
 Route::get('/listen', [App\Http\Controllers\RadioController::class, 'index'])->name('radio.index');
 // Check readiness before implicit binding can query a table that is not migrated yet.

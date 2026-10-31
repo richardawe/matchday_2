@@ -26,6 +26,7 @@
                     <li><a href="{{ route('home') }}" class="text-black hover:text-gray-600 transition-colors">Home</a></li>
                     <li><a href="{{ route('matches.index') }}" class="text-black hover:text-gray-600 transition-colors">Live Matches</a></li>
                     <li><a href="{{ route('leagues.index') }}" class="text-black hover:text-gray-600 transition-colors">Leagues</a></li>
+                    <li><a href="{{ route('community') }}" class="text-black hover:text-gray-600 transition-colors">Community</a></li>
                     <li><a href="{{ route('reels.index') }}" class="text-black hover:text-gray-600 transition-colors">20-second reels</a></li>
                     <li><a href="{{ route('war.index') }}" class="text-black hover:text-gray-600 transition-colors">Matchday War</a></li>
                     <li><a href="{{ route('teams.index') }}" class="text-black hover:text-gray-600 transition-colors">Teams</a></li>
@@ -63,9 +64,9 @@
                     © {{ date('Y') }} 3D7 Technologies. All rights reserved.
                 </div>
                 <div class="flex space-x-6 mt-4 md:mt-0">
-                    <a href="#" class="text-black hover:text-gray-600 text-sm transition-colors">Privacy Policy</a>
+                    <a href="{{ route('privacy') }}" class="text-black hover:text-gray-600 text-sm transition-colors">Privacy Policy</a>
                     <a href="{{ route('terms') }}" class="text-black hover:text-gray-600 text-sm transition-colors">Terms of Service</a>
-                    <a href="#" class="text-black hover:text-gray-600 text-sm transition-colors">Cookie Policy</a>
+                    <a href="{{ route('cookies') }}" class="text-black hover:text-gray-600 text-sm transition-colors">Cookie Policy</a>
                 </div>
             </div>
         </div>

@@ -40,7 +40,7 @@
                                     {{ __('Matches') }}
                                 </x-nav-link>
                                 @auth<x-nav-link :href="route('predictions.index')" :active="request()->routeIs('predictions.*')">{{ __('Predict') }}</x-nav-link>@endauth
-                                <x-nav-link :href="route('leagues.index')" :active="request()->routeIs('leagues.*')">
+                                <x-nav-link :href="route('community')" :active="request()->routeIs('community', 'groups.*')">
                                     {{ __('Community') }}
                                 </x-nav-link>
                                 <x-nav-link :href="route('war.index')" :active="request()->routeIs('war.*')">
@@ -136,6 +136,8 @@
                         <x-responsive-nav-link :href="route('leagues.index')" :active="request()->routeIs('leagues.*')">
                             {{ __('Leagues') }}
                         </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('community')" :active="request()->routeIs('community')">{{ __('Community') }}</x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('reels.index')" :active="request()->routeIs('reels.*')">{{ __('Reels') }}</x-responsive-nav-link>
                         <x-responsive-nav-link :href="route('war.index')" :active="request()->routeIs('war.*')">
                             {{ __('War') }}
                         </x-responsive-nav-link>
