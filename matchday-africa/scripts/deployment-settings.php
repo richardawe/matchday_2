@@ -14,7 +14,9 @@ $value = static fn (string $key, string $default = ''): string => (string) ($_EN
 $mode = $argv[1] ?? 'validate';
 
 if ($mode === 'radio') {
-    echo in_array(strtolower($value('RADIO_ENABLED', 'false')), ['true', '1'], true) ? 'on' : 'off';
+    // The Griot's live voice and writer run on the radio's Node runtime too.
+    $on = static fn (string $key): bool => in_array(strtolower($value($key, 'false')), ['true', '1'], true);
+    echo $on('RADIO_ENABLED') || $on('GRIOT_VOICE') || $on('GRIOT_WRITER') ? 'on' : 'off';
     exit(0);
 }
 if ($mode === 'radio-node') {

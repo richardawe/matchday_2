@@ -63,6 +63,9 @@ class MatchController extends Controller
                     ? view('partials.match-story', ['match' => $match, 'chapters' => app(MatchStoryService::class)->chapters($match), 'voice' => $voice,
                         'reel' => app(\App\Services\ReelService::class)->url($match)])->render()
                     : '',
+                'timeline' => app(\App\Services\Griot\GriotTimeline::class)->ready()
+                    ? view('partials.match-timeline', ['match' => $match->loadMissing(['homeTeam', 'awayTeam']), 'voice' => $voice])->render()
+                    : '',
             ];
         });
 

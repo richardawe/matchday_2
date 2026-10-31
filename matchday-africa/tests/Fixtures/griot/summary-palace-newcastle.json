@@ -1,0 +1,3984 @@
+{
+"header": {
+"competitions": [
+{
+"competitors": [
+{
+"homeAway": "home",
+"team": {
+"id": "384",
+"displayName": "Crystal Palace"
+},
+"score": "0"
+},
+{
+"homeAway": "away",
+"team": {
+"id": "361",
+"displayName": "Newcastle United"
+},
+"score": "2"
+}
+]
+}
+]
+},
+"commentary": [
+{
+"sequence": 0,
+"time": {
+"value": 0.0,
+"displayValue": ""
+},
+"text": "Lineups are announced and players are warming up."
+},
+{
+"sequence": 1,
+"time": {
+"value": 0.0,
+"displayValue": ""
+},
+"text": "First Half begins.",
+"play": {
+"id": "54271110",
+"type": {
+"type": "kickoff",
+"text": "Kickoff"
+},
+"period": {
+"number": 1
+},
+"clock": {
+"value": 0.0,
+"displayValue": ""
+},
+"wallclock": "2026-10-25T14:00:14Z"
+}
+},
+{
+"sequence": 2,
+"time": {
+"value": 81.0,
+"displayValue": "2'"
+},
+"text": "Adam Wharton (Crystal Palace) wins a free kick in the defensive half.",
+"play": {
+"id": "54271237",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Nico González"
+}
+},
+{
+"athlete": {
+"displayName": "Adam Wharton"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 81.0,
+"displayValue": "2'"
+},
+"wallclock": "2026-10-25T14:01:35Z",
+"fieldPositionX": 76.1,
+"fieldPositionY": 78.7
+}
+},
+{
+"sequence": 3,
+"time": {
+"value": 81.0,
+"displayValue": "2'"
+},
+"text": "Foul by Nico González (Newcastle United).",
+"play": {
+"id": "54271237",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Nico González"
+}
+},
+{
+"athlete": {
+"displayName": "Adam Wharton"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 81.0,
+"displayValue": "2'"
+},
+"wallclock": "2026-10-25T14:01:35Z",
+"fieldPositionX": 76.1,
+"fieldPositionY": 78.7
+}
+},
+{
+"sequence": 4,
+"time": {
+"value": 119.0,
+"displayValue": "2'"
+},
+"text": "Jean-Philippe Mateta (Crystal Palace) wins a free kick in the attacking half.",
+"play": {
+"id": "54271611",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Fabian Schär"
+}
+},
+{
+"athlete": {
+"displayName": "Jean-Philippe Mateta"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 119.0,
+"displayValue": "2'"
+},
+"wallclock": "2026-10-25T14:02:13Z",
+"fieldPositionX": 27.4,
+"fieldPositionY": 37.4
+}
+},
+{
+"sequence": 5,
+"time": {
+"value": 119.0,
+"displayValue": "2'"
+},
+"text": "Foul by Fabian Schär (Newcastle United).",
+"play": {
+"id": "54271611",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Fabian Schär"
+}
+},
+{
+"athlete": {
+"displayName": "Jean-Philippe Mateta"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 119.0,
+"displayValue": "2'"
+},
+"wallclock": "2026-10-25T14:02:13Z",
+"fieldPositionX": 27.4,
+"fieldPositionY": 37.4
+}
+},
+{
+"sequence": 6,
+"time": {
+"value": 162.0,
+"displayValue": "3'"
+},
+"text": "Attempt blocked. Axel Disasi (Crystal Palace) right footed shot from the centre of the box is blocked. Assisted by Jaydee Canvot.",
+"play": {
+"id": "54271616",
+"type": {
+"type": "shot-blocked",
+"text": "Shot Blocked"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Axel Disasi"
+}
+},
+{
+"athlete": {
+"displayName": "Jaydee Canvot"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 162.0,
+"displayValue": "3'"
+},
+"wallclock": "2026-10-25T14:02:56Z",
+"fieldPositionX": 91.0,
+"fieldPositionY": 53.8
+}
+},
+{
+"sequence": 7,
+"time": {
+"value": 162.0,
+"displayValue": "3'"
+},
+"text": "Attempt blocked. Axel Disasi (Crystal Palace) right footed shot from the centre of the box is blocked.",
+"play": {
+"id": "54271617",
+"type": {
+"type": "shot-blocked",
+"text": "Shot Blocked"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Axel Disasi"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 162.0,
+"displayValue": "3'"
+},
+"wallclock": "2026-10-25T14:02:57Z",
+"fieldPositionX": 93.0,
+"fieldPositionY": 54.6
+}
+},
+{
+"sequence": 8,
+"time": {
+"value": 164.0,
+"displayValue": "3'"
+},
+"text": "Attempt saved. Jean-Philippe Mateta (Crystal Palace) left footed shot from very close range is saved in the centre of the goal by Lukás Hornícek (Newcastle United).",
+"play": {
+"id": "54271618",
+"type": {
+"type": "shot-on-target",
+"text": "Shot On Target"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Jean-Philippe Mateta"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 164.0,
+"displayValue": "3'"
+},
+"wallclock": "2026-10-25T14:02:58Z",
+"fieldPositionX": 95.9,
+"fieldPositionY": 49.8
+}
+},
+{
+"sequence": 9,
+"time": {
+"value": 165.0,
+"displayValue": "3'"
+},
+"text": "Attempt saved. Jean-Philippe Mateta (Crystal Palace) left footed shot from very close range is saved in the bottom left corner by Lukás Hornícek (Newcastle United).",
+"play": {
+"id": "54272313",
+"type": {
+"type": "shot-on-target",
+"text": "Shot On Target"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Jean-Philippe Mateta"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 165.0,
+"displayValue": "3'"
+},
+"wallclock": "2026-10-25T14:02:59Z",
+"fieldPositionX": 95.8,
+"fieldPositionY": 49.3
+}
+},
+{
+"sequence": 10,
+"time": {
+"value": 175.0,
+"displayValue": "3'"
+},
+"text": "Corner, Crystal Palace. Conceded by Nico González.",
+"play": {
+"id": "54271626",
+"type": {
+"type": "corner-awarded",
+"text": "Corner Awarded"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"period": {
+"number": 1
+},
+"clock": {
+"value": 175.0,
+"displayValue": "3'"
+},
+"wallclock": "2026-10-25T14:03:09Z",
+"fieldPositionX": 92.6,
+"fieldPositionY": 23.0
+}
+},
+{
+"sequence": 11,
+"time": {
+"value": 213.0,
+"displayValue": "4'"
+},
+"text": "Attempt blocked. Tyrick Mitchell (Crystal Palace) left footed shot from outside the box is blocked.",
+"play": {
+"id": "54271832",
+"type": {
+"type": "shot-blocked",
+"text": "Shot Blocked"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Tyrick Mitchell"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 213.0,
+"displayValue": "4'"
+},
+"wallclock": "2026-10-25T14:03:48Z",
+"fieldPositionX": 70.1,
+"fieldPositionY": 50.5
+}
+},
+{
+"sequence": 12,
+"time": {
+"value": 250.0,
+"displayValue": "5'"
+},
+"text": "Foul by Jean-Philippe Mateta (Crystal Palace).",
+"play": {
+"id": "54271845",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Jean-Philippe Mateta"
+}
+},
+{
+"athlete": {
+"displayName": "Dan Burn"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 250.0,
+"displayValue": "5'"
+},
+"wallclock": "2026-10-25T14:04:24Z",
+"fieldPositionX": 65.8,
+"fieldPositionY": 36.0
+}
+},
+{
+"sequence": 13,
+"time": {
+"value": 250.0,
+"displayValue": "5'"
+},
+"text": "Dan Burn (Newcastle United) wins a free kick in the defensive half.",
+"play": {
+"id": "54271845",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Jean-Philippe Mateta"
+}
+},
+{
+"athlete": {
+"displayName": "Dan Burn"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 250.0,
+"displayValue": "5'"
+},
+"wallclock": "2026-10-25T14:04:24Z",
+"fieldPositionX": 65.8,
+"fieldPositionY": 36.0
+}
+},
+{
+"sequence": 14,
+"time": {
+"value": 389.0,
+"displayValue": "7'"
+},
+"text": "Attempt missed. Daichi Kamada (Crystal Palace) right footed shot from outside the box misses to the left. Assisted by Dwight McNeil following a fast break.",
+"play": {
+"id": "54272335",
+"type": {
+"type": "shot-off-target",
+"text": "Shot Off Target"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Daichi Kamada"
+}
+},
+{
+"athlete": {
+"displayName": "Dwight McNeil"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 389.0,
+"displayValue": "7'"
+},
+"wallclock": "2026-10-25T14:06:44Z",
+"fieldPositionX": 80.6,
+"fieldPositionY": 39.3
+}
+},
+{
+"sequence": 15,
+"time": {
+"value": 499.0,
+"displayValue": "9'"
+},
+"text": "Attempt blocked. William Osula (Newcastle United) right footed shot from outside the box is blocked.",
+"play": {
+"id": "54272535",
+"type": {
+"type": "shot-blocked",
+"text": "Shot Blocked"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "William Osula"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 499.0,
+"displayValue": "9'"
+},
+"wallclock": "2026-10-25T14:08:33Z",
+"fieldPositionX": 79.6,
+"fieldPositionY": 50.1
+}
+},
+{
+"sequence": 16,
+"time": {
+"value": 710.0,
+"displayValue": "12'"
+},
+"text": "Attempt missed. Jean-Philippe Mateta (Crystal Palace) right footed shot from outside the box is close, but misses to the left. Assisted by Yéremy Pino with a through ball following a fast break.",
+"play": {
+"id": "54273440",
+"type": {
+"type": "shot-off-target",
+"text": "Shot Off Target"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Jean-Philippe Mateta"
+}
+},
+{
+"athlete": {
+"displayName": "Yéremy Pino"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 710.0,
+"displayValue": "12'"
+},
+"wallclock": "2026-10-25T14:12:05Z",
+"fieldPositionX": 77.5,
+"fieldPositionY": 67.3
+}
+},
+{
+"sequence": 17,
+"time": {
+"value": 911.0,
+"displayValue": "16'"
+},
+"text": "Offside, Crystal Palace. Jean-Philippe Mateta is caught offside.",
+"play": {
+"id": "54274272",
+"type": {
+"type": "offside",
+"text": "Offside"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Walter Benítez"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 911.0,
+"displayValue": "16'"
+},
+"wallclock": "2026-10-25T14:15:25Z",
+"fieldPositionX": 14.8,
+"fieldPositionY": 29.9
+}
+},
+{
+"sequence": 18,
+"time": {
+"value": 968.0,
+"displayValue": "17'"
+},
+"text": "Dwight McNeil (Crystal Palace) wins a free kick in the defensive half.",
+"play": {
+"id": "54274407",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Joelinton"
+}
+},
+{
+"athlete": {
+"displayName": "Dwight McNeil"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 968.0,
+"displayValue": "17'"
+},
+"wallclock": "2026-10-25T14:16:22Z",
+"fieldPositionX": 79.9,
+"fieldPositionY": 85.8
+}
+},
+{
+"sequence": 19,
+"time": {
+"value": 968.0,
+"displayValue": "17'"
+},
+"text": "Foul by Joelinton (Newcastle United).",
+"play": {
+"id": "54274407",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Joelinton"
+}
+},
+{
+"athlete": {
+"displayName": "Dwight McNeil"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 968.0,
+"displayValue": "17'"
+},
+"wallclock": "2026-10-25T14:16:22Z",
+"fieldPositionX": 79.9,
+"fieldPositionY": 85.8
+}
+},
+{
+"sequence": 20,
+"time": {
+"value": 1135.0,
+"displayValue": "19'"
+},
+"text": "Foul by Axel Disasi (Crystal Palace).",
+"play": {
+"id": "54274881",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Axel Disasi"
+}
+},
+{
+"athlete": {
+"displayName": "William Osula"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 1135.0,
+"displayValue": "19'"
+},
+"wallclock": "2026-10-25T14:19:09Z",
+"fieldPositionX": 63.0,
+"fieldPositionY": 42.8
+}
+},
+{
+"sequence": 21,
+"time": {
+"value": 1135.0,
+"displayValue": "19'"
+},
+"text": "William Osula (Newcastle United) wins a free kick in the defensive half.",
+"play": {
+"id": "54274881",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Axel Disasi"
+}
+},
+{
+"athlete": {
+"displayName": "William Osula"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 1135.0,
+"displayValue": "19'"
+},
+"wallclock": "2026-10-25T14:19:09Z",
+"fieldPositionX": 63.0,
+"fieldPositionY": 42.8
+}
+},
+{
+"sequence": 22,
+"time": {
+"value": 1210.0,
+"displayValue": "21'"
+},
+"text": "Attempt missed. Dwight McNeil (Crystal Palace) left footed shot from the left side of the box misses to the right. Assisted by Yéremy Pino.",
+"play": {
+"id": "54275614",
+"type": {
+"type": "shot-off-target",
+"text": "Shot Off Target"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Dwight McNeil"
+}
+},
+{
+"athlete": {
+"displayName": "Yéremy Pino"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 1210.0,
+"displayValue": "21'"
+},
+"wallclock": "2026-10-25T14:20:25Z",
+"fieldPositionX": 92.6,
+"fieldPositionY": 70.6
+}
+},
+{
+"sequence": 23,
+"time": {
+"value": 1398.0,
+"displayValue": "24'"
+},
+"text": "Foul by Anan Khalaili (Crystal Palace).",
+"play": {
+"id": "54275656",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Anan Khalaili"
+}
+},
+{
+"athlete": {
+"displayName": "Harvey Barnes"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 1398.0,
+"displayValue": "24'"
+},
+"wallclock": "2026-10-25T14:23:33Z",
+"fieldPositionX": 6.4,
+"fieldPositionY": 7.2
+}
+},
+{
+"sequence": 24,
+"time": {
+"value": 1398.0,
+"displayValue": "24'"
+},
+"text": "Harvey Barnes (Newcastle United) wins a free kick on the left wing.",
+"play": {
+"id": "54275656",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Anan Khalaili"
+}
+},
+{
+"athlete": {
+"displayName": "Harvey Barnes"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 1398.0,
+"displayValue": "24'"
+},
+"wallclock": "2026-10-25T14:23:33Z",
+"fieldPositionX": 6.4,
+"fieldPositionY": 7.2
+}
+},
+{
+"sequence": 25,
+"time": {
+"value": 1466.0,
+"displayValue": "25'"
+},
+"text": "Attempt blocked. Harvey Barnes (Newcastle United) right footed shot from outside the box is blocked. Assisted by Jacob Murphy.",
+"play": {
+"id": "54275774",
+"type": {
+"type": "shot-blocked",
+"text": "Shot Blocked"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Harvey Barnes"
+}
+},
+{
+"athlete": {
+"displayName": "Jacob Murphy"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 1466.0,
+"displayValue": "25'"
+},
+"wallclock": "2026-10-25T14:24:40Z",
+"fieldPositionX": 77.4,
+"fieldPositionY": 72.6
+}
+},
+{
+"sequence": 26,
+"time": {
+"value": 1472.0,
+"displayValue": "25'"
+},
+"text": "Dwight McNeil (Crystal Palace) wins a free kick in the defensive half.",
+"play": {
+"id": "54276078",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Lewis Hall"
+}
+},
+{
+"athlete": {
+"displayName": "Dwight McNeil"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 1472.0,
+"displayValue": "25'"
+},
+"wallclock": "2026-10-25T14:24:46Z",
+"fieldPositionX": 54.8,
+"fieldPositionY": 85.0
+}
+},
+{
+"sequence": 27,
+"time": {
+"value": 1472.0,
+"displayValue": "25'"
+},
+"text": "Foul by Lewis Hall (Newcastle United).",
+"play": {
+"id": "54276078",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Lewis Hall"
+}
+},
+{
+"athlete": {
+"displayName": "Dwight McNeil"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 1472.0,
+"displayValue": "25'"
+},
+"wallclock": "2026-10-25T14:24:46Z",
+"fieldPositionX": 54.8,
+"fieldPositionY": 85.0
+}
+},
+{
+"sequence": 28,
+"time": {
+"value": 1547.0,
+"displayValue": "26'"
+},
+"text": "Attempt blocked. Harvey Barnes (Newcastle United) right footed shot from the left side of the box is blocked. Assisted by Jacob Murphy.",
+"play": {
+"id": "54276087",
+"type": {
+"type": "shot-blocked",
+"text": "Shot Blocked"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Harvey Barnes"
+}
+},
+{
+"athlete": {
+"displayName": "Jacob Murphy"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 1547.0,
+"displayValue": "26'"
+},
+"wallclock": "2026-10-25T14:26:02Z",
+"fieldPositionX": 85.4,
+"fieldPositionY": 68.3
+}
+},
+{
+"sequence": 29,
+"time": {
+"value": 1748.0,
+"displayValue": "30'"
+},
+"text": "Foul by Daichi Kamada (Crystal Palace).",
+"play": {
+"id": "54276616",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Daichi Kamada"
+}
+},
+{
+"athlete": {
+"displayName": "Lewis Hall"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 1748.0,
+"displayValue": "30'"
+},
+"wallclock": "2026-10-25T14:29:23Z",
+"fieldPositionX": 46.8,
+"fieldPositionY": 44.3
+}
+},
+{
+"sequence": 30,
+"time": {
+"value": 1748.0,
+"displayValue": "30'"
+},
+"text": "Lewis Hall (Newcastle United) wins a free kick in the attacking half.",
+"play": {
+"id": "54276616",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Daichi Kamada"
+}
+},
+{
+"athlete": {
+"displayName": "Lewis Hall"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 1748.0,
+"displayValue": "30'"
+},
+"wallclock": "2026-10-25T14:29:23Z",
+"fieldPositionX": 46.8,
+"fieldPositionY": 44.3
+}
+},
+{
+"sequence": 31,
+"time": {
+"value": 1790.0,
+"displayValue": "30'"
+},
+"text": "Attempt missed. Dan Burn (Newcastle United) header from the right side of the six yard box is close, but misses to the right. Assisted by Lewis Hall with a cross following a set piece situation.",
+"play": {
+"id": "54276734",
+"type": {
+"type": "shot-off-target",
+"text": "Shot Off Target"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Dan Burn"
+}
+},
+{
+"athlete": {
+"displayName": "Lewis Hall"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 1790.0,
+"displayValue": "30'"
+},
+"wallclock": "2026-10-25T14:30:05Z",
+"fieldPositionX": 97.3,
+"fieldPositionY": 40.2
+}
+},
+{
+"sequence": 32,
+"time": {
+"value": 1876.0,
+"displayValue": "32'"
+},
+"text": "Foul by Chris Richards (Crystal Palace).",
+"play": {
+"id": "54276902",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Chris Richards"
+}
+},
+{
+"athlete": {
+"displayName": "Lewis Hall"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 1876.0,
+"displayValue": "32'"
+},
+"wallclock": "2026-10-25T14:31:31Z",
+"fieldPositionX": 87.2,
+"fieldPositionY": 39.2
+}
+},
+{
+"sequence": 33,
+"time": {
+"value": 1876.0,
+"displayValue": "32'"
+},
+"text": "Lewis Hall (Newcastle United) wins a free kick in the defensive half.",
+"play": {
+"id": "54276902",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Chris Richards"
+}
+},
+{
+"athlete": {
+"displayName": "Lewis Hall"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 1876.0,
+"displayValue": "32'"
+},
+"wallclock": "2026-10-25T14:31:31Z",
+"fieldPositionX": 87.2,
+"fieldPositionY": 39.2
+}
+},
+{
+"sequence": 34,
+"time": {
+"value": 1996.0,
+"displayValue": "34'"
+},
+"text": "Corner, Newcastle United. Conceded by Jaydee Canvot.",
+"play": {
+"id": "54277236",
+"type": {
+"type": "corner-awarded",
+"text": "Corner Awarded"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"period": {
+"number": 1
+},
+"clock": {
+"value": 1996.0,
+"displayValue": "34'"
+},
+"wallclock": "2026-10-25T14:33:30Z",
+"fieldPositionX": 95.4,
+"fieldPositionY": 78.2
+}
+},
+{
+"sequence": 35,
+"time": {
+"value": 2124.0,
+"displayValue": "36'"
+},
+"text": "Dwight McNeil (Crystal Palace) wins a free kick in the defensive half.",
+"play": {
+"id": "54277676",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Nico González"
+}
+},
+{
+"athlete": {
+"displayName": "Dwight McNeil"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 2124.0,
+"displayValue": "36'"
+},
+"wallclock": "2026-10-25T14:35:39Z",
+"fieldPositionX": 57.3,
+"fieldPositionY": 82.1
+}
+},
+{
+"sequence": 36,
+"time": {
+"value": 2124.0,
+"displayValue": "36'"
+},
+"text": "Foul by Nico González (Newcastle United).",
+"play": {
+"id": "54277676",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Nico González"
+}
+},
+{
+"athlete": {
+"displayName": "Dwight McNeil"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 2124.0,
+"displayValue": "36'"
+},
+"wallclock": "2026-10-25T14:35:39Z",
+"fieldPositionX": 57.3,
+"fieldPositionY": 82.1
+}
+},
+{
+"sequence": 37,
+"time": {
+"value": 2126.0,
+"displayValue": "36'"
+},
+"text": "Nico González (Newcastle United) is shown the yellow card for a bad foul.",
+"play": {
+"id": "54277911",
+"type": {
+"type": "yellow-card",
+"text": "Yellow Card"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Nico González"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 2126.0,
+"displayValue": "36'"
+},
+"wallclock": "2026-10-25T14:35:41Z"
+}
+},
+{
+"sequence": 38,
+"time": {
+"value": 2172.0,
+"displayValue": "37'"
+},
+"text": "Chris Richards (Crystal Palace) wins a free kick in the defensive half.",
+"play": {
+"id": "54279064",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Lewis Hall"
+}
+},
+{
+"athlete": {
+"displayName": "Chris Richards"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 2172.0,
+"displayValue": "37'"
+},
+"wallclock": "2026-10-25T14:36:26Z",
+"fieldPositionX": 9.4,
+"fieldPositionY": 10.0
+}
+},
+{
+"sequence": 39,
+"time": {
+"value": 2172.0,
+"displayValue": "37'"
+},
+"text": "Foul by Lewis Hall (Newcastle United).",
+"play": {
+"id": "54279064",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Lewis Hall"
+}
+},
+{
+"athlete": {
+"displayName": "Chris Richards"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 2172.0,
+"displayValue": "37'"
+},
+"wallclock": "2026-10-25T14:36:26Z",
+"fieldPositionX": 9.4,
+"fieldPositionY": 10.0
+}
+},
+{
+"sequence": 40,
+"time": {
+"value": 2328.0,
+"displayValue": "39'"
+},
+"text": "Anan Khalaili (Crystal Palace) wins a free kick in the defensive half.",
+"play": {
+"id": "54278509",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Nico González"
+}
+},
+{
+"athlete": {
+"displayName": "Anan Khalaili"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 2328.0,
+"displayValue": "39'"
+},
+"wallclock": "2026-10-25T14:39:02Z",
+"fieldPositionX": 47.9,
+"fieldPositionY": 12.7
+}
+},
+{
+"sequence": 41,
+"time": {
+"value": 2328.0,
+"displayValue": "39'"
+},
+"text": "Foul by Harvey Barnes (Newcastle United).",
+"play": {
+"id": "54278509",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Nico González"
+}
+},
+{
+"athlete": {
+"displayName": "Anan Khalaili"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 2328.0,
+"displayValue": "39'"
+},
+"wallclock": "2026-10-25T14:39:02Z",
+"fieldPositionX": 47.9,
+"fieldPositionY": 12.7
+}
+},
+{
+"sequence": 42,
+"time": {
+"value": 2610.0,
+"displayValue": "44'"
+},
+"text": "Foul by Axel Disasi (Crystal Palace).",
+"play": {
+"id": "54279466",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Axel Disasi"
+}
+},
+{
+"athlete": {
+"displayName": "Joe Willock"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 2610.0,
+"displayValue": "44'"
+},
+"wallclock": "2026-10-25T14:43:45Z",
+"fieldPositionX": 62.2,
+"fieldPositionY": 67.1
+}
+},
+{
+"sequence": 43,
+"time": {
+"value": 2610.0,
+"displayValue": "44'"
+},
+"text": "Joe Willock (Newcastle United) wins a free kick in the defensive half.",
+"play": {
+"id": "54279466",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Axel Disasi"
+}
+},
+{
+"athlete": {
+"displayName": "Joe Willock"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 2610.0,
+"displayValue": "44'"
+},
+"wallclock": "2026-10-25T14:43:45Z",
+"fieldPositionX": 62.2,
+"fieldPositionY": 67.1
+}
+},
+{
+"sequence": 44,
+"time": {
+"value": 2700.0,
+"displayValue": "45'"
+},
+"text": "Fourth official has announced 1 minutes of added time."
+},
+{
+"sequence": 45,
+"time": {
+"value": 2710.0,
+"displayValue": "45'+1'"
+},
+"text": "Jean-Philippe Mateta (Crystal Palace) wins a free kick in the defensive half.",
+"play": {
+"id": "54279821",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Fabian Schär"
+}
+},
+{
+"athlete": {
+"displayName": "Jean-Philippe Mateta"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 2700.0,
+"displayValue": "45'+1'"
+},
+"wallclock": "2026-10-25T14:45:25Z",
+"fieldPositionX": 60.4,
+"fieldPositionY": 56.6
+}
+},
+{
+"sequence": 46,
+"time": {
+"value": 2710.0,
+"displayValue": "45'+1'"
+},
+"text": "Foul by Fabian Schär (Newcastle United).",
+"play": {
+"id": "54279821",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Fabian Schär"
+}
+},
+{
+"athlete": {
+"displayName": "Jean-Philippe Mateta"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 2700.0,
+"displayValue": "45'+1'"
+},
+"wallclock": "2026-10-25T14:45:25Z",
+"fieldPositionX": 60.4,
+"fieldPositionY": 56.6
+}
+},
+{
+"sequence": 47,
+"time": {
+"value": 2714.0,
+"displayValue": "45'+1'"
+},
+"text": "Fabian Schär (Newcastle United) is shown the yellow card for a bad foul.",
+"play": {
+"id": "54280047",
+"type": {
+"type": "yellow-card",
+"text": "Yellow Card"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Fabian Schär"
+}
+}
+],
+"period": {
+"number": 1
+},
+"clock": {
+"value": 2700.0,
+"displayValue": "45'+1'"
+},
+"wallclock": "2026-10-25T14:45:29Z"
+}
+},
+{
+"sequence": 48,
+"time": {
+"value": 2761.0,
+"displayValue": "45'+2'"
+},
+"text": "First Half ends, Crystal Palace 0, Newcastle United 0."
+},
+{
+"sequence": 49,
+"time": {
+"value": 2700.0,
+"displayValue": "45'"
+},
+"text": "Second Half begins Crystal Palace 0, Newcastle United 0."
+},
+{
+"sequence": 50,
+"time": {
+"value": 2732.0,
+"displayValue": "46'"
+},
+"text": "Foul by Anan Khalaili (Crystal Palace).",
+"play": {
+"id": "54281317",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Anan Khalaili"
+}
+},
+{
+"athlete": {
+"displayName": "Lewis Hall"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 2732.0,
+"displayValue": "46'"
+},
+"wallclock": "2026-10-25T15:02:14Z",
+"fieldPositionX": 59.6,
+"fieldPositionY": 11.8
+}
+},
+{
+"sequence": 51,
+"time": {
+"value": 2732.0,
+"displayValue": "46'"
+},
+"text": "Lewis Hall (Newcastle United) wins a free kick in the defensive half.",
+"play": {
+"id": "54281317",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Anan Khalaili"
+}
+},
+{
+"athlete": {
+"displayName": "Lewis Hall"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 2732.0,
+"displayValue": "46'"
+},
+"wallclock": "2026-10-25T15:02:14Z",
+"fieldPositionX": 59.6,
+"fieldPositionY": 11.8
+}
+},
+{
+"sequence": 52,
+"time": {
+"value": 2810.0,
+"displayValue": "47'"
+},
+"text": "Goal! Crystal Palace 0, Newcastle United 1. William Osula (Newcastle United) left footed shot from very close range to the bottom right corner. Assisted by Jacob Murphy with a cross.",
+"play": {
+"id": "54281457",
+"type": {
+"type": "goal",
+"text": "Goal"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "William Osula"
+}
+},
+{
+"athlete": {
+"displayName": "Jacob Murphy"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 2810.0,
+"displayValue": "47'"
+},
+"wallclock": "2026-10-25T15:03:33Z",
+"fieldPositionX": 94.3,
+"fieldPositionY": 46.2
+}
+},
+{
+"sequence": 53,
+"time": {
+"value": 3065.0,
+"displayValue": "52'"
+},
+"text": "Offside, Newcastle United. Joe Willock is caught offside.",
+"play": {
+"id": "54282227",
+"type": {
+"type": "offside",
+"text": "Offside"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Joelinton"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3065.0,
+"displayValue": "52'"
+},
+"wallclock": "2026-10-25T15:07:48Z",
+"fieldPositionX": 59.8,
+"fieldPositionY": 81.6
+}
+},
+{
+"sequence": 54,
+"time": {
+"value": 3068.0,
+"displayValue": "52'"
+},
+"text": "GOAL OVERTURNED BY VAR: Joe Willock (Newcastle United) scores but the goal is ruled out after a VAR review.",
+"play": {
+"id": "54282228",
+"type": {
+"type": "deleted-after-review",
+"text": "Deleted After Review"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Joe Willock"
+}
+},
+{
+"athlete": {
+"displayName": "Joelinton"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3068.0,
+"displayValue": "52'"
+},
+"wallclock": "2026-10-25T15:07:51Z"
+}
+},
+{
+"sequence": 55,
+"time": {
+"value": 3137.0,
+"displayValue": "53'"
+},
+"text": "VAR Decision: No Goal Crystal Palace 0-1 Newcastle United.",
+"play": {
+"id": "54282395",
+"type": {
+"type": "var---referee-decision-cancelled",
+"text": "VAR - Referee decision cancelled"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Joe Willock"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3137.0,
+"displayValue": "53'"
+},
+"wallclock": "2026-10-25T15:08:59Z"
+}
+},
+{
+"sequence": 56,
+"time": {
+"value": 3225.0,
+"displayValue": "54'"
+},
+"text": "Attempt blocked. Harvey Barnes (Newcastle United) right footed shot from the centre of the box is blocked. Assisted by Joe Willock.",
+"play": {
+"id": "54282556",
+"type": {
+"type": "shot-blocked",
+"text": "Shot Blocked"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Harvey Barnes"
+}
+},
+{
+"athlete": {
+"displayName": "Joe Willock"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3225.0,
+"displayValue": "54'"
+},
+"wallclock": "2026-10-25T15:10:28Z",
+"fieldPositionX": 87.7,
+"fieldPositionY": 40.9
+}
+},
+{
+"sequence": 57,
+"time": {
+"value": 3226.0,
+"displayValue": "54'"
+},
+"text": "Corner, Newcastle United. Conceded by Tyrick Mitchell.",
+"play": {
+"id": "54282558",
+"type": {
+"type": "corner-awarded",
+"text": "Corner Awarded"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3226.0,
+"displayValue": "54'"
+},
+"wallclock": "2026-10-25T15:10:29Z",
+"fieldPositionX": 88.6,
+"fieldPositionY": 56.6
+}
+},
+{
+"sequence": 58,
+"time": {
+"value": 3275.0,
+"displayValue": "55'"
+},
+"text": "Corner, Newcastle United. Conceded by Chris Richards.",
+"play": {
+"id": "54283075",
+"type": {
+"type": "corner-awarded",
+"text": "Corner Awarded"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3275.0,
+"displayValue": "55'"
+},
+"wallclock": "2026-10-25T15:11:18Z",
+"fieldPositionX": 100.0,
+"fieldPositionY": 40.4
+}
+},
+{
+"sequence": 59,
+"time": {
+"value": 3336.0,
+"displayValue": "56'"
+},
+"text": "Corner, Newcastle United. Conceded by Axel Disasi.",
+"play": {
+"id": "54283463",
+"type": {
+"type": "corner-awarded",
+"text": "Corner Awarded"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3336.0,
+"displayValue": "56'"
+},
+"wallclock": "2026-10-25T15:12:18Z",
+"fieldPositionX": 95.0,
+"fieldPositionY": 83.3
+}
+},
+{
+"sequence": 60,
+"time": {
+"value": 3380.0,
+"displayValue": "57'"
+},
+"text": "Attempt missed. Joelinton (Newcastle United) header from the centre of the box misses to the left. Assisted by Jacob Murphy with a cross following a corner.",
+"play": {
+"id": "54283467",
+"type": {
+"type": "shot-off-target",
+"text": "Shot Off Target"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Joelinton"
+}
+},
+{
+"athlete": {
+"displayName": "Jacob Murphy"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3380.0,
+"displayValue": "57'"
+},
+"wallclock": "2026-10-25T15:13:03Z",
+"fieldPositionX": 92.0,
+"fieldPositionY": 47.1
+}
+},
+{
+"sequence": 61,
+"time": {
+"value": 3438.0,
+"displayValue": "58'"
+},
+"text": "Goal! Crystal Palace 0, Newcastle United 2. Harvey Barnes (Newcastle United) right footed shot from the centre of the box to the centre of the goal. Assisted by Amar Dedic.",
+"play": {
+"id": "54283488",
+"type": {
+"type": "goal",
+"text": "Goal"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Harvey Barnes"
+}
+},
+{
+"athlete": {
+"displayName": "Amar Dedic"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3438.0,
+"displayValue": "58'"
+},
+"wallclock": "2026-10-25T15:14:01Z",
+"fieldPositionX": 87.2,
+"fieldPositionY": 48.4
+}
+},
+{
+"sequence": 62,
+"time": {
+"value": 3649.0,
+"displayValue": "61'"
+},
+"text": "Delay in match because of an injury Fabian Schär (Newcastle United).",
+"play": {
+"id": "54284202",
+"type": {
+"type": "start-delay",
+"text": "Start Delay"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3649.0,
+"displayValue": "61'"
+},
+"wallclock": "2026-10-25T15:17:32Z"
+}
+},
+{
+"sequence": 63,
+"time": {
+"value": 3718.0,
+"displayValue": "62'"
+},
+"text": "Substitution, Crystal Palace. Eddie Nketiah replaces Jean-Philippe Mateta.",
+"play": {
+"id": "54284419",
+"type": {
+"type": "substitution",
+"text": "Substitution"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Eddie Nketiah"
+}
+},
+{
+"athlete": {
+"displayName": "Jean-Philippe Mateta"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3718.0,
+"displayValue": "62'"
+},
+"wallclock": "2026-10-25T15:18:41Z"
+}
+},
+{
+"sequence": 64,
+"time": {
+"value": 3738.0,
+"displayValue": "63'"
+},
+"text": "Substitution, Crystal Palace. Darío Osorio replaces Dwight McNeil.",
+"play": {
+"id": "54284670",
+"type": {
+"type": "substitution",
+"text": "Substitution"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Darío Osorio"
+}
+},
+{
+"athlete": {
+"displayName": "Dwight McNeil"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3738.0,
+"displayValue": "63'"
+},
+"wallclock": "2026-10-25T15:19:01Z"
+}
+},
+{
+"sequence": 65,
+"time": {
+"value": 3748.0,
+"displayValue": "63'"
+},
+"text": "Delay over. They are ready to continue.",
+"play": {
+"id": "54284449",
+"type": {
+"type": "end-delay",
+"text": "End Delay"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3748.0,
+"displayValue": "63'"
+},
+"wallclock": "2026-10-25T15:19:10Z"
+}
+},
+{
+"sequence": 66,
+"time": {
+"value": 3777.0,
+"displayValue": "63'"
+},
+"text": "Attempt saved. Adam Wharton (Crystal Palace) left footed shot from outside the box is saved in the bottom left corner by Lukás Hornícek (Newcastle United). Assisted by Darío Osorio.",
+"play": {
+"id": "54284460",
+"type": {
+"type": "shot-on-target",
+"text": "Shot On Target"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Adam Wharton"
+}
+},
+{
+"athlete": {
+"displayName": "Darío Osorio"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3777.0,
+"displayValue": "63'"
+},
+"wallclock": "2026-10-25T15:19:39Z",
+"fieldPositionX": 80.9,
+"fieldPositionY": 28.5
+}
+},
+{
+"sequence": 67,
+"time": {
+"value": 3778.0,
+"displayValue": "63'"
+},
+"text": "Corner, Crystal Palace. Conceded by Lukás Hornícek.",
+"play": {
+"id": "54284466",
+"type": {
+"type": "corner-awarded",
+"text": "Corner Awarded"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3778.0,
+"displayValue": "63'"
+},
+"wallclock": "2026-10-25T15:19:41Z",
+"fieldPositionX": 90.4,
+"fieldPositionY": 57.4
+}
+},
+{
+"sequence": 68,
+"time": {
+"value": 3855.0,
+"displayValue": "65'"
+},
+"text": "Foul by Axel Disasi (Crystal Palace).",
+"play": {
+"id": "54284743",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Axel Disasi"
+}
+},
+{
+"athlete": {
+"displayName": "Joe Willock"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3855.0,
+"displayValue": "65'"
+},
+"wallclock": "2026-10-25T15:20:58Z",
+"fieldPositionX": 29.8,
+"fieldPositionY": 33.0
+}
+},
+{
+"sequence": 69,
+"time": {
+"value": 3855.0,
+"displayValue": "65'"
+},
+"text": "Joe Willock (Newcastle United) wins a free kick in the attacking half.",
+"play": {
+"id": "54284743",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Axel Disasi"
+}
+},
+{
+"athlete": {
+"displayName": "Joe Willock"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3855.0,
+"displayValue": "65'"
+},
+"wallclock": "2026-10-25T15:20:58Z",
+"fieldPositionX": 29.8,
+"fieldPositionY": 33.0
+}
+},
+{
+"sequence": 70,
+"time": {
+"value": 3905.0,
+"displayValue": "66'"
+},
+"text": "Attempt missed. Joelinton (Newcastle United) right footed shot from the right side of the box is too high. Assisted by Fabian Schär following a set piece situation.",
+"play": {
+"id": "54284911",
+"type": {
+"type": "shot-off-target",
+"text": "Shot Off Target"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Joelinton"
+}
+},
+{
+"athlete": {
+"displayName": "Fabian Schär"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 3905.0,
+"displayValue": "66'"
+},
+"wallclock": "2026-10-25T15:21:48Z",
+"fieldPositionX": 86.8,
+"fieldPositionY": 33.5
+}
+},
+{
+"sequence": 71,
+"time": {
+"value": 4069.0,
+"displayValue": "68'"
+},
+"text": "Attempt missed. Harvey Barnes (Newcastle United) right footed shot from outside the box is too high. Assisted by Joelinton.",
+"play": {
+"id": "54285487",
+"type": {
+"type": "shot-off-target",
+"text": "Shot Off Target"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Harvey Barnes"
+}
+},
+{
+"athlete": {
+"displayName": "Joelinton"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4069.0,
+"displayValue": "68'"
+},
+"wallclock": "2026-10-25T15:24:32Z",
+"fieldPositionX": 77.1,
+"fieldPositionY": 45.3
+}
+},
+{
+"sequence": 72,
+"time": {
+"value": 4195.0,
+"displayValue": "70'"
+},
+"text": "Corner, Crystal Palace. Conceded by Dan Burn.",
+"play": {
+"id": "54285890",
+"type": {
+"type": "corner-awarded",
+"text": "Corner Awarded"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4195.0,
+"displayValue": "70'"
+},
+"wallclock": "2026-10-25T15:26:37Z",
+"fieldPositionX": 99.2,
+"fieldPositionY": 61.6
+}
+},
+{
+"sequence": 73,
+"time": {
+"value": 4231.0,
+"displayValue": "71'"
+},
+"text": "Attempt saved. Darío Osorio (Crystal Palace) left footed shot from outside the box is saved in the bottom right corner by Lukás Hornícek (Newcastle United). Assisted by Tyrick Mitchell.",
+"play": {
+"id": "54286151",
+"type": {
+"type": "shot-on-target",
+"text": "Shot On Target"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Darío Osorio"
+}
+},
+{
+"athlete": {
+"displayName": "Tyrick Mitchell"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4231.0,
+"displayValue": "71'"
+},
+"wallclock": "2026-10-25T15:27:14Z",
+"fieldPositionX": 77.3,
+"fieldPositionY": 73.6
+}
+},
+{
+"sequence": 74,
+"time": {
+"value": 4233.0,
+"displayValue": "71'"
+},
+"text": "Corner, Crystal Palace. Conceded by Lukás Hornícek.",
+"play": {
+"id": "54286153",
+"type": {
+"type": "corner-awarded",
+"text": "Corner Awarded"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4233.0,
+"displayValue": "71'"
+},
+"wallclock": "2026-10-25T15:27:15Z",
+"fieldPositionX": 90.1,
+"fieldPositionY": 39.3
+}
+},
+{
+"sequence": 75,
+"time": {
+"value": 4258.0,
+"displayValue": "71'"
+},
+"text": "Attempt missed. Chris Richards (Crystal Palace) header from the centre of the box misses to the right. Assisted by Adam Wharton with a cross following a corner.",
+"play": {
+"id": "54286155",
+"type": {
+"type": "shot-off-target",
+"text": "Shot Off Target"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Chris Richards"
+}
+},
+{
+"athlete": {
+"displayName": "Adam Wharton"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4258.0,
+"displayValue": "71'"
+},
+"wallclock": "2026-10-25T15:27:41Z",
+"fieldPositionX": 90.9,
+"fieldPositionY": 56.8
+}
+},
+{
+"sequence": 76,
+"time": {
+"value": 4291.0,
+"displayValue": "72'"
+},
+"text": "Attempt missed. Axel Disasi (Crystal Palace) header from the centre of the box misses to the left following a corner.",
+"play": {
+"id": "54286172",
+"type": {
+"type": "shot-off-target",
+"text": "Shot Off Target"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Axel Disasi"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4291.0,
+"displayValue": "72'"
+},
+"wallclock": "2026-10-25T15:28:14Z",
+"fieldPositionX": 91.0,
+"fieldPositionY": 51.0
+}
+},
+{
+"sequence": 77,
+"time": {
+"value": 4336.0,
+"displayValue": "73'"
+},
+"text": "Offside, Crystal Palace. Eddie Nketiah is caught offside.",
+"play": {
+"id": "54286468",
+"type": {
+"type": "offside",
+"text": "Offside"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Tyrick Mitchell"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4336.0,
+"displayValue": "73'"
+},
+"wallclock": "2026-10-25T15:28:58Z",
+"fieldPositionX": 60.0,
+"fieldPositionY": 96.1
+}
+},
+{
+"sequence": 78,
+"time": {
+"value": 4450.0,
+"displayValue": "75'"
+},
+"text": "Yéremy Pino (Crystal Palace) is shown the yellow card.",
+"play": {
+"id": "54286659",
+"type": {
+"type": "yellow-card",
+"text": "Yellow Card"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Yéremy Pino"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4450.0,
+"displayValue": "75'"
+},
+"wallclock": "2026-10-25T15:30:53Z"
+}
+},
+{
+"sequence": 79,
+"time": {
+"value": 4473.0,
+"displayValue": "75'"
+},
+"text": "Offside, Crystal Palace. Tyrick Mitchell is caught offside.",
+"play": {
+"id": "54287079",
+"type": {
+"type": "offside",
+"text": "Offside"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Daichi Kamada"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4473.0,
+"displayValue": "75'"
+},
+"wallclock": "2026-10-25T15:31:15Z",
+"fieldPositionX": 72.9,
+"fieldPositionY": 65.0
+}
+},
+{
+"sequence": 80,
+"time": {
+"value": 4564.0,
+"displayValue": "77'"
+},
+"text": "Substitution, Newcastle United. Yoane Wissa replaces William Osula.",
+"play": {
+"id": "54287104",
+"type": {
+"type": "substitution",
+"text": "Substitution"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Yoane Wissa"
+}
+},
+{
+"athlete": {
+"displayName": "William Osula"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4564.0,
+"displayValue": "77'"
+},
+"wallclock": "2026-10-25T15:32:47Z"
+}
+},
+{
+"sequence": 81,
+"time": {
+"value": 4570.0,
+"displayValue": "77'"
+},
+"text": "Substitution, Newcastle United. Jacob Ramsey replaces Joe Willock.",
+"play": {
+"id": "54287105",
+"type": {
+"type": "substitution",
+"text": "Substitution"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Jacob Ramsey"
+}
+},
+{
+"athlete": {
+"displayName": "Joe Willock"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4570.0,
+"displayValue": "77'"
+},
+"wallclock": "2026-10-25T15:32:53Z"
+}
+},
+{
+"sequence": 82,
+"time": {
+"value": 4572.0,
+"displayValue": "77'"
+},
+"text": "Substitution, Newcastle United. Anthony Elanga replaces Harvey Barnes.",
+"play": {
+"id": "54287106",
+"type": {
+"type": "substitution",
+"text": "Substitution"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Anthony Elanga"
+}
+},
+{
+"athlete": {
+"displayName": "Harvey Barnes"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4572.0,
+"displayValue": "77'"
+},
+"wallclock": "2026-10-25T15:32:55Z"
+}
+},
+{
+"sequence": 83,
+"time": {
+"value": 4638.0,
+"displayValue": "78'"
+},
+"text": "Lewis Hall (Newcastle United) is shown the yellow card.",
+"play": {
+"id": "54287304",
+"type": {
+"type": "yellow-card",
+"text": "Yellow Card"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Lewis Hall"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4638.0,
+"displayValue": "78'"
+},
+"wallclock": "2026-10-25T15:34:01Z"
+}
+},
+{
+"sequence": 84,
+"time": {
+"value": 4665.0,
+"displayValue": "78'"
+},
+"text": "Handball by Adam Wharton (Crystal Palace).",
+"play": {
+"id": "54287308",
+"type": {
+"type": "handball",
+"text": "Handball"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Adam Wharton"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4665.0,
+"displayValue": "78'"
+},
+"wallclock": "2026-10-25T15:34:27Z",
+"fieldPositionX": 38.9,
+"fieldPositionY": 19.0
+}
+},
+{
+"sequence": 85,
+"time": {
+"value": 4720.0,
+"displayValue": "79'"
+},
+"text": "Anan Khalaili (Crystal Palace) is shown the yellow card.",
+"play": {
+"id": "54287517",
+"type": {
+"type": "yellow-card",
+"text": "Yellow Card"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Anan Khalaili"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4720.0,
+"displayValue": "79'"
+},
+"wallclock": "2026-10-25T15:35:23Z"
+}
+},
+{
+"sequence": 86,
+"time": {
+"value": 4772.0,
+"displayValue": "80'"
+},
+"text": "Offside, Crystal Palace. Darío Osorio is caught offside.",
+"play": {
+"id": "54288183",
+"type": {
+"type": "offside",
+"text": "Offside"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Chris Richards"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4772.0,
+"displayValue": "80'"
+},
+"wallclock": "2026-10-25T15:36:15Z",
+"fieldPositionX": 55.3,
+"fieldPositionY": 11.5
+}
+},
+{
+"sequence": 87,
+"time": {
+"value": 4855.0,
+"displayValue": "81'"
+},
+"text": "Tyrick Mitchell (Crystal Palace) wins a free kick on the left wing.",
+"play": {
+"id": "54287858",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Jacob Ramsey"
+}
+},
+{
+"athlete": {
+"displayName": "Tyrick Mitchell"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4855.0,
+"displayValue": "81'"
+},
+"wallclock": "2026-10-25T15:37:37Z",
+"fieldPositionX": 80.3,
+"fieldPositionY": 87.1
+}
+},
+{
+"sequence": 88,
+"time": {
+"value": 4855.0,
+"displayValue": "81'"
+},
+"text": "Foul by Jacob Ramsey (Newcastle United).",
+"play": {
+"id": "54287858",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Jacob Ramsey"
+}
+},
+{
+"athlete": {
+"displayName": "Tyrick Mitchell"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4855.0,
+"displayValue": "81'"
+},
+"wallclock": "2026-10-25T15:37:37Z",
+"fieldPositionX": 80.3,
+"fieldPositionY": 87.1
+}
+},
+{
+"sequence": 89,
+"time": {
+"value": 4945.0,
+"displayValue": "83'"
+},
+"text": "Yéremy Pino (Crystal Palace) wins a free kick on the left wing.",
+"play": {
+"id": "54288201",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Jacob Murphy"
+}
+},
+{
+"athlete": {
+"displayName": "Yéremy Pino"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4945.0,
+"displayValue": "83'"
+},
+"wallclock": "2026-10-25T15:39:07Z",
+"fieldPositionX": 31.2,
+"fieldPositionY": 14.2
+}
+},
+{
+"sequence": 90,
+"time": {
+"value": 4945.0,
+"displayValue": "83'"
+},
+"text": "Foul by Jacob Murphy (Newcastle United).",
+"play": {
+"id": "54288201",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Jacob Murphy"
+}
+},
+{
+"athlete": {
+"displayName": "Yéremy Pino"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 4945.0,
+"displayValue": "83'"
+},
+"wallclock": "2026-10-25T15:39:07Z",
+"fieldPositionX": 31.2,
+"fieldPositionY": 14.2
+}
+},
+{
+"sequence": 91,
+"time": {
+"value": 5048.0,
+"displayValue": "85'"
+},
+"text": "Attempt missed. Darío Osorio (Crystal Palace) left footed shot from outside the box is too high. Assisted by Yéremy Pino following a fast break.",
+"play": {
+"id": "54288574",
+"type": {
+"type": "shot-off-target",
+"text": "Shot Off Target"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Darío Osorio"
+}
+},
+{
+"athlete": {
+"displayName": "Yéremy Pino"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5048.0,
+"displayValue": "85'"
+},
+"wallclock": "2026-10-25T15:40:52Z",
+"fieldPositionX": 81.8,
+"fieldPositionY": 53.4
+}
+},
+{
+"sequence": 92,
+"time": {
+"value": 5085.0,
+"displayValue": "85'"
+},
+"text": "Substitution, Newcastle United. Sean Steur replaces Joelinton.",
+"play": {
+"id": "54288746",
+"type": {
+"type": "substitution",
+"text": "Substitution"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Sean Steur"
+}
+},
+{
+"athlete": {
+"displayName": "Joelinton"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5085.0,
+"displayValue": "85'"
+},
+"wallclock": "2026-10-25T15:41:28Z"
+}
+},
+{
+"sequence": 93,
+"time": {
+"value": 5111.0,
+"displayValue": "86'"
+},
+"text": "Foul by Eddie Nketiah (Crystal Palace).",
+"play": {
+"id": "54288745",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Eddie Nketiah"
+}
+},
+{
+"athlete": {
+"displayName": "Lewis Hall"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5111.0,
+"displayValue": "86'"
+},
+"wallclock": "2026-10-25T15:41:53Z",
+"fieldPositionX": 70.6,
+"fieldPositionY": 6.6
+}
+},
+{
+"sequence": 94,
+"time": {
+"value": 5111.0,
+"displayValue": "86'"
+},
+"text": "Lewis Hall (Newcastle United) wins a free kick in the defensive half.",
+"play": {
+"id": "54288745",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Eddie Nketiah"
+}
+},
+{
+"athlete": {
+"displayName": "Lewis Hall"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5111.0,
+"displayValue": "86'"
+},
+"wallclock": "2026-10-25T15:41:53Z",
+"fieldPositionX": 70.6,
+"fieldPositionY": 6.6
+}
+},
+{
+"sequence": 95,
+"time": {
+"value": 5293.0,
+"displayValue": "89'"
+},
+"text": "Corner, Crystal Palace. Conceded by Amar Dedic.",
+"play": {
+"id": "54289502",
+"type": {
+"type": "corner-awarded",
+"text": "Corner Awarded"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5293.0,
+"displayValue": "89'"
+},
+"wallclock": "2026-10-25T15:44:56Z",
+"fieldPositionX": 96.8,
+"fieldPositionY": 28.6
+}
+},
+{
+"sequence": 96,
+"time": {
+"value": 5321.0,
+"displayValue": "89'"
+},
+"text": "Attempt missed. Darío Osorio (Crystal Palace) left footed shot from the right side of the box is too high following a corner.",
+"play": {
+"id": "54289720",
+"type": {
+"type": "shot-off-target",
+"text": "Shot Off Target"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Darío Osorio"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5321.0,
+"displayValue": "89'"
+},
+"wallclock": "2026-10-25T15:45:24Z",
+"fieldPositionX": 84.2,
+"fieldPositionY": 36.4
+}
+},
+{
+"sequence": 97,
+"time": {
+"value": 5400.0,
+"displayValue": "90'"
+},
+"text": "Fourth official has announced 6 minutes of added time."
+},
+{
+"sequence": 98,
+"time": {
+"value": 5442.0,
+"displayValue": "90'+1'"
+},
+"text": "Attempt blocked. Yéremy Pino (Crystal Palace) right footed shot from outside the box is blocked. Assisted by Darío Osorio.",
+"play": {
+"id": "54289994",
+"type": {
+"type": "shot-blocked",
+"text": "Shot Blocked"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Yéremy Pino"
+}
+},
+{
+"athlete": {
+"displayName": "Darío Osorio"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5400.0,
+"displayValue": "90'+1'"
+},
+"wallclock": "2026-10-25T15:47:24Z",
+"fieldPositionX": 76.6,
+"fieldPositionY": 54.2
+}
+},
+{
+"sequence": 99,
+"time": {
+"value": 5444.0,
+"displayValue": "90'+1'"
+},
+"text": "Corner, Crystal Palace. Conceded by Fabian Schär.",
+"play": {
+"id": "54289996",
+"type": {
+"type": "corner-awarded",
+"text": "Corner Awarded"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5400.0,
+"displayValue": "90'+1'"
+},
+"wallclock": "2026-10-25T15:47:26Z",
+"fieldPositionX": 86.9,
+"fieldPositionY": 44.0
+}
+},
+{
+"sequence": 100,
+"time": {
+"value": 5537.0,
+"displayValue": "90'+3'"
+},
+"text": "Attempt blocked. Axel Disasi (Crystal Palace) right footed shot from outside the box is blocked.",
+"play": {
+"id": "54290449",
+"type": {
+"type": "shot-blocked",
+"text": "Shot Blocked"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Axel Disasi"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5400.0,
+"displayValue": "90'+3'"
+},
+"wallclock": "2026-10-25T15:48:59Z",
+"fieldPositionX": 76.0,
+"fieldPositionY": 44.8
+}
+},
+{
+"sequence": 101,
+"time": {
+"value": 5550.0,
+"displayValue": "90'+3'"
+},
+"text": "Yoane Wissa (Newcastle United) wins a free kick in the attacking half.",
+"play": {
+"id": "54290779",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Jaydee Canvot"
+}
+},
+{
+"athlete": {
+"displayName": "Yoane Wissa"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5400.0,
+"displayValue": "90'+3'"
+},
+"wallclock": "2026-10-25T15:49:13Z",
+"fieldPositionX": 35.8,
+"fieldPositionY": 65.8
+}
+},
+{
+"sequence": 102,
+"time": {
+"value": 5550.0,
+"displayValue": "90'+3'"
+},
+"text": "Foul by Jaydee Canvot (Crystal Palace).",
+"play": {
+"id": "54290779",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Jaydee Canvot"
+}
+},
+{
+"athlete": {
+"displayName": "Yoane Wissa"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5400.0,
+"displayValue": "90'+3'"
+},
+"wallclock": "2026-10-25T15:49:13Z",
+"fieldPositionX": 35.8,
+"fieldPositionY": 65.8
+}
+},
+{
+"sequence": 103,
+"time": {
+"value": 5552.0,
+"displayValue": "90'+3'"
+},
+"text": "Jaydee Canvot (Crystal Palace) is shown the yellow card for a bad foul.",
+"play": {
+"id": "54290780",
+"type": {
+"type": "yellow-card",
+"text": "Yellow Card"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Jaydee Canvot"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5400.0,
+"displayValue": "90'+3'"
+},
+"wallclock": "2026-10-25T15:49:15Z"
+}
+},
+{
+"sequence": 104,
+"time": {
+"value": 5644.0,
+"displayValue": "90'+5'"
+},
+"text": "Substitution, Newcastle United. Malick Thiaw replaces Amar Dedic.",
+"play": {
+"id": "54290990",
+"type": {
+"type": "substitution",
+"text": "Substitution"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Malick Thiaw"
+}
+},
+{
+"athlete": {
+"displayName": "Amar Dedic"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5400.0,
+"displayValue": "90'+5'"
+},
+"wallclock": "2026-10-25T15:50:47Z"
+}
+},
+{
+"sequence": 105,
+"time": {
+"value": 5665.0,
+"displayValue": "90'+5'"
+},
+"text": "Malick Thiaw (Newcastle United) wins a free kick in the defensive half.",
+"play": {
+"id": "54291032",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Eddie Nketiah"
+}
+},
+{
+"athlete": {
+"displayName": "Malick Thiaw"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5400.0,
+"displayValue": "90'+5'"
+},
+"wallclock": "2026-10-25T15:51:07Z",
+"fieldPositionX": 93.1,
+"fieldPositionY": 45.4
+}
+},
+{
+"sequence": 106,
+"time": {
+"value": 5665.0,
+"displayValue": "90'+5'"
+},
+"text": "Foul by Eddie Nketiah (Crystal Palace).",
+"play": {
+"id": "54291032",
+"type": {
+"type": "foul",
+"text": "Foul"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Eddie Nketiah"
+}
+},
+{
+"athlete": {
+"displayName": "Malick Thiaw"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5400.0,
+"displayValue": "90'+5'"
+},
+"wallclock": "2026-10-25T15:51:07Z",
+"fieldPositionX": 93.1,
+"fieldPositionY": 45.4
+}
+},
+{
+"sequence": 107,
+"time": {
+"value": 5684.0,
+"displayValue": "90'+5'"
+},
+"text": "Delay in match because of an injury Malick Thiaw (Newcastle United).",
+"play": {
+"id": "54291034",
+"type": {
+"type": "start-delay",
+"text": "Start Delay"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5400.0,
+"displayValue": "90'+5'"
+},
+"wallclock": "2026-10-25T15:51:26Z"
+}
+},
+{
+"sequence": 108,
+"time": {
+"value": 5808.0,
+"displayValue": "90'+7'"
+},
+"text": "Delay over. They are ready to continue.",
+"play": {
+"id": "54291298",
+"type": {
+"type": "end-delay",
+"text": "End Delay"
+},
+"team": {
+"displayName": "Newcastle United"
+},
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5400.0,
+"displayValue": "90'+7'"
+},
+"wallclock": "2026-10-25T15:53:30Z"
+}
+},
+{
+"sequence": 109,
+"time": {
+"value": 5887.0,
+"displayValue": "90'+9'"
+},
+"text": "Corner, Crystal Palace. Conceded by Jacob Murphy.",
+"play": {
+"id": "54291552",
+"type": {
+"type": "corner-awarded",
+"text": "Corner Awarded"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5400.0,
+"displayValue": "90'+9'"
+},
+"wallclock": "2026-10-25T15:54:50Z",
+"fieldPositionX": 90.6,
+"fieldPositionY": 29.7
+}
+},
+{
+"sequence": 110,
+"time": {
+"value": 5915.0,
+"displayValue": "90'+9'"
+},
+"text": "Attempt missed. Eddie Nketiah (Crystal Palace) header from the centre of the box misses to the right. Assisted by Yéremy Pino with a cross following a corner.",
+"play": {
+"id": "54291636",
+"type": {
+"type": "shot-off-target",
+"text": "Shot Off Target"
+},
+"team": {
+"displayName": "Crystal Palace"
+},
+"participants": [
+{
+"athlete": {
+"displayName": "Eddie Nketiah"
+}
+},
+{
+"athlete": {
+"displayName": "Yéremy Pino"
+}
+}
+],
+"period": {
+"number": 2
+},
+"clock": {
+"value": 5400.0,
+"displayValue": "90'+9'"
+},
+"wallclock": "2026-10-25T15:55:18Z",
+"fieldPositionX": 90.7,
+"fieldPositionY": 44.1
+}
+},
+{
+"sequence": 111,
+"time": {
+"value": 5920.0,
+"displayValue": "90'+9'"
+},
+"text": "Second Half ends, Crystal Palace 0, Newcastle United 2."
+},
+{
+"sequence": 112,
+"time": {
+"value": 0.0,
+"displayValue": ""
+},
+"text": "Match ends, Crystal Palace 0, Newcastle United 2."
+}
+]
+}

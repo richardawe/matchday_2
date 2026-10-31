@@ -1,0 +1,125 @@
+[
+ {
+  "input": {
+   "kind": "goal",
+   "army": "Norse Vikings",
+   "opp_army": "Byzantine Cataphracts",
+   "home": "Liverpool",
+   "away": "Brighton & Hove Albion",
+   "clock": "21′",
+   "score": "2–0",
+   "facts": {
+    "player": "Alexander Isak",
+    "assist": "Bradley Barcola",
+    "angle": "extend",
+    "zone": "six_yard",
+    "shots_before": 2
+   }
+  },
+  "prompt": "Write the Griot's caption as JSON {\"headline\",\"line\"} for this moment:\n{\"army\": \"Norse Vikings\", \"away\": \"Brighton & Hove Albion\", \"clock\": \"21′\", \"facts\": {\"angle\": \"extend\", \"assist\": \"Bradley Barcola\", \"player\": \"Alexander Isak\", \"shots_before\": 2, \"zone\": \"six_yard\"}, \"home\": \"Liverpool\", \"kind\": \"goal\", \"opp_army\": \"Byzantine Cataphracts\", \"score\": \"2–0\"}",
+  "checks": [
+   {
+    "output": {
+     "headline": "The Norse Vikings press on",
+     "line": "Alexander Isak volleys home, Bradley Barcola the giver. 2–0."
+    },
+    "problems": []
+   },
+   {
+    "output": {
+     "headline": "Isak again!",
+     "line": "Mohamed Salah makes it 3–0 in the 22nd minute."
+    },
+    "problems": [
+     "number 3 not in the facts",
+     "number 22 not in the facts",
+     "name Mohamed not in the facts",
+     "name Salah not in the facts"
+    ]
+   },
+   {
+    "output": {
+     "headline": "Glorious!",
+     "line": "Brilliant from Isak. Superb."
+    },
+    "problems": []
+   },
+   {
+    "output": {
+     "headline": "The Cataphracts storm the gate",
+     "line": "Four shots in 2 minutes. Diego Gómez and Kostoulas cannot find the way."
+    },
+    "problems": [
+     "name Diego not in the facts",
+     "name Gómez not in the facts",
+     "name Kostoulas not in the facts"
+    ]
+   }
+  ]
+ },
+ {
+  "input": {
+   "kind": "pressure",
+   "army": "Byzantine Cataphracts",
+   "opp_army": "Norse Vikings",
+   "home": "Liverpool",
+   "away": "Brighton & Hove Albion",
+   "clock": "45+2′",
+   "score": "2–0",
+   "facts": {
+    "shots": 4,
+    "on_target": 1,
+    "span": 2,
+    "players": [
+     "Olivier Boscagli",
+     "Charalambos Kostoulas",
+     "Diego Gómez"
+    ],
+    "quote": "say \"hi\"\\ok"
+   }
+  },
+  "prompt": "Write the Griot's caption as JSON {\"headline\",\"line\"} for this moment:\n{\"army\": \"Byzantine Cataphracts\", \"away\": \"Brighton & Hove Albion\", \"clock\": \"45+2′\", \"facts\": {\"on_target\": 1, \"players\": [\"Olivier Boscagli\", \"Charalambos Kostoulas\", \"Diego Gómez\"], \"quote\": \"say \\\"hi\\\"\\\\ok\", \"shots\": 4, \"span\": 2}, \"home\": \"Liverpool\", \"kind\": \"pressure\", \"opp_army\": \"Norse Vikings\", \"score\": \"2–0\"}",
+  "checks": [
+   {
+    "output": {
+     "headline": "The Norse Vikings press on",
+     "line": "Alexander Isak volleys home, Bradley Barcola the giver. 2–0."
+    },
+    "problems": [
+     "name Alexander not in the facts",
+     "name Isak not in the facts",
+     "name Bradley not in the facts",
+     "name Barcola not in the facts"
+    ]
+   },
+   {
+    "output": {
+     "headline": "Isak again!",
+     "line": "Mohamed Salah makes it 3–0 in the 22nd minute."
+    },
+    "problems": [
+     "number 3 not in the facts",
+     "number 22 not in the facts",
+     "name Mohamed not in the facts",
+     "name Salah not in the facts"
+    ]
+   },
+   {
+    "output": {
+     "headline": "Glorious!",
+     "line": "Brilliant from Isak. Superb."
+    },
+    "problems": [
+     "name Isak not in the facts"
+    ]
+   },
+   {
+    "output": {
+     "headline": "The Cataphracts storm the gate",
+     "line": "Four shots in 2 minutes. Diego Gómez and Kostoulas cannot find the way."
+    },
+    "problems": []
+   }
+  ]
+ }
+]
