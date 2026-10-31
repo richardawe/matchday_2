@@ -1,6 +1,6 @@
 import React from 'react';
 import { AbsoluteFill, Audio, Img, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
-import { buildTimeline } from './timeline.js';
+import { buildTimeline, keyMoment } from './timeline.js';
 
 // Same look as the story cards: black, team-coloured light, crest-free armies,
 // Anton headlines, IBM Plex captions and a Kente-style band in team colours.
@@ -24,10 +24,11 @@ const Glow = ({ colour, x = '50%', y = '40%', size = 85 }) => (
 );
 
 // One army statue, eased in and drifting slowly (a Ken Burns push).
-const Army = ({ side, height, left, bottom = 0.14, flip, ghost, fallen, enter = 'none', duration }) => {
+// `instant` draws it fully on the first frame (the opening scene must read at a glance).
+const Army = ({ side, height, left, bottom = 0.14, flip, ghost, fallen, enter = 'none', duration, instant }) => {
     const frame = useCurrentFrame();
     const { fps, height: H } = useVideoConfig();
-    const rise = spring({ frame, fps, config: { damping: 18, mass: 0.9 } });
+    const rise = instant ? 1 : spring({ frame, fps, config: { damping: 18, mass: 0.9 } });
     const slide = enter === 'left' ? interpolate(rise, [0, 1], [-260, 0]) : enter === 'right' ? interpolate(rise, [0, 1], [260, 0]) : 0;
     const push = interpolate(frame, [0, duration], [1, 1.07], { extrapolateRight: 'clamp' });
     if (!side.art) return null;
@@ -83,18 +84,41 @@ const Footer = ({ colours }) => {
     );
 };
 
-const Title = ({ home, away, title, competition, duration }) => {
+// The opening: the final score, huge, and the moment that decided it, all on frame 1. Only a
+// slight settle moves afterwards; nothing fades in, so a viewer who stops at 1–2 seconds has
+// already seen the result.
+const Title = ({ home, away, competition, beats, duration }) => {
+    const frame = useCurrentFrame();
     const u = useUnit();
+    const key = keyMoment(beats ?? []);
+    const settle = interpolate(frame, [0, 12], [1.04, 1], { extrapolateRight: 'clamp' });
+    const keySide = key?.side === 'away' ? away : key?.side === 'home' ? home : null;
+    const name = { font: `${44 * u}px PlexMono`, color: PAPER, letterSpacing: 2 * u, textTransform: 'uppercase', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' };
     return (
         <AbsoluteFill style={{ background: INK }}>
-            <Glow colour={home.colours[0]} x="25%" size={60} />
-            <Glow colour={away.colours[0]} x="75%" size={60} />
-            <Army side={home} height={0.58} left="27%" bottom={0.2} flip enter="left" duration={duration} />
-            <Army side={away} height={0.58} left="73%" bottom={0.2} enter="right" duration={duration} />
+            <Glow colour={home.colours[0]} x="25%" y="62%" size={60} />
+            <Glow colour={away.colours[0]} x="75%" y="62%" size={60} />
+            <Army side={home} height={0.44} left="25%" bottom={0.19} flip instant duration={duration} />
+            <Army side={away} height={0.44} left="75%" bottom={0.19} instant duration={duration} />
             <Shade />
             <div style={{ position: 'absolute', top: 72 * u, left: 64 * u, font: `${26 * u}px PlexMono`, color: '#a39c8f', letterSpacing: 3 * u }}>{competition}</div>
             <Tag>FULL TIME</Tag>
-            <Caption headline={title.headline} line={title.line} delay={10} />
+            <div style={{ position: 'absolute', top: 210 * u, left: 64 * u, right: 64 * u, textAlign: 'center' }}>
+                <div style={{ display: 'flex', gap: 24 * u }}>
+                    <div style={{ ...name, textAlign: 'left', borderTop: `${10 * u}px solid ${home.colours[0]}`, paddingTop: 14 * u }}>{home.club}</div>
+                    <div style={{ ...name, textAlign: 'right', borderTop: `${10 * u}px solid ${away.colours[0]}`, paddingTop: 14 * u }}>{away.club}</div>
+                </div>
+                <div style={{ font: `${400 * u}px/1 Anton`, color: PAPER, marginTop: 6 * u, transform: `scale(${settle})`, textShadow: `0 ${8 * u}px ${40 * u}px rgba(0,0,0,.6)` }}>
+                    {home.score}<span style={{ color: GOLD, margin: `0 ${24 * u}px` }}>–</span>{away.score}
+                </div>
+            </div>
+            {key && (
+                <div style={{ position: 'absolute', left: 64 * u, right: 64 * u, bottom: 120 * u, padding: `${26 * u}px ${30 * u}px`, background: 'rgba(7,8,7,.84)', borderLeft: `${10 * u}px solid ${keySide ? keySide.colours[0] : GOLD}` }}>
+                    <div style={{ font: `${32 * u}px PlexMono`, color: key.type === 'red_card' ? BLOOD : GOLD, letterSpacing: 2 * u }}>KEY MOMENT · {key.tag}</div>
+                    <div style={{ font: `${76 * u}px/1.02 Anton`, color: PAPER, textTransform: 'uppercase', marginTop: 10 * u }}>{key.headline}</div>
+                    {key.line && <div style={{ font: `${36 * u}px/1.3 Plex`, color: '#d6cfc0', marginTop: 10 * u }}>{key.line}</div>}
+                </div>
+            )}
             <Footer colours={home.colours} />
         </AbsoluteFill>
     );

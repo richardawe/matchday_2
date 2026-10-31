@@ -39,7 +39,7 @@ class GriotReelTest extends TestCase
     {
         $props = app(ReelService::class)->props($this->match);
 
-        $this->assertSame(['Arsenal against Chelsea.'], $props['title']['say']);
+        $this->assertSame(['Full time: Arsenal 1, Chelsea 0.', 'Arsenal 1, Chelsea 0.', 'Arsenal against Chelsea.'], $props['title']['say']);
         $goal = collect($props['beats'])->firstWhere('type', 'goal');
         $this->assertSame(['Saka scores, 41 minutes! Arsenal 1, Chelsea 0.', 'Saka scores! Arsenal 1, Chelsea 0.', 'Goal, Saka! 1 nil.', 'Saka scores!', 'Goal!'], $goal['say']);
         $this->assertSame(['Full time. Arsenal 1, Chelsea 0.', 'Full time.'], $props['final']['say']);
