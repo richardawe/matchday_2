@@ -15,6 +15,10 @@
                    class="px-3 py-2 rounded-md text-sm font-medium {{ request()->routeIs('admin.dashboard') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-700' }}">
                     📊 Dashboard
                 </a>
+                <a href="{{ route('admin.users.index') }}"
+                   class="px-3 py-2 rounded-md text-sm font-medium {{ request()->routeIs('admin.users.*') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-700' }}">
+                    👥 Signups
+                </a>
 
                 <!-- Content Management -->
                 <div class="relative group" x-data="{ open: false }">

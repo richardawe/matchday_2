@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\FootballMatch;
+use App\Models\User;
+use App\Support\Attribution;
 use App\Observers\FootballMatchObserver;
 use Illuminate\Support\ServiceProvider;
 
@@ -31,5 +33,12 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register model observers
         FootballMatch::observe(FootballMatchObserver::class);
+
+        // Every signup path (email, Google, X) stores the visitor's first-touch source.
+        User::creating(function (User $user) {
+            foreach (Attribution::forUser() as $key => $value) {
+                $user->{$key} ??= $value;
+            }
+        });
     }
 }
