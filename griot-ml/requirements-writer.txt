@@ -1,0 +1,8 @@
+# Only for train_writer.py train/export/eval (a GPU machine or Colab).
+torch>=2.3
+transformers>=4.51
+peft>=0.11
+datasets>=2.19
+optimum[onnxruntime]>=1.21
+onnx>=1.16
+onnxruntime>=1.18

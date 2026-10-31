@@ -35,6 +35,7 @@ const live = document.getElementById('match-live');
 if (live && (live.dataset.active === '1' || live.dataset.soon === '1')) {
     let lastHtml = null;
     let lastStory = null;
+    let lastTimeline = null;
     const refreshLive = async () => {
         let delay = 60000;
         try {
@@ -48,6 +49,10 @@ if (live && (live.dataset.active === '1' || live.dataset.soon === '1')) {
             if (data.html !== lastHtml) live.innerHTML = data.html;
             const story = document.getElementById('match-story');
             if (story && data.story !== undefined && data.story !== lastStory) { story.innerHTML = data.story; lastStory = data.story; }
+            const timeline = document.getElementById('match-timeline');
+            // Keep a clip that is playing: only swap the timeline when nothing in it is being heard.
+            const hearing = timeline && [...timeline.querySelectorAll('audio')].some((a) => !a.paused);
+            if (timeline && data.timeline !== undefined && data.timeline !== lastTimeline && !hearing) { timeline.innerHTML = data.timeline; lastTimeline = data.timeline; }
             lastHtml = data.html;
             if (data.finished) return;
             delay = data.active ? 20000 : 60000;

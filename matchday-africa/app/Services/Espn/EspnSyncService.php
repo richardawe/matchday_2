@@ -93,10 +93,27 @@ class EspnSyncService
             $meta['espn_summary_final'] = $match->status === 'FINISHED';
             $match->update($updates + ['metadata' => $meta]);
             $this->saveEvents($match, $this->mapper->summaryEvents($summary, $homeTeamId), 'summary');
+            $this->tellTimeline($match->fresh(), $summary);
             $this->result['success']++;
         }
 
         return $this->finish('details');
+    }
+
+    /** The live Griot timeline: store the commentary as plays and retell the match. Never breaks the sync. */
+    private function tellTimeline(FootballMatch $match, array $summary): void
+    {
+        $timeline = app(\App\Services\Griot\GriotTimeline::class);
+        if (!$timeline->ready()) {
+            return;
+        }
+        try {
+            if ($timeline->savePlays($match, app(EspnCommentaryMapper::class)->plays($summary))) {
+                $timeline->build($match);
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     private function syncScoreboard(string $slug, string $date): void

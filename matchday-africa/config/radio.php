@@ -9,7 +9,8 @@ return [
     'news_sources' => array_values(array_filter(array_map('trim', explode(',', env('RADIO_NEWS_SOURCES', ''))))),
     'node' => env('RADIO_NODE', env('REEL_NODE', 'node')),
     'ffmpeg' => env('RADIO_FFMPEG', 'ffmpeg'),
-    'voice' => env('RADIO_VOICE', 'bm_george'),
+    // 'griot': the Griot's blended voice over the talking-drum groove (radio/griot-sound.mjs); or a Kokoro voice ID.
+    'voice' => env('RADIO_VOICE', 'griot'),
     // OpenRouter model for the script writer and fact checker (e.g. anthropic/claude-haiku-5.5). Empty uses
     // OPENROUTER_MODEL; when set, OPENROUTER_MODEL and its fallbacks stay behind it if it fails.
     'model' => env('RADIO_MODEL'),
@@ -17,5 +18,5 @@ return [
     'timeout' => 1200,
     'max_attempts' => 3,
     'bitrate' => 24,
-    'disclosure' => 'This bulletin is written with AI and voiced using Kokoro. Scores and reports reflect the sources available at recording time.',
+    'disclosure' => 'This bulletin is written with AI and voiced using Kokoro, with synthesised music and sound effects. Scores and reports reflect the sources available at recording time.',
 ];

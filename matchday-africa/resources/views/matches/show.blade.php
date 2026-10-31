@@ -12,6 +12,7 @@
 
 <x-whatsapp-channel context="match" />
 <div id="match-story">@include('partials.match-story')</div>
+<div id="match-timeline">@include('partials.match-timeline')</div>
 @if(!empty($reel))<x-social-follow variant="block" context="match" title="Follow for every reel like this one." />@endif
 
 <section id="prediction-arena" class="md-phase"><div class="md-wrap"><div class="grid grid-cols-1 lg:grid-cols-5 gap-8">

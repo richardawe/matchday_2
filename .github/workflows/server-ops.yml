@@ -10,7 +10,7 @@ on:
       action:
         description: What to run
         type: choice
-        options: [status, buffer-channels, configure-buffer, plan-posts, clear-drafts, reel-check, configure-reel, reel-render, configure-espn, espn-sync, reel-queue, configure-home, configure-growth, radio-check, configure-radio, configure-radio-model, configure-reel-voice, radio-run, radio-refresh, radio-status, radio-voice, radio-publish, radio-retry]
+        options: [status, buffer-channels, configure-buffer, plan-posts, clear-drafts, reel-check, configure-reel, reel-render, configure-espn, espn-sync, reel-queue, configure-home, configure-growth, radio-check, configure-radio, configure-radio-model, configure-radio-voice, configure-griot, configure-reel-voice, radio-run, radio-refresh, radio-status, radio-voice, radio-publish, radio-retry]
         default: status
       channel_x:
         description: "configure-buffer: Buffer channel ID for X (blank = leave as is)"
@@ -73,6 +73,20 @@ on:
         description: "configure-radio-model: OpenRouter model ID for radio scripts, e.g. anthropic/claude-haiku-5.5 (default = site model)"
         required: false
         default: default
+      radio_voice:
+        description: "configure-radio-voice: griot (blended voice over the talking-drum groove) or a Kokoro voice such as bm_george"
+        required: false
+        default: griot
+      griot_timeline:
+        description: "configure-griot: live Griot timeline on match pages"
+        type: choice
+        options: [unchanged, "on", "off"]
+        default: unchanged
+      griot_voice:
+        description: "configure-griot: Griot voice clips on timeline posts"
+        type: choice
+        options: [unchanged, "on", "off"]
+        default: unchanged
       reel_voice:
         description: "configure-reel-voice: Kokoro commentary over new reels"
         type: choice
@@ -129,4 +143,7 @@ jobs:
           INPUT_BULLETIN_ID: ${{ inputs.bulletin_id }}
           INPUT_RADIO_MODEL: ${{ inputs.radio_model }}
           INPUT_REEL_VOICE: ${{ inputs.reel_voice }}
+          INPUT_RADIO_VOICE: ${{ inputs.radio_voice }}
+          INPUT_GRIOT_TIMELINE: ${{ inputs.griot_timeline }}
+          INPUT_GRIOT_VOICE: ${{ inputs.griot_voice }}
         run: bash scripts/ci/deploy-ssh.sh "$ACTION"

@@ -81,6 +81,12 @@ class Griot
         return 'en';
     }
 
+    /** The raw [headline, line] template for a voice and template key (the timeline reuses the goal lines). */
+    public static function lines(string $voice, string $template): array
+    {
+        return self::LINES[$voice][$template] ?? self::LINES['en'][$template];
+    }
+
     /** [headline, line] for a chapter. */
     public function tell(MatchMoment $moment, string $voice = 'en'): array
     {

@@ -1,0 +1,283 @@
+// The Griot's sound: the voice (Kokoro, two stock styles blended), a talking-drum groove that plays
+// under it and ducks while he speaks, and match sound effects (whistle, crowd roar, the "ooh" of a near
+// miss, a drum roll for pressure). Everything is synthesised here, so there is no recording to license.
+// Used by griot-voice.mjs (live timeline clips) and render.mjs (the daily radio bulletins).
+import { readFile, writeFile, unlink } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+export const RATE = 24000;
+export const BPM = 96;
+
+export function parseBlend(text) {
+    const parts = String(text || '').split(',').map((part) => part.trim()).filter(Boolean).map((part) => {
+        const [name, weight] = part.split(':');
+        if (!/^[a-z]{2}_[a-z]+$/.test(name || '')) throw new Error(`Bad Kokoro voice name in blend: ${part}`);
+        return { name, weight: weight === undefined ? 1 : Number(weight) };
+    });
+    const total = parts.reduce((sum, part) => sum + part.weight, 0);
+    if (!parts.length || !(total > 0) || parts.some((part) => !(part.weight >= 0))) throw new Error('GRIOT_VOICE_BLEND needs voice:weight pairs with positive weights');
+    return parts.map((part) => ({ ...part, weight: part.weight / total }));
+}
+
+// A weighted mix of Kokoro voice styles (each voice file is 510 × 256 float32 style vectors).
+export async function blendVoices(blend, read = (name) => readFile(path.join(HERE, 'node_modules/kokoro-js/voices', `${name}.bin`))) {
+    let mixed = null;
+    for (const { name, weight } of blend) {
+        const bytes = await read(name);
+        const style = new Float32Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 4);
+        mixed ??= new Float32Array(style.length);
+        if (style.length !== mixed.length) throw new Error(`Voice ${name} has an unexpected size`);
+        for (let i = 0; i < style.length; i++) mixed[i] += weight * style[i];
+    }
+    return mixed;
+}
+
+/** Kokoro with a 'griot' voice: British English phonemes and the blended style. Returns (text) => {audio, sampling_rate}. */
+export async function griotSpeaker() {
+    const { env, Tensor, RawAudio } = await import('@huggingface/transformers');
+    const { KokoroTTS } = await import('kokoro-js');
+    if (process.env.RADIO_TTS_CACHE) env.cacheDir = process.env.RADIO_TTS_CACHE;
+    const tts = await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX', {
+        dtype: 'q8', device: 'cpu', session_options: { intraOpNumThreads: 2, interOpNumThreads: 1 },
+    });
+    const style = await blendVoices(parseBlend(process.env.GRIOT_VOICE_BLEND || 'bm_george:0.6,am_onyx:0.4'));
+    tts._validate_voice = (voice) => (voice === 'griot' ? 'b' : KokoroTTS.prototype._validate_voice.call(tts, voice));
+    tts.generate_from_ids = async (ids, { speed = 1 } = {}) => {
+        const offset = 256 * Math.min(Math.max(ids.dims.at(-1) - 2, 0), 509);
+        const { waveform } = await tts.model({
+            input_ids: ids,
+            style: new Tensor('float32', style.slice(offset, offset + 256), [1, 256]),
+            speed: new Tensor('float32', [speed], [1]),
+        });
+        return new RawAudio(waveform.data, RATE);
+    };
+    const speed = Number(process.env.GRIOT_VOICE_SPEED || 0.92);
+    return (text) => tts.generate(text.replace(/(\d)\s*[–-]\s*(\d)/g, '$1 $2'), { voice: 'griot', speed });
+}
+
+// ---------------------------------------------------------------- instruments
+
+function noiseSource(seed = 7) {
+    let s = seed;
+    return () => ((s = (s * 16807) % 2147483647) / 2147483647) * 2 - 1;
+}
+
+function add(track, at, seconds, sample, rate = RATE) {
+    const from = Math.round(at * rate);
+    for (let i = 0; i < seconds * rate && from + i < track.length; i++) {
+        if (from + i >= 0) track[from + i] += sample(i / rate, i);
+    }
+}
+
+/** Talking drum: the tone falls as the player squeezes the cords. */
+export function talkingDrum(track, at, { high = 210, low = 120, gain = 0.6, rate = RATE } = {}) {
+    const noise = noiseSource(Math.round(at * 1000) + 3);
+    let phase = 0;
+    add(track, at, 0.55, (t) => {
+        phase += (2 * Math.PI * (low + (high - low) * Math.exp(-t * 7))) / rate;
+        return gain * (Math.sin(phase) * Math.exp(-t * 6) + 0.25 * noise() * Math.exp(-t * 60));
+    }, rate);
+}
+
+/** Djembe bass: a deep, quick thump. */
+function bass(track, at, gain, rate) {
+    add(track, at, 0.35, (t) => gain * Math.sin(2 * Math.PI * (52 + 38 * Math.exp(-t * 18)) * t) * Math.exp(-t * 9), rate);
+}
+
+/** Shaker: a short hiss. */
+function shaker(track, at, gain, rate, noise) {
+    let last = 0;
+    add(track, at, 0.06, (t) => {
+        const n = noise();
+        const hp = n - last; // crude high-pass keeps it bright
+        last = n;
+        return gain * hp * Math.exp(-t * 70);
+    }, rate);
+}
+
+/** Iron bell (gankogui): two bright partials. */
+function bell(track, at, gain, rate) {
+    add(track, at, 0.18, (t) => gain * (Math.sin(2 * Math.PI * 880 * t) + 0.5 * Math.sin(2 * Math.PI * 1320 * t)) * Math.exp(-t * 22), rate);
+}
+
+/** Kora-like pluck (Karplus-Strong). */
+function pluck(track, at, freq, gain, rate) {
+    const period = Math.round(rate / freq);
+    const noise = noiseSource(Math.round(freq * 13));
+    const buf = Float32Array.from({ length: period }, () => noise() * 0.5);
+    let idx = 0;
+    add(track, at, 1.6, () => {
+        const v = buf[idx];
+        const next = buf[(idx + 1) % period];
+        buf[idx] = 0.996 * 0.5 * (v + next);
+        idx = (idx + 1) % period;
+        return gain * v;
+    }, rate);
+}
+
+/**
+ * The groove: a 16-step West African pattern at 96 BPM (bell timeline, djembe bass, shaker, talking-drum
+ * answers) with a soft kora phrase every two bars. Fades in and out.
+ */
+export function groove(seconds, { rate = RATE, gain = 1 } = {}) {
+    const track = new Float32Array(Math.ceil(seconds * rate));
+    const step = 60 / BPM / 4;
+    const noise = noiseSource(19);
+    const bellSteps = [0, 3, 6, 10, 12], bassSteps = [0, 6, 10], drumSteps = { 4: [230, 150], 12: [200, 130], 14: [250, 160] };
+    const kora = [[293.66, 0], [349.23, 3], [392, 6], [440, 8], [392, 11], [349.23, 14]]; // D minor pentatonic phrase
+    for (let bar = 0; bar * 16 * step < seconds; bar++) {
+        const start = bar * 16 * step;
+        for (let s = 0; s < 16; s++) {
+            const at = start + s * step;
+            if (bellSteps.includes(s)) bell(track, at, 0.05 * gain, rate);
+            if (bassSteps.includes(s)) bass(track, at, 0.5 * gain, rate);
+            if (s % 2 === 0) shaker(track, at, (s % 4 === 0 ? 0.07 : 0.045) * gain, rate, noise);
+            if (drumSteps[s]) talkingDrum(track, at, { high: drumSteps[s][0], low: drumSteps[s][1], gain: 0.22 * gain, rate });
+        }
+        if (bar % 2 === 0) for (const [freq, s] of kora) pluck(track, start + s * step, freq, 0.16 * gain, rate);
+    }
+    const fade = Math.round(0.8 * rate);
+    for (let i = 0; i < track.length; i++) track[i] *= Math.min(1, i / fade, (track.length - i) / fade);
+    return track;
+}
+
+// ---------------------------------------------------------------- effects
+
+/** Referee's whistle: a trilled pea whistle; blasts = [[start, seconds], ...]. */
+export function whistle(track, at, blasts = [[0, 0.5]], rate = RATE) {
+    for (const [offset, seconds] of blasts) {
+        let phase = 0;
+        add(track, at + offset, seconds, (t) => {
+            phase += (2 * Math.PI * (2900 + 120 * Math.sin(2 * Math.PI * 38 * t))) / rate;
+            const env = Math.min(1, t / 0.02) * Math.min(1, (seconds - t) / 0.05);
+            return 0.22 * env * Math.sin(phase) * (0.7 + 0.3 * Math.sin(2 * Math.PI * 38 * t));
+        }, rate);
+    }
+}
+
+/** Crowd: low-passed noise under an envelope. shape 'roar' swells and holds; 'ooh' rises and falls; 'murmur' is soft. */
+export function crowd(track, at, seconds, shape = 'roar', rate = RATE) {
+    const noise = noiseSource(Math.round(at * 100) + 41);
+    let low = 0, band = 0;
+    add(track, at, seconds, (t) => {
+        low += 0.06 * (noise() - low);
+        band += 0.3 * (low - band);
+        const x = t / seconds;
+        const env = shape === 'ooh' ? Math.sin(Math.PI * Math.min(1, x)) ** 1.5
+            : shape === 'murmur' ? 0.35 * Math.min(1, t / 0.4) * Math.min(1, (seconds - t) / 0.6)
+                : Math.min(1, t / 0.25) * Math.min(1, (seconds - t) / 1.2);
+        return (shape === 'ooh' ? 3.2 * (low - band) : 2.4 * low) * env;
+    }, rate);
+}
+
+export function thud(track, at, rate = RATE) {
+    add(track, at, 0.9, (t) => 0.9 * Math.sin(2 * Math.PI * (55 + 40 * Math.exp(-t * 12)) * t) * Math.exp(-t * 4), rate);
+}
+
+export function drumRoll(track, at, seconds, rate = RATE) {
+    for (let t = 0, gap = 0.16; t < seconds; t += gap, gap = Math.max(0.05, gap * 0.9)) {
+        talkingDrum(track, at + t, { high: 200 + 60 * (t / seconds), low: 120, gain: 0.25 + 0.4 * (t / seconds), rate });
+    }
+}
+
+/** The call that opens a timeline clip, and how long the voice waits for it. */
+export function openingCall(track, kind, rate = RATE) {
+    const calls = {
+        goal: () => { talkingDrum(track, 0, { high: 230, low: 120, gain: 0.8, rate }); talkingDrum(track, 0.2, { high: 260, low: 140, gain: 0.6, rate }); talkingDrum(track, 0.42, { high: 200, low: 110, gain: 0.7, rate }); return 0.9; },
+        red_card: () => { thud(track, 0, rate); return 0.6; },
+        var: () => { thud(track, 0, rate); return 0.6; },
+        kickoff: () => { whistle(track, 0, [[0, 0.7]], rate); talkingDrum(track, 0.8, { high: 180, low: 110, gain: 0.6, rate }); return 1.2; },
+        half_time: () => { whistle(track, 0, [[0, 0.35], [0.5, 0.7]], rate); return 1.3; },
+        full_time: () => { whistle(track, 0, [[0, 0.35], [0.5, 0.35], [1.0, 0.9]], rate); return 2.0; },
+        pressure: () => { drumRoll(track, 0, 0.9, rate); return 1.0; },
+    };
+    return (calls[kind] ?? (() => { talkingDrum(track, 0, { high: 190, low: 120, gain: 0.45, rate }); return 0.55; }))();
+}
+
+/** Effects that play under the words, timed from the clip's start (lead = when the voice begins). */
+export function underneath(track, kind, lead, voiceSeconds, rate = RATE) {
+    if (kind === 'goal') crowd(track, 0.2, lead + Math.min(voiceSeconds, 4) + 1, 'roar', rate);
+    else if (kind === 'big_chance' || kind === 'woodwork') crowd(track, lead + 0.2, 2.2, 'ooh', rate);
+    else if (kind === 'full_time') crowd(track, 1.0, lead + voiceSeconds + 1.5, 'roar', rate);
+    else if (kind === 'red_card' || kind === 'var') crowd(track, lead, voiceSeconds + 0.5, 'murmur', rate);
+    else if (kind === 'pressure') crowd(track, 0, lead + voiceSeconds, 'murmur', rate);
+}
+
+// ---------------------------------------------------------------- mixing
+
+function ffmpeg(args) {
+    const result = spawnSync(process.env.GRIOT_FFMPEG || process.env.RADIO_FFMPEG || 'ffmpeg', args, { encoding: 'utf8', timeout: 300000, maxBuffer: 1024 * 1024 });
+    if (result.error || result.status !== 0) throw new Error('FFmpeg failed: ' + (result.error?.message || result.stderr?.slice(-800)));
+}
+
+/**
+ * The voice lowered ~1 semitone with its pace kept, warmed and given a small room; the groove ducks
+ * under it (sidechain) and the effects ride on top; then loudness-normalised to a small MP3.
+ * Durations are kept, so timings measured from the raw voice still hold.
+ */
+export function griotGraph() {
+    return [
+        `[0:a]asetrate=${RATE}*0.94,aresample=${RATE},atempo=1/0.94,`
+            + 'equalizer=f=140:t=q:w=1:g=3,equalizer=f=3200:t=q:w=1.2:g=2,highpass=f=70,'
+            + 'aecho=0.85:0.55:38|74:0.16|0.09,acompressor=threshold=0.1:ratio=3:attack=5:release=120,asplit=2[v][key]',
+        '[1:a][key]sidechaincompress=threshold=0.015:ratio=12:attack=15:release=400:makeup=1[bed]',
+        '[2:a]volume=0.9[fx]',
+        '[v][bed][fx]amix=inputs=3:duration=longest:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=9[out]',
+    ].join(';');
+}
+
+async function f32(file, samples) {
+    await writeFile(file, Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength));
+}
+
+/** Mix three equal-rate mono tracks (voice, groove bed, effects) into an MP3 and check it decodes. */
+export async function mixToMp3(out, voice, bed, fx, bitrate = '40k') {
+    const files = [out + '.voice.f32', out + '.bed.f32', out + '.fx.f32'];
+    try {
+        await f32(files[0], voice);
+        await f32(files[1], bed);
+        await f32(files[2], fx);
+        ffmpeg(['-hide_banner', '-loglevel', 'error', '-nostdin', '-y',
+            ...files.flatMap((file) => ['-f', 'f32le', '-ar', String(RATE), '-ac', '1', '-i', file]),
+            '-filter_complex', griotGraph(), '-map', '[out]', '-ar', '24000', '-ac', '1', '-c:a', 'libmp3lame', '-b:a', bitrate, out]);
+        ffmpeg(['-hide_banner', '-loglevel', 'error', '-nostdin', '-i', out, '-f', 'null', '-']);
+    } finally {
+        for (const file of files) await unlink(file).catch(() => {});
+    }
+}
+
+/** A timeline clip: opening call, the voice over the groove, effects for the kind of moment, a short tail. */
+export async function clip(out, kind, voice, { bitrate = '40k' } = {}) {
+    const lead = openingCall(new Float32Array(1), kind) + 0.05; // measure the call's length
+    const seconds = lead + voice.length / RATE + 1.4;
+    const length = Math.ceil(seconds * RATE);
+    const voiceTrack = new Float32Array(length);
+    voiceTrack.set(voice, Math.round(lead * RATE));
+    const fx = new Float32Array(length);
+    openingCall(fx, kind);
+    underneath(fx, kind, lead, voice.length / RATE);
+    await mixToMp3(out, voiceTrack, groove(seconds, { gain: 0.55 }), fx, bitrate);
+    return seconds;
+}
+
+/**
+ * A radio bulletin: the voice track (with its measured cue starts) over the groove, a talking-drum
+ * accent as each story starts, a whistle and drum call for the opening, and a drum roll to close.
+ */
+export async function bulletin(out, voice, cueStarts, { bitrate = '32k', intro = 1.2 } = {}) {
+    const seconds = voice.length / RATE + 2.5;
+    const length = Math.ceil(seconds * RATE);
+    const voiceTrack = new Float32Array(length);
+    voiceTrack.set(voice);
+    const fx = new Float32Array(length);
+    whistle(fx, 0.05, [[0, 0.45]]);
+    talkingDrum(fx, 0.55, { high: 230, low: 130, gain: 0.7 });
+    for (const at of cueStarts.slice(1)) talkingDrum(fx, Math.max(intro, at - 0.25), { high: 220, low: 130, gain: 0.45 });
+    drumRoll(fx, voice.length / RATE + 0.2, 1.2);
+    thud(fx, voice.length / RATE + 1.45);
+    await mixToMp3(out, voiceTrack, groove(seconds, { gain: 0.45 }), fx, bitrate);
+    return seconds;
+}

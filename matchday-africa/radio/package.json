@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "engines": { "node": ">=22.13.0" },
-  "scripts": { "check": "node render.mjs --check", "test": "node --test audio.test.mjs speak.test.mjs" },
+  "scripts": { "check": "node render.mjs --check", "test": "node --test audio.test.mjs speak.test.mjs griot-voice.test.mjs" },
   "dependencies": { "@huggingface/transformers": "3.8.1", "kokoro-js": "1.2.1" }
 }

@@ -64,6 +64,7 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | SEO | `SocialMetaService.php` (titles, OG/X tags, JSON-LD SportsEvent/SportsTeam/NewsArticle/VideoObject), `@section('meta_title'/'meta_description'/'meta_robots')`, `SitemapController` (`/sitemap.xml`), `public/robots.txt` | n/a | always on |
 | Stale live matches | `StaleMatchCloser.php`, `matches:close-stale` (FINISHED after kick-off + 3h with no update for 30 min, or + 6h); flagged `metadata.status_inferred_at`, so scoring and reels wait (`FootballMatch::statusInferred()`) | every 10 min | always on |
 | Signup nudge, footer email | `partials/signup-nudge.blade.php` (localStorage `md_nudge`), `EmailSubscriptionController`, table `email_subscribers` (capture only: no emails are sent yet) | n/a | needs `email_subscribers` migration |
+| Live Griot timeline (ESPN commentary → standard plays → picked moments → Griot captions in 4 voices, shot map, momentum, Kokoro Griot voice clips) | `app/Services/Espn/EspnCommentaryMapper.php`, `app/Services/Griot/*` (`MomentPicker`, `GriotTimeline`, `GriotTeller`, `GriotWriter`), `partials/match-timeline`, `radio/griot-voice.mjs`, `radio/griot-writer.mjs`, tables `match_plays`, `griot_posts`; training in `griot-ml/` (repo root, not deployed) | plays saved by `espn:sync details`; `griot:timeline` 1m, `griot:write` 1m, `griot:voice` 1m | `GRIOT_TIMELINE`, `GRIOT_VOICE`, `GRIOT_WRITER` (+ migration) |
 | Home arena | `resources/views/partials/home-arena.blade.php`, `resources/js/arena.js` (GSAP), `arena3d.js` (three.js, desktop only) | rides the home pulse refresh | always on when a Premier League match qualifies |
 
 ## 4. CI/CD
@@ -108,7 +109,11 @@ checks: `shellcheck matchday-africa/deploy-production.sh scripts/ci/deploy-ssh.s
    `php artisan buffer:publish --channels`, fill `BUFFER_CHANNEL_X/INSTAGRAM/TIKTOK`. `APP_URL` must be
    the public https URL (Buffer fetches media from it). Then `BUFFER_AUTO=true` for the planned posts;
    watch `/admin/twitter` for the first sends (failed posts show Buffer's own error).
-6. Rollback any feature by switching its flag off and clearing caches.
+6. Griot timeline: `GRIOT_TIMELINE=true` (needs ESPN live with details). Then `php artisan griot:voice --audition`
+   (writes samples to `storage/app/griot/audition`), listen, and set `GRIOT_VOICE=true`; the deploy installs the radio
+   Node runtime when `GRIOT_VOICE` or `GRIOT_WRITER` is on. Picker and writer models come from `griot-ml/` (README there);
+   ship each only when it beats the rules/templates on held-out matches.
+7. Rollback any feature by switching its flag off and clearing caches.
 
 **Server operations without a shell:** Actions → *Server operations* (`.github/workflows/server-ops.yml`,
 `main` only, production environment, deploy key). `status` (release, migrations, Buffer settings with the key
@@ -140,8 +145,26 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `BUFFER_SLOTS` / `BUFFER_PREVIEWS_PER_DAY` | 08:00,13:00,19:00 / 3 | Lagos times; each account posts at most once per slot (live cards and reels included), so three a day. Fixture previews planned a day |
 | `WHATSAPP_CHANNEL_URL` | empty | WhatsApp channel invite link for the homepage/match CTA |
 | `BUFFER_MONTHLY_REQUESTS` / `_SOFT_LIMIT` / `_HARD_LIMIT` | 3000 / 2500 / 2900 | Buffer API budget, counted in `buffer_usage`; posting stops at the hard limit |
+| `GRIOT_TIMELINE` | false | Store ESPN commentary as plays and show the live Griot timeline on match pages |
+| `GRIOT_VOICE` / `GRIOT_VOICE_BLEND` / `GRIOT_VOICE_SPEED` | false / bm_george:0.6,am_onyx:0.4 / 0.92 | Kokoro clips per post in the Griot's voice (blend of two Kokoro voices, lowered, warmed) over a talking-drum groove with whistles, crowd and drum effects (`radio/griot-sound.mjs`); files in `public/generated/griot/`. Blend and speed also shape the radio's Griot voice |
+| `RADIO_VOICE` | griot | Daily bulletin voice: `griot` (with groove and effects) or a Kokoro voice ID |
+| `GRIOT_WRITER` / `GRIOT_WRITER_MODEL` | false / storage/app/griot/writer | Fine-tuned Qwen3-0.6B writer (transformers.js); every caption fact-checked, templates otherwise |
+| `GRIOT_PICKER_MODEL` | storage/app/griot/picker.json | Learned moment picker; missing file = strict rules |
 
 ## 7. Open items and known issues
+### Live Griot timeline (31 Oct 2026)
+- Built on a branch, off by default. ESPN commentary (already in the summary the details pass fetches) is stored as
+  standard plays; the provider's text is kept for reading details only and is never published or sent to the teacher.
+- Training uses ESPN and StatsBomb open data (owner's decision, 31 Oct). StatsBomb needs attribution under its terms.
+- Pidgin, Swahili/Sheng and Mzansi timeline lines in `GriotTeller.php` need a native speaker's review. Voice clips are
+  English only (Kokoro has no Pidgin/Swahili voice).
+- Picker and writer are not trained yet: the teacher labelling needs `OPENROUTER_API_KEY` (`griot-ml/label.py`) and the
+  writer fine-tune a GPU. Until then the strict rules pick and the templates speak.
+- Next step proposed (not built yet, waiting for the owner's go-ahead): "Plan A" writer the Requstory way: OpenRouter writes a large
+  library of Griot lines with slots per moment kind; a CPU-trained bge-small head (as in requstory-ml `train.py`) chooses the
+  line; slots are filled from facts. No GPU. "Plan B" (later): LoRA on Qwen3-0.6B on a Mac (`mps`) or Colab.
+  Needs `OPENROUTER_API_KEY` in the environment to run fetch → label → train.
+
 ### Matchday Radio (21 Oct 2026)
 - Live automatic publishing is enabled at 06:00/12:00/18:00 Lagos time; the minute cron is verified.
 - Morning pilot published at `/listen/2` (100 seconds, 24 kbps Kokoro `bm_george`).
@@ -154,9 +177,12 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 - Homepage radio sits above reels; `/listen`, `/listen/feed.xml`, admin `/admin/radio`.
 - Only `RADIO_NEWS_SOURCES` is approved for radio; source permissions are not assumed.
 - 22 Oct 2026: the owner decided radio may repeat source wording as long as the source is credited on air; the 12-word copy check was removed. Credits and rumour labels are still enforced.
+- 31 Oct 2026: the owner chose the Griot as the radio voice (`RADIO_VOICE=griot`, the default): blended Kokoro voice over a
+  synthesised talking-drum groove with sound effects (`radio/griot-sound.mjs`, shared with the live timeline clips).
+  Switch with Server operations → `configure-radio-voice` (`griot` or a Kokoro voice ID such as `bm_george`).
 - Radio uses its own model: `RADIO_MODEL` (production: `anthropic/claude-haiku-5.5`, medium reasoning kept out of the reply), falling back to `OPENROUTER_MODEL`.
 - Read `matchday-africa/docs/RADIO.md` for Node/FFmpeg setup, pilot, publishing and recovery.
-- Server operations: `radio-check`, `configure-radio` (draft/auto/off), `configure-radio-model` (`RADIO_MODEL`, e.g. `anthropic/claude-haiku-5.5`; `default` = `OPENROUTER_MODEL`), `radio-run`, `radio-status`, `radio-voice`, `radio-publish`.
+- Server operations: `radio-check`, `configure-radio` (draft/auto/off), `configure-radio-model` (`RADIO_MODEL`, e.g. `anthropic/claude-haiku-5.5`; `default` = `OPENROUTER_MODEL`), `radio-run`, `radio-status`, `radio-voice`, `radio-publish`, `configure-radio-voice`.
 
 - Live `APP_TIMEZONE` was verified as `Africa/Lagos` on 19 October 2026; the production
   template now matches it. Kick-off display formatting remains a separate issue (rule 5).
