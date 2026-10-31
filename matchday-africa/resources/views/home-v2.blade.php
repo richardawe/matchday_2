@@ -40,6 +40,7 @@
         </div>
     </div>
 </section>
+<x-social-follow variant="block" context="home" />
 <x-sponsor-slot slot="home" />
 
 @include('partials.home.command')

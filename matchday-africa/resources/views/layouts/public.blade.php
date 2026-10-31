@@ -61,6 +61,7 @@
 
                         <!-- Authentication Links -->
                         <div class="hidden sm:flex sm:items-center sm:ms-6">
+                            <div class="hidden lg:block me-4"><x-social-follow /></div>
                             @auth
                                 <!-- User is logged in -->
                                 <x-dropdown align="right" width="48">
@@ -148,6 +149,8 @@
                         <x-responsive-nav-link :href="route('shop.index')" :active="request()->routeIs('shop.*')">{{ __('Shop') }}</x-responsive-nav-link>
                         <x-responsive-nav-link :href="route('premium.index')" :active="request()->routeIs('premium.*')">{{ __('Premium') }}</x-responsive-nav-link>
                     </div>
+
+                    <div class="px-4 py-3 border-t border-gray-200"><x-social-follow /></div>
 
                     <!-- Responsive Authentication Links -->
                     <div class="pt-4 pb-1 border-t border-gray-200">

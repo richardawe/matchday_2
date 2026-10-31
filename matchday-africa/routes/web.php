@@ -100,6 +100,8 @@ Route::get('/matches/{match}/card.png', [App\Http\Controllers\MomentCardControll
 Route::get('/matches/{match}/reel', [App\Http\Controllers\ReelController::class, 'show'])->name('matches.reel');
 Route::get('/matches/{match}/reel.mp4', [App\Http\Controllers\ReelController::class, 'show'])->name('matches.reel.legacy');
 Route::get('/matches/{match}/reel.jpg', [App\Http\Controllers\ReelController::class, 'poster'])->name('matches.reel-poster');
+Route::get('/reels', [App\Http\Controllers\ReelPageController::class, 'index'])->name('reels.index');
+Route::get('/reels/{match}', [App\Http\Controllers\ReelPageController::class, 'show'])->name('reels.show');
 Route::get('/reels/{match}/props', [App\Http\Controllers\ReelController::class, 'props'])->middleware('signed')->name('reels.props');
 Route::get('/moments/{moment}/card/{voice}/{format}.png', [App\Http\Controllers\MomentCardController::class, 'show'])
     ->where(['voice' => 'en|pcm|sw|za', 'format' => 'story|feed|og'])->name('moments.card');

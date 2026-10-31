@@ -5,9 +5,11 @@
     <div class="md-scoreboard"><div>@if($warTeams['home'])<img class="md-war-avatar" src="{{ $warTeams['home'] }}" alt="">@elseif($match->homeTeam?->logo)<img class="md-war-avatar" src="{{ $match->homeTeam->logo }}" alt="">@endif<strong>{{ $match->homeTeam?->name }}</strong></div><b><span id="match-home-score">{{ $match->home_score ?? '–' }}</span> <i>:</i> <span id="match-away-score">{{ $match->away_score ?? '–' }}</span></b><div>@if($warTeams['away'])<img class="md-war-avatar" src="{{ $warTeams['away'] }}" alt="">@elseif($match->awayTeam?->logo)<img class="md-war-avatar" src="{{ $match->awayTeam->logo }}" alt="">@endif<strong>{{ $match->awayTeam?->name }}</strong></div></div>
     <p class="text-center mt-4"><span id="match-status">{{ $match->live_label }}</span> · {{ $match->match_date->format('D, j M · H:i') }}@if($match->venue_name) · {{ $match->venue_name }}@endif @if($match->referee_name) · Referee {{ $match->referee_name }}@endif</p>
     <div class="md-room-actions"><a class="md-primary" href="#prediction-arena">Predict this match</a><a class="md-primary" href="{{ route('war.match',$match) }}#game">Kick off Matchday War</a><button class="md-secondary md-share" data-share-title="{{ $match->homeTeam?->name }} vs {{ $match->awayTeam?->name }}" data-share-text="Make your prediction on Matchday Africa.">Share</button></div>
+    <div class="md-room-follow"><span>Follow Matchday Africa</span><x-social-follow /></div>
 </div></section>
 
 <div id="match-story">@include('partials.match-story')</div>
+@if(!empty($reel))<x-social-follow variant="block" context="match" title="Follow for every reel like this one." />@endif
 
 <section id="prediction-arena" class="md-phase"><div class="md-wrap"><div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
     <div class="lg:col-span-2 bg-gray-950 text-white rounded-2xl p-6">
