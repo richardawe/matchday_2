@@ -525,7 +525,9 @@ class PredictionScoringService
             ->whereHas('userPredictions', function ($query) {
                 $query->where('is_scored', false);
             })
-            ->get();
+            ->get()
+            // A match closed only because its feed went quiet waits for a confirmed result.
+            ->reject(fn (FootballMatch $match) => $match->statusInferred());
 
         $totalScored = 0;
         $totalErrors = 0;

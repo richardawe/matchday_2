@@ -310,6 +310,17 @@ class FootballMatch extends Model
                $this->away_score !== null;
     }
 
+    /**
+     * Closed by StaleMatchCloser and not confirmed by a feed since: the score is the last one
+     * seen, so scoring and reels wait.
+     */
+    public function statusInferred(): bool
+    {
+        $at = data_get($this->metadata, 'status_inferred_at');
+
+        return $at && (!$this->last_api_update || $this->last_api_update->lte(Carbon::parse($at)));
+    }
+
     public function predictionsAreOpen(): bool
     {
         $closed = array_merge(self::LIVE_STATUSES, ['FINISHED', 'FT', 'AWARDED', 'CANCELLED', 'POSTPONED']);

@@ -35,7 +35,7 @@ class ReelService
             ->whereIn('id', MatchMoment::where('type', 'full_time')->where('created_at', '<=', now()->subMinutes(config('reel.delay_minutes')))->select('match_id'))
             ->orderBy('match_date')
             ->get()
-            ->filter(fn ($match) => $this->stories->tellsStory($match) && $this->due($match));
+            ->filter(fn ($match) => !$match->statusInferred() && $this->stories->tellsStory($match) && $this->due($match));
     }
 
     /**

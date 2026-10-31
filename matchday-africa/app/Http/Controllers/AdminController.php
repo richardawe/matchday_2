@@ -49,6 +49,7 @@ class AdminController extends Controller
         $operations = [
             'last_success' => SyncRun::where('status', 'success')->max('finished_at'),
             'stale_live' => FootballMatch::whereIn('status', FootballMatch::LIVE_STATUSES)->where(fn($q)=>$q->whereNull('last_api_update')->orWhere('last_api_update','<',now()->subMinutes(5)))->count(),
+            'stale_closable' => app(\App\Services\StaleMatchCloser::class)->count(),
             'finished_missing_score' => FootballMatch::whereIn('status',['FINISHED','FT'])->where(fn($q)=>$q->whereNull('home_score')->orWhereNull('away_score'))->count(),
             'finished_missing_events' => FootballMatch::whereIn('status',['FINISHED','FT'])->where('match_date','>=',now()->subDays(7))->whereDoesntHave('events')->count(),
             'news_today' => NewsCandidate::where('status','published')->whereDate('updated_at',now())->count(),
