@@ -45,6 +45,8 @@ Route::permanentRedirect('/privacy-policy', '/privacy');
 Route::permanentRedirect('/cookie-policy', '/cookies');
 Route::get('/community', [App\Http\Controllers\CommunityController::class, 'index'])->name('community');
 Route::get('/sitemap.xml', App\Http\Controllers\SitemapController::class)->name('sitemap');
+Route::post('/subscribe', [App\Http\Controllers\EmailSubscriptionController::class, 'store'])->middleware('throttle:6,1')->name('subscribe');
+Route::get('/unsubscribe/{token}', [App\Http\Controllers\EmailSubscriptionController::class, 'unsubscribe'])->where('token', '[A-Za-z0-9]{20,64}')->name('unsubscribe');
 
 Route::get('/listen', [App\Http\Controllers\RadioController::class, 'index'])->name('radio.index');
 // Check readiness before implicit binding can query a table that is not migrated yet.

@@ -661,3 +661,16 @@
 .md-nudge-later{font-size:.78rem;color:var(--md-muted);background:none;border:0;text-decoration:underline;cursor:pointer}
 @media(max-width:640px){.md-nudge{left:0;right:0;bottom:0;width:100%;border-width:1px 0 0}}
 @media(prefers-reduced-motion:reduce){.md-nudge,.md-save-pick.is-new{animation:none}}
+
+/* Footer email signup */
+.md-footer-signup{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:1.5rem;align-items:center;margin-top:2rem;padding:1.4rem;border:1px solid var(--md-line);background:var(--md-panel)}
+.md-footer-signup h3{font:700 1.3rem/1.15 Georgia,serif;color:var(--md-paper)!important}
+.md-footer-signup p{color:var(--md-muted);font-size:.86rem;margin-top:.3rem}
+.md-footer-signup form{display:flex;flex-wrap:wrap;gap:.5rem}
+.md-footer-signup input[type=email]{flex:1 1 14rem;min-height:2.9rem;padding:.6rem .8rem;background:#080907;border:1px solid #554735;color:var(--md-paper)}
+.md-footer-signup button{min-height:2.9rem;padding:.6rem 1rem;background:var(--md-gold);color:#130e08;font-size:.72rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.md-footer-signup small{flex-basis:100%;color:var(--md-muted);font-size:.72rem}.md-footer-signup small a{text-decoration:underline}
+.md-footer-signup-done{color:var(--md-gold-bright)!important;font-weight:700}
+.md-footer-signup-error{flex-basis:100%;color:#f28b82;font-size:.8rem}
+.md-hp{position:absolute!important;left:-10000px!important;width:1px;height:1px;opacity:0}
+@media(max-width:768px){.md-footer-signup{grid-template-columns:1fr}}

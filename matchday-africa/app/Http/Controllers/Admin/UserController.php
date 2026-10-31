@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CommerceOrder;
+use App\Models\EmailSubscriber;
 use App\Models\User;
 use App\Support\Attribution;
 use Illuminate\Support\Collection;
@@ -49,6 +50,7 @@ class UserController extends Controller
             'tracked' => $tracked,
             'sources' => $tracked ? $this->sources($recent) : collect(),
             'latest' => User::latest()->take(20)->get(),
+            'emails' => $this->emails($start),
         ]);
     }
 
@@ -65,6 +67,21 @@ class UserController extends Controller
                     'premium' => $group->filter(fn ($u) => $u->isPremium())->count(),
                 ];
             })->sortByDesc('signups')->values();
+    }
+
+    /** Footer email signups: totals and where the last 30 days came from. */
+    private function emails($start): ?array
+    {
+        if (!EmailSubscriber::ready()) {
+            return null;
+        }
+        $recent = EmailSubscriber::where('created_at', '>=', $start)->get(['source', 'utm_source']);
+
+        return [
+            'active' => EmailSubscriber::active()->count(),
+            'month' => $recent->count(),
+            'sources' => $recent->countBy(fn ($s) => ($s->utm_source ?: 'direct').' · '.($s->source ?: '—'))->sortDesc()->take(10),
+        ];
     }
 
     /** Paid Premium memberships per Lagos day. */

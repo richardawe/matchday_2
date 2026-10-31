@@ -12,6 +12,7 @@
   <div><small>LAST 30 DAYS</small><b>{{ $month }}</b></div>
   <div><small>PREMIUM NOW</small><b>{{ $premium }}</b><span>{{ $conversion }}% of users</span></div>
   <div><small>PREMIUM STARTS · 30 DAYS</small><b>{{ $premiumMonth }}</b></div>
+  @if($emails)<div><small>EMAIL SUBSCRIBERS</small><b>{{ $emails['active'] }}</b><span>+{{ $emails['month'] }} in 30 days</span></div>@endif
  </div>
 
  <header class="md-xsection"><div><p class="md-eyebrow">LAST 30 DAYS</p><h2>New signups per day.</h2></div><span>PEAK {{ $peak }}</span></header>
@@ -48,6 +49,13 @@
    @endif
   </section>
  </div>
+
+ @if($emails && $emails['sources']->isNotEmpty())
+ <header class="md-xsection"><div><p class="md-eyebrow">EMAIL SIGNUPS · 30 DAYS</p><h2>Weekend fixtures list.</h2></div></header>
+ <table class="md-signup-table"><thead><tr><th>Source · page</th><th>Signups</th></tr></thead><tbody>
+  @foreach($emails['sources'] as $label => $count)<tr><td>{{ $label }}</td><td>{{ $count }}</td></tr>@endforeach
+ </tbody></table>
+ @endif
 
  <header class="md-xsection"><div><p class="md-eyebrow">LATEST</p><h2>Newest accounts.</h2></div></header>
  <table class="md-signup-table"><thead><tr><th>Joined</th><th>Name</th>@if($tracked)<th>Source</th><th>Landing page</th>@endif<th>Premium</th></tr></thead><tbody>

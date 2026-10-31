@@ -57,6 +57,30 @@
             </div>
         </div>
 
+        <!-- Optional email signup -->
+        @if(\App\Models\EmailSubscriber::ready())
+        <div id="footer-signup" class="md-footer-signup">
+            <div>
+                <h3>Get weekend fixtures + results</h3>
+                <p>Optional. One email on Friday with the weekend's fixtures, one on Monday with the results. Unsubscribe any time.</p>
+            </div>
+            @if(session('subscribed'))
+                <p class="md-footer-signup-done" role="status">{{ session('subscribed') }}</p>
+            @else
+                <form method="POST" action="{{ route('subscribe') }}">
+                    @csrf
+                    <input type="hidden" name="source" value="{{ request()->getRequestUri() }}">
+                    <label class="sr-only" for="footer-email">Email address</label>
+                    <input id="footer-email" type="email" name="email" required maxlength="255" autocomplete="email" placeholder="Your email" value="{{ old('email') }}">
+                    <input type="text" name="website" tabindex="-1" autocomplete="off" class="md-hp" aria-hidden="true">
+                    <button type="submit">Send me the fixtures</button>
+                    @error('email')<span class="md-footer-signup-error" role="alert">{{ $message }}</span>@enderror
+                    <small>By signing up you agree to our <a href="{{ route('privacy') }}">privacy policy</a>.</small>
+                </form>
+            @endif
+        </div>
+        @endif
+
         <!-- Bottom Bar -->
         <div class="border-t border-gray-300 mt-8 pt-6">
             <div class="flex flex-col md:flex-row justify-between items-center">
