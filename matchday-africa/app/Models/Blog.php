@@ -93,22 +93,32 @@ class Blog extends Model
     /**
      * Get the featured image URL
      */
+    /**
+     * The article's own picture, or null when it has none or its file is missing (pages then
+     * leave the picture out rather than show a broken image or a stretched logo).
+     */
+    public function imageUrl(): ?string
+    {
+        if (array_key_exists($key = (string) $this->featured_image, $this->imageUrls)) {
+            return $this->imageUrls[$key];
+        }
+        $url = null;
+        if (Str::startsWith($key, ['http://', 'https://'])) {
+            $url = $key;
+        } elseif ($key !== '' && Storage::disk('public')->exists('blog-images/'.basename($key))) {
+            $url = route('blogs.image', ['filename' => basename($key)]);
+        }
+
+        return $this->imageUrls[$key] = $url;
+    }
+
+    /** imageUrl() per featured_image value, so a page checks the disk once per article. */
+    private array $imageUrls = [];
+
+    /** Always a working image: the article's own, else the site's social card. */
     public function getFeaturedImageUrlAttribute()
     {
-        if ($this->featured_image) {
-            if (Str::startsWith($this->featured_image, ['http://', 'https://'])) {
-                return $this->featured_image;
-            }
-
-            $path = 'blog-images/'.basename($this->featured_image);
-            if (Storage::disk('public')->exists($path)) {
-                return route('blogs.image', ['filename' => basename($this->featured_image)]);
-            }
-
-            return asset('images/matchday-africa-logo.svg');
-        }
-        
-        return asset('images/default-blog-image.jpg');
+        return $this->imageUrl() ?? route('images.social-default', ['v' => '20260823']);
     }
 
     /**

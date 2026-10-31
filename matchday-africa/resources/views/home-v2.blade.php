@@ -70,7 +70,7 @@
     <div class="md-home-heading"><div><p class="md-eyebrow">LATEST NEWS</p><h2>Football stories worth your time.</h2></div><a href="{{ route('blogs.index') }}">All stories →</a></div>
     <div class="md-news-list">
         @foreach($featuredBlogs->take(3) as $blog)
-            <article><a href="{{ route('blogs.show', $blog) }}">@if($blog->featured_image)<img src="{{ $blog->featured_image_url }}" alt="" loading="lazy">@endif<div><small>{{ $blog->published_at?->format('j M') }}</small><h3>{{ $blog->title }}</h3><p>{{ Str::limit(strip_tags((string) $blog->excerpt), 120) }}</p></div></a></article>
+            <article><a href="{{ route('blogs.show', $blog) }}">@if($blog->imageUrl())<img src="{{ $blog->featured_image_url }}" alt="" loading="lazy">@endif<div><small>{{ $blog->published_at?->format('j M') }}</small><h3>{{ $blog->title }}</h3><p>{{ Str::limit(strip_tags((string) $blog->excerpt), 120) }}</p></div></a></article>
         @endforeach
     </div>
 </div></section>

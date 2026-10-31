@@ -30,6 +30,6 @@ class BlogImageTest extends TestCase
         Storage::fake('public');
         $blog = new Blog(['featured_image' => 'blog-images/missing.jpg']);
 
-        $this->assertStringEndsWith('/images/matchday-africa-logo.svg', $blog->featured_image_url);
+        $this->assertStringContainsString("/images/social-default.png", $blog->featured_image_url);
     }
 }
