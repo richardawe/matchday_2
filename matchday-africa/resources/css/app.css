@@ -674,3 +674,4 @@
 .md-footer-signup-error{flex-basis:100%;color:#f28b82;font-size:.8rem}
 .md-hp{position:absolute!important;left:-10000px!important;width:1px;height:1px;opacity:0}
 @media(max-width:768px){.md-footer-signup{grid-template-columns:1fr}}
+.md-follow-icons.is-sm{gap:.7rem}

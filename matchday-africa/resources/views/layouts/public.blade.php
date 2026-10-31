@@ -61,7 +61,7 @@
 
                         <!-- Authentication Links -->
                         <div class="hidden sm:flex sm:items-center sm:ms-6">
-                            <div class="hidden lg:block me-4"><x-social-follow /></div>
+                            <div class="hidden xl:block me-3"><x-social-follow size="sm" /></div>
                             @auth
                                 <!-- User is logged in -->
                                 <x-dropdown align="right" width="48">
