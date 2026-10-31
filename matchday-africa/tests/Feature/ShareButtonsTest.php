@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Blog;
 use App\Models\FootballMatch;
+use App\Models\MatchMoment;
 use App\Models\Team;
 use App\Support\ShareLink;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -36,7 +37,21 @@ class ShareButtonsTest extends TestCase
             ->assertSee('data-share-network="x"', false)
             ->assertSee('data-share-network="copy"', false)
             ->assertSee('utm_campaign=match', false)
+            ->assertSee('data-share-campaign="match"', false)
+            ->assertSee("const network=navigator.share?'native':'copy'", false)
             ->assertSee('<meta property="og:image" content="'.e(route('matches.card', $match)), false);
+    }
+
+    public function test_moment_share_links_are_tagged_as_moment_shares(): void
+    {
+        $match = $this->match();
+        $moment = MatchMoment::create(['match_id' => $match->id, 'key' => 'kickoff-'.$match->id, 'type' => 'kickoff', 'minute' => 0, 'home_score' => 0, 'away_score' => 0]);
+
+        $page = $this->get(route('matches.show', ['match' => $match, 'moment' => $moment->id]))->assertOk();
+        $page->assertSee('utm_campaign%3Dmoment', false)
+            ->assertSee('utm_source%3Dwhatsapp', false)
+            ->assertSee('utm_medium%3Dshare', false)
+            ->assertSee('data-share-campaign="moment"', false);
     }
 
     public function test_article_page_has_share_buttons(): void

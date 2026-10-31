@@ -22,6 +22,7 @@ class SeoMetaTest extends TestCase
         $page = $this->get(route('matches.show', $finished))->assertOk();
         $page->assertSee('<title>Arsenal 2–1 Chelsea: Premier League result, 25 Oct 2026 | Matchday Africa</title>', false)
             ->assertSee('Arsenal beat Chelsea 2–1 in the Premier League on 25 Oct 2026.', false)
+            ->assertSee('<meta property="og:type" content="article">', false)
             ->assertSee('<meta property="og:title"', false)
             ->assertSee('<meta name="twitter:card" content="summary_large_image">', false)
             ->assertSee('<link rel="canonical" href="'.route('matches.show', $finished).'">', false);

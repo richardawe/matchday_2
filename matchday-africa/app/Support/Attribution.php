@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -14,10 +15,27 @@ use Illuminate\Support\Str;
 class Attribution
 {
     public const COOKIE = 'md_attr';
+    public const SESSION = 'md_attr';
     public const MINUTES = 60 * 24 * 90;
     private const FIELDS = ['utm_source' => 100, 'utm_medium' => 100, 'utm_campaign' => 150];
 
-    /** What this request should store, or null when the cookie already holds the right touch. */
+    /**
+     * www.matchday.africa and matchday.africa do not share a host-only cookie, and the
+     * homepage links to the apex host. Send the first hit (UTM tags included) to the
+     * canonical host before anything is remembered.
+     */
+    public static function redirectToCanonicalHost(Request $request): ?RedirectResponse
+    {
+        $canonical = parse_url((string) config('app.url'), PHP_URL_HOST);
+        if (!$canonical || strcasecmp($request->getHost(), 'www.'.$canonical) !== 0) {
+            return null;
+        }
+        $scheme = parse_url((string) config('app.url'), PHP_URL_SCHEME) ?: $request->getScheme();
+
+        return redirect()->away($scheme.'://'.$canonical.$request->getRequestUri(), 301);
+    }
+
+    /** What this request should store, or null when the touch already on file should stand. */
     public static function capture(Request $request): ?array
     {
         $current = self::read($request);
@@ -26,28 +44,33 @@ class Attribution
             return null;
         }
 
-        return $tags + [
-            'signup_referrer' => self::referrer($request),
-            'signup_landing' => Str::limit('/'.ltrim($request->path(), '/'), 250, ''),
-        ];
+        $touch = $tags;
+        if ($referrer = self::referrer($request)) {
+            $touch['signup_referrer'] = $referrer;
+        }
+        $touch['signup_landing'] = Str::limit('/'.ltrim($request->path(), '/'), 250, '');
+
+        return $touch;
     }
 
-    /** The stored touch, cleaned (the cookie is encrypted, but never trust its shape). */
+    /**
+     * The stored touch, cleaned. The cookie is the 90-day copy; the session is the copy
+     * that survives the Google redirect on the same host when the cookie was set on the other.
+     * A touch that names a source wins over one that does not.
+     */
     public static function read(?Request $request = null): array
     {
         $request ??= request();
-        $data = json_decode((string) $request?->cookie(self::COOKIE), true);
-        if (!is_array($data)) {
-            return [];
+        $cookie = self::clean(json_decode((string) $request?->cookie(self::COOKIE), true));
+        $session = self::clean($request?->hasSession() ? $request->session()->get(self::SESSION) : null);
+        if (!empty($cookie['utm_source'])) {
+            return $cookie;
         }
-        $clean = [];
-        foreach (self::FIELDS + ['signup_referrer' => 255, 'signup_landing' => 255] as $key => $max) {
-            if (isset($data[$key]) && is_string($data[$key]) && $data[$key] !== '') {
-                $clean[$key] = Str::limit($data[$key], $max, '');
-            }
+        if (!empty($session['utm_source'])) {
+            return $session;
         }
 
-        return $clean;
+        return $cookie ?: $session;
     }
 
     /** Attribution columns for a new user, if the migration has run. */
@@ -68,6 +91,21 @@ class Attribution
         $host = $referrer ? parse_url($referrer, PHP_URL_HOST) : null;
 
         return $host ? Str::lower(preg_replace('/^www\./', '', $host)) : 'direct';
+    }
+
+    private static function clean(mixed $data): array
+    {
+        if (!is_array($data)) {
+            return [];
+        }
+        $clean = [];
+        foreach (self::FIELDS + ['signup_referrer' => 255, 'signup_landing' => 255] as $key => $max) {
+            if (isset($data[$key]) && is_string($data[$key]) && $data[$key] !== '') {
+                $clean[$key] = Str::limit($data[$key], $max, '');
+            }
+        }
+
+        return $clean;
     }
 
     private static function tags(Request $request): array

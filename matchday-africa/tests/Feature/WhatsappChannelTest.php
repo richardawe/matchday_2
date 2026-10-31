@@ -16,7 +16,7 @@ class WhatsappChannelTest extends TestCase
         config(['social.whatsapp_channel' => 'https://whatsapp.com/channel/TEST123']);
         $match = $this->match();
 
-        $this->get('/')->assertOk()->assertSee('Join our WhatsApp channel')->assertSee('https://whatsapp.com/channel/TEST123', false);
+        $this->get('/')->assertOk()->assertSee('Join our WhatsApp channel')->assertSee('data-wa-channel="home"', false)->assertSee('https://whatsapp.com/channel/TEST123', false);
         $this->get(route('matches.show', $match))->assertOk()->assertSee('Join our WhatsApp channel');
     }
 

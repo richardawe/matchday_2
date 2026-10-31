@@ -19,8 +19,8 @@ class EmailSubscriptionController extends Controller
             'website' => 'nullable|max:0', // honeypot: people never see or fill it
         ]);
         $email = Str::lower(trim($data['email']));
-        $source = $this->path($data['source'] ?? null) ?? $this->path((string) $request->headers->get('referer'));
         $touch = Attribution::read($request);
+        $source = $this->path($data['source'] ?? null) ?? $this->path((string) $request->headers->get('referer')) ?? ($touch['signup_landing'] ?? null);
 
         $subscriber = EmailSubscriber::firstOrNew(['email' => $email]);
         $subscriber->fill([

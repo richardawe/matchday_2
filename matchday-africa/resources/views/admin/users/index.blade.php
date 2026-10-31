@@ -59,7 +59,7 @@
 
  <header class="md-xsection"><div><p class="md-eyebrow">LATEST</p><h2>Newest accounts.</h2></div></header>
  <table class="md-signup-table"><thead><tr><th>Joined</th><th>Name</th>@if($tracked)<th>Source</th><th>Landing page</th>@endif<th>Premium</th></tr></thead><tbody>
-  @foreach($latest as $user)<tr><td>{{ $user->created_at?->format('j M H:i') }}</td><td>{{ $user->name }}</td>@if($tracked)<td>{{ \App\Support\Attribution::label($user->utm_source, $user->signup_referrer) }}{{ $user->utm_campaign ? ' · '.$user->utm_campaign : '' }}</td><td>{{ $user->signup_landing ?? '—' }}</td>@endif<td>{{ $user->isPremium() ? 'Yes' : '—' }}</td></tr>@endforeach
+  @foreach($latest as $user)<tr><td>{{ $user->created_at?->format('j M H:i') }}</td><td>{{ $user->name }}</td>@if($tracked)<td>{{ \App\Support\Attribution::label($user->utm_source, $user->signup_referrer) }}{{ $user->utm_medium ? ' · '.$user->utm_medium : '' }}{{ $user->utm_campaign ? ' · '.$user->utm_campaign : '' }}</td><td>{{ $user->signup_landing ?: '—' }}</td>@endif<td>{{ $user->isPremium() ? 'Yes' : '—' }}</td></tr>@endforeach
  </tbody></table>
 </div>
 <style>

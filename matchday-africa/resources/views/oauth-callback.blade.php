@@ -42,8 +42,10 @@
             getCsrfToken().then(csrfToken => {
                 fetch('/auth/google/callback', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                         'X-CSRF-TOKEN': csrfToken
                     },
                     body: JSON.stringify({
@@ -85,8 +87,10 @@
                 getCsrfToken().then(csrfToken => {
                     fetch('/auth/google/callback', {
                         method: 'POST',
+                        credentials: 'same-origin',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json',
                             'X-CSRF-TOKEN': csrfToken
                         },
                         body: JSON.stringify({

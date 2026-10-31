@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\PredictionService;
-use App\Services\PredictionAnalyticsService;
+use App\Models\FootballMatch;
 use App\Models\PredictionSet;
+use App\Services\GuestPredictions;
+use App\Services\PredictionAnalyticsService;
+use App\Services\PredictionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -28,20 +30,22 @@ class PredictionController extends Controller
      */
     public function index(): View
     {
-        $predictionSets = $this->predictionService->getAvailablePredictionSets(auth()->user());
-        $userStats = $this->predictionService->getUserStats(auth()->user());
-        
-        // Get recent predictions for the user
-        $recentPredictions = collect();
-        if (auth()->check()) {
-            $recentPredictions = auth()->user()->predictions()
-                ->with(['match.homeTeam', 'match.awayTeam', 'match.league', 'predictionSet'])
-                ->orderBy('created_at', 'desc')
-                ->limit(5)
-                ->get();
-        }
+        $user = auth()->user();
+        $predictionSets = $this->predictionService->getAvailablePredictionSets($user);
+        $userStats = $user ? $this->predictionService->getUserStats($user) : $this->emptyStats();
+        $recentPredictions = $user
+            ? $user->predictions()->with(['match.homeTeam', 'match.awayTeam', 'match.league', 'predictionSet'])->latest()->limit(5)->get()
+            : collect();
+        $openMatches = $predictionSets->isEmpty()
+            ? FootballMatch::with(['homeTeam', 'awayTeam', 'league'])
+                ->whereNotIn('status', array_merge(FootballMatch::LIVE_STATUSES, ['FINISHED', 'FT', 'AWARDED', 'CANCELLED', 'POSTPONED']))
+                ->where('match_date', '>=', now('UTC')->format('Y-m-d H:i:s'))
+                ->orderBy('match_date')
+                ->limit(8)
+                ->get()
+            : collect();
 
-        return view('predictions.index', compact('predictionSets', 'userStats', 'recentPredictions'));
+        return view('predictions.index', compact('predictionSets', 'userStats', 'recentPredictions', 'openMatches'));
     }
 
     /**
@@ -50,10 +54,9 @@ class PredictionController extends Controller
     public function show(PredictionSet $prediction): View
     {
         $prediction->load(['matches.match.homeTeam', 'matches.match.awayTeam', 'matches.match.league']);
-        
-        // Check if user has already submitted predictions
-        $hasSubmitted = $this->predictionService->hasUserSubmittedPredictions(auth()->user(), $prediction);
-        $userPredictions = $hasSubmitted ? $this->predictionService->getUserPredictions(auth()->user(), $prediction) : collect();
+        $user = auth()->user();
+        $hasSubmitted = $user && $this->predictionService->hasUserSubmittedPredictions($user, $prediction);
+        $userPredictions = $hasSubmitted ? $this->predictionService->getUserPredictions($user, $prediction) : collect();
 
         return view('predictions.show', compact('prediction', 'hasSubmitted', 'userPredictions'))->with('content', $prediction);
     }
@@ -63,6 +66,9 @@ class PredictionController extends Controller
      */
     public function submit(Request $request, PredictionSet $prediction)
     {
+        if (!$request->user()) {
+            return $this->submitAsGuest($request, $prediction);
+        }
         try {
             $data = $request->validate([
                 'predictions' => 'required|array|min:1',
@@ -126,6 +132,62 @@ class PredictionController extends Controller
                 ->withErrors(['error' => 'Failed to submit predictions: ' . $e->getMessage()])
                 ->withInput();
         }
+    }
+
+    /** A visitor's calls wait on the session and move onto the account when they join. */
+    private function submitAsGuest(Request $request, PredictionSet $prediction)
+    {
+        if (!$prediction->isActive() || $prediction->isDeadlinePassed()) {
+            return back()->withErrors(['This prediction round is closed.'])->withInput();
+        }
+        $data = $request->validate([
+            'predictions' => 'required|array|min:1',
+            'predictions.*.match_id' => 'required|exists:matches,id',
+            'predictions.*.prediction_type' => 'required|in:result,score,goalscorer,total_goals',
+            'predictions.*.prediction_value' => 'required|string|max:255',
+        ]);
+        $stored = [];
+        $errors = [];
+        foreach ($data['predictions'] as $row) {
+            try {
+                $this->predictionService->validatePredictionData($row);
+                $allowed = $prediction->matches()->where('match_id', $row['match_id'])->where('prediction_type', $row['prediction_type'])->exists();
+                $match = FootballMatch::find($row['match_id']);
+                if (!$allowed || !$match || !$match->predictionsAreOpen()) {
+                    throw new \Exception('That match is not open for predictions.');
+                }
+                $pick = [
+                    'prediction_set_id' => $prediction->id,
+                    'match_id' => (int) $row['match_id'],
+                    'prediction_type' => $row['prediction_type'],
+                    'prediction_value' => $row['prediction_value'],
+                    'submitted_at' => now()->toIso8601String(),
+                ];
+                if ($row['prediction_type'] === 'score' && preg_match('/^(\d+)-(\d+)$/', $row['prediction_value'], $parts)) {
+                    $pick['home_score_prediction'] = (int) $parts[1];
+                    $pick['away_score_prediction'] = (int) $parts[2];
+                }
+                $stored[] = $pick;
+            } catch (\Exception $e) {
+                $errors[] = $e->getMessage();
+            }
+        }
+        if (!$stored) {
+            return back()->withErrors($errors ?: ['Nothing to save.'])->withInput();
+        }
+        $kept = collect($request->session()->get(GuestPredictions::ROUND_SESSION, []))
+            ->reject(fn ($pick) => (int) ($pick['prediction_set_id'] ?? 0) === $prediction->id)
+            ->values()
+            ->all();
+        $request->session()->put(GuestPredictions::ROUND_SESSION, array_merge($kept, $stored));
+        $request->session()->put('url.intended', route('predictions.show', $prediction));
+
+        return redirect()->route('predictions.show', $prediction)->with('guest_pick', true);
+    }
+
+    private function emptyStats(): array
+    {
+        return ['total_predictions' => 0, 'correct_predictions' => 0, 'total_points' => 0, 'accuracy_percentage' => 0, 'rank' => 0];
     }
 
     /**
