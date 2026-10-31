@@ -191,7 +191,7 @@ class SocialMetaService
     private function blog(Blog $blog): array
     {
         $description = $blog->excerpt ?: Str::limit(strip_tags((string) $blog->content), 160);
-        $image = $blog->featured_image ? $blog->featured_image_url : route('images.social-default', ['v' => '20260823']);
+        $image = $blog->imageUrl() ?? route('images.social-default', ['v' => '20260823']);
 
         return [
             'title' => $blog->title.' | '.self::SITE,
@@ -199,8 +199,8 @@ class SocialMetaService
             'url' => route('blogs.show', $blog),
             'type' => 'article',
             'image' => $image,
-            'image_width' => $blog->featured_image ? null : '1200',
-            'image_height' => $blog->featured_image ? null : '630',
+            'image_width' => $blog->imageUrl() ? null : '1200',
+            'image_height' => $blog->imageUrl() ? null : '630',
             'robots' => 'index, follow',
             'extra_og' => array_filter([
                 'article:published_time' => $blog->published_at?->toIso8601String(),
