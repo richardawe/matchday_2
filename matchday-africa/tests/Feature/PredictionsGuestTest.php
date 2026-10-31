@@ -23,6 +23,28 @@ class PredictionsGuestTest extends TestCase
         $this->get(route('predictions.history'))->assertRedirect(route('login'));
     }
 
+    public function test_a_guest_on_predictions_sees_the_logged_out_menu(): void
+    {
+        $guest = $this->get(route('predictions.index'))->assertOk();
+        $guest->assertDontSee('guest@example.com', false)
+            ->assertDontSee(route('logout'), false)
+            ->assertSee(route('login'), false)
+            ->assertSee(route('register'), false)
+            ->assertSee('>Login<', false)
+            ->assertSee('>Register<', false);
+
+        $this->get(route('predictions.leaderboard'))->assertOk()
+            ->assertDontSee('guest@example.com', false)
+            ->assertSee('>Login<', false);
+
+        $user = User::factory()->create(['name' => 'Ada Lovelace', 'email' => 'ada-menu@example.com']);
+        $this->actingAs($user)->get(route('predictions.index'))->assertOk()
+            ->assertSee('Ada Lovelace')
+            ->assertSee('ada-menu@example.com')
+            ->assertSee('Log Out')
+            ->assertDontSee('guest@example.com', false);
+    }
+
     public function test_a_guest_prediction_on_a_round_is_kept_and_claimed_at_signup(): void
     {
         $match = $this->match();
