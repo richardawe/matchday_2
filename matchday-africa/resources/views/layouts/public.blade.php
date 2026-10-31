@@ -39,7 +39,7 @@
                                 <x-nav-link :href="route('matches.index')" :active="request()->routeIs('matches.*')">
                                     {{ __('Matches') }}
                                 </x-nav-link>
-                                @auth<x-nav-link :href="route('predictions.index')" :active="request()->routeIs('predictions.*')">{{ __('Predict') }}</x-nav-link>@endauth
+                                <x-nav-link :href="route('predictions.index')" :active="request()->routeIs('predictions.*')">{{ __('Predict') }}</x-nav-link>
                                 <x-nav-link :href="route('community')" :active="request()->routeIs('community', 'groups.*')">
                                     {{ __('Community') }}
                                 </x-nav-link>
@@ -217,7 +217,8 @@
         <script>
         (()=>{let id=document.cookie.match(/md_visitor=([^;]+)/)?.[1];if(!id){id=(crypto.randomUUID?.()||Date.now()+'-'+Math.random());document.cookie='md_visitor='+id+';path=/;max-age=31536000;SameSite=Lax'}
         const track=(event,properties={})=>fetch('{{ route('analytics.track') }}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content},body:JSON.stringify({event,path:location.pathname,properties}),keepalive:true}).catch(()=>{});
-        track('page_view');document.addEventListener('click',e=>{const net=e.target.closest('[data-share-network]');if(net){track('share_click',{network:net.dataset.shareNetwork,campaign:net.closest('[data-share-campaign]')?.dataset.shareCampaign});}const wa=e.target.closest('[data-wa-channel]');if(wa){track('whatsapp_channel_click',{context:wa.dataset.waChannel});}const follow=e.target.closest('[data-follow]');if(follow){track('follow_click',{network:follow.dataset.follow});}if(e.target.closest('.md-copy-link'))return;const share=e.target.closest('.md-share');if(share){const data={title:share.dataset.shareTitle,text:share.dataset.shareText,url:location.href};track('share_started',{title:data.title});navigator.share?navigator.share(data):navigator.clipboard.writeText(location.href).then(()=>{share.textContent='Link copied'})}});})();
+        const tagShare=(url,network,campaign)=>{try{const u=new URL(url,location.origin);['utm_source','utm_medium','utm_campaign'].forEach(k=>u.searchParams.delete(k));u.searchParams.set('utm_source',network);u.searchParams.set('utm_medium','share');u.searchParams.set('utm_campaign',campaign);return u.toString()}catch(err){return url}};
+        track('page_view');document.addEventListener('click',e=>{const net=e.target.closest('[data-share-network]');if(net){track('share_click',{network:net.dataset.shareNetwork,campaign:net.closest('[data-share-campaign]')?.dataset.shareCampaign});}const wa=e.target.closest('[data-wa-channel]');if(wa){track('whatsapp_channel_click',{context:wa.dataset.waChannel});}const follow=e.target.closest('[data-follow]');if(follow){track('follow_click',{network:follow.dataset.follow});}if(e.target.closest('.md-copy-link'))return;const share=e.target.closest('.md-share');if(share){const network=navigator.share?'native':'copy';const campaign=share.dataset.shareCampaign||(new URLSearchParams(location.search).has('moment')?'moment':'match');const url=tagShare(share.dataset.shareUrl||location.href,network,campaign);const data={title:share.dataset.shareTitle,text:share.dataset.shareText,url};track('share_started',{title:data.title,network,campaign});navigator.share?navigator.share(data):navigator.clipboard.writeText(url).then(()=>{share.textContent='Link copied'})}});})();
         </script>
         @guest
         <script>

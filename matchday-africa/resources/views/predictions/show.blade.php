@@ -6,6 +6,7 @@
 <section class="md-round-body"><div class="md-wrap md-round-layout"><main>
 <x-share-bar :url="route('predictions.show', $prediction)" :text="'Make your calls for '.$prediction->name.' on Matchday Africa.'" campaign="prediction" label="Challenge a friend" class="mb-6" />
 @if(session('success'))<div class="md-alert-success" role="status">{{ session('success') }}</div>@endif
+@guest @if(session('guest_pick'))<div class="md-save-pick is-new" id="save-pick" role="region" aria-labelledby="save-pick-title"><p class="md-eyebrow">YOUR CALLS · HELD ON THIS DEVICE</p><h3 id="save-pick-title">Save your pick and join the league</h3><p>Join free to keep these calls, score points and climb the table.</p>@include('partials.signup-options', ['return' => route('predictions.show', $prediction, false)])</div>@endif @endguest
 @if($errors->any())<div class="md-alert-error" role="alert"><strong>Check your calls:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 <form method="POST" action="{{ $hasSubmitted ? route('predictions.update',$prediction) : route('predictions.submit',$prediction) }}" class="md-round-form">@csrf @if($hasSubmitted)@method('PUT')@endif<input type="hidden" name="_force_redirect" value="1">
 @forelse($prediction->matches as $item) @php($match=$item->match) @php($value=old('predictions.'.$item->id.'.prediction_value',$saved->get($match->id.'|'.$item->prediction_type)?->prediction_value))

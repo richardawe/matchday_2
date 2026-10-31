@@ -1,15 +1,17 @@
 <?php
 namespace App\Console\Commands;
-use App\Models\FootballMatch;
 use App\Services\MatchService;
 use App\Services\PredictionScoringService;
+use App\Services\StaleMatchCloser;
 use App\Services\SyncRunService;
 use Illuminate\Console\Command;
 
 class RefreshMatchData extends Command {
     protected $signature='matches:refresh {mode : upcoming|today|live|results}';
     protected $description='Refresh match data with an adaptive matchday cadence';
-    public function handle(MatchService $matches, SyncRunService $runs, PredictionScoringService $scoring): int {
+    public function handle(MatchService $matches, SyncRunService $runs, PredictionScoringService $scoring, StaleMatchCloser $stale): int {
+        // Before the API call, so a rate-limit sleep cannot leave yesterday's matches "live".
+        $stale->close();
         $mode=$this->argument('mode');
         if(!in_array($mode,['upcoming','today','live','results'],true)){ $this->error('Invalid refresh mode.'); return self::INVALID; }
         $result=$runs->run('matches:'.$mode,function()use($mode,$matches,$scoring){

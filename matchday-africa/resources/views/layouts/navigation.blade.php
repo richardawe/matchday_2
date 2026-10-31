@@ -33,10 +33,10 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('predictions.index')" :active="request()->routeIs('predictions.*')" class="text-purple-600">
+                        {{ __('🎯 Predictions') }}
+                    </x-nav-link>
                     @auth
-                        <x-nav-link :href="route('predictions.index')" :active="request()->routeIs('predictions.*')" class="text-purple-600">
-                            {{ __('🎯 Predictions') }}
-                        </x-nav-link>
                         @if(auth()->user()?->isAdmin())
                             <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')" class="text-blue-600">
                                 {{ __('🛠️ Admin') }}
@@ -169,10 +169,10 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('predictions.index')" :active="request()->routeIs('predictions.*')">
+                {{ __('🎯 Predictions') }}
+            </x-responsive-nav-link>
             @auth
-                <x-responsive-nav-link :href="route('predictions.index')" :active="request()->routeIs('predictions.*')">
-                    {{ __('🎯 Predictions') }}
-                </x-responsive-nav-link>
                 @if(auth()->user()?->isAdmin())
                     <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')">
                         {{ __('🛠️ Admin') }}

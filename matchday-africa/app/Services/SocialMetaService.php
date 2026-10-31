@@ -110,7 +110,7 @@ class SocialMetaService
             'title' => $title.' | '.self::SITE,
             'description' => $description,
             'url' => route('matches.show', $match),
-            'type' => 'website',
+            'type' => 'article',
             'image' => $image,
             'image_width' => '1200', 'image_height' => $moment ? '630' : '675',
             'image_alt' => "{$home} v {$away}, {$league}",

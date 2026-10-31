@@ -14,6 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: ['stripe/webhook']);
         // Set by the page script (not Laravel), so it is read as is for analytics.
         $middleware->encryptCookies(except: ['md_visitor']);
+        // Global: a request for a real file may not match a route, so the web group never runs.
+        $middleware->prepend(\App\Http\Middleware\ServePublicFiles::class);
         $middleware->web(append: [\App\Http\Middleware\CaptureAttribution::class]);
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,

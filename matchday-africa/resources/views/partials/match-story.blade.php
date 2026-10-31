@@ -39,14 +39,15 @@
                 [$headline, $line] = $griot->tell($chapter, $voice);
                 $link = route('matches.show', ['match' => $match, 'moment' => $chapter->id]);
                 $shareText = "{$headline} {$line}";
+                $momentLinks = \App\Support\ShareLink::links($link, $shareText, 'moment');
             @endphp
             <figure class="md-moment-card">
                 <img src="{{ $chapter->cardUrl($voice, 'feed') }}" alt="{{ $headline }}. {{ $line }}" width="1080" height="1350" loading="{{ $loop->index < 2 ? 'eager' : 'lazy' }}">
                 <figcaption>
                     <span class="sr-only">{{ $headline }}. {{ $line }}</span>
                     <div class="md-story-share">
-                        <a href="https://wa.me/?text={{ rawurlencode($shareText.' '.$link) }}" target="_blank" rel="noopener">WhatsApp</a>
-                        <a href="https://x.com/intent/post?text={{ rawurlencode($shareText) }}&amp;url={{ rawurlencode($link) }}" target="_blank" rel="noopener">X</a>
+                        <a href="{{ $momentLinks['whatsapp'] }}" target="_blank" rel="noopener">WhatsApp</a>
+                        <a href="{{ $momentLinks['x'] }}" target="_blank" rel="noopener">X</a>
                         <a href="{{ $chapter->cardUrl($voice, 'story') }}" target="_blank" rel="noopener">Status size</a>
                     </div>
                 </figcaption>

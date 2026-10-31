@@ -141,6 +141,12 @@ Route::post('/stripe/webhook', StripeWebhookController::class)->name('stripe.web
 
 // Predictions: open to visitors too (a guest pick is saved and moves onto the account at signup).
 Route::post('/matches/{match}/prediction', [App\Http\Controllers\MatchPredictionController::class, 'store'])->middleware('throttle:20,1')->name('matches.prediction.store');
+Route::get('/predictions/history', [PredictionController::class, 'history'])->middleware('auth')->name('predictions.history');
+Route::get('/predictions/leaderboard', [PredictionController::class, 'leaderboard'])->name('predictions.leaderboard');
+Route::get('/predictions', [PredictionController::class, 'index'])->name('predictions.index');
+Route::get('/predictions/{prediction}', [PredictionController::class, 'show'])->name('predictions.show');
+Route::post('/predictions/{prediction}/submit', [PredictionController::class, 'submit'])->middleware('throttle:20,1')->name('predictions.submit');
+Route::put('/predictions/{prediction}/update', [PredictionController::class, 'update'])->middleware('auth')->name('predictions.update');
 Route::get('/prediction-leagues/invite/{code}', [ExperienceController::class, 'invite'])->where('code', '[A-Za-z0-9]{4,10}')->name('groups.invite');
 
 // Chat routes (viewing is public)
@@ -193,20 +199,7 @@ Route::middleware('auth')->group(function () {
     // Chat posting (requires auth)
     Route::post('/matches/{match}/chats', [ChatController::class, 'storeMessage'])->middleware('throttle:10,1')->name('matches.chats.store');
     
-    // User prediction routes
-    Route::prefix('predictions')->name('predictions.')->group(function () {
-        // Specific routes first (to avoid conflicts)
-        Route::get('/', [PredictionController::class, 'index'])->name('index');
-        Route::get('/history', [PredictionController::class, 'history'])->name('history');
-        Route::get('/leaderboard', [PredictionController::class, 'leaderboard'])->name('leaderboard');
-        
-        // General prediction routes
-        Route::get('/{prediction}', [PredictionController::class, 'show'])->name('show');
-        Route::post('/{prediction}/submit', [PredictionController::class, 'submit'])->name('submit');
-        Route::put('/{prediction}/update', [PredictionController::class, 'update'])->name('update');
-    });
-    
-    // Prediction API endpoints
+    // Prediction API endpoints (the pages themselves are public; history and updates stay signed-in)
     Route::prefix('api/predictions')->name('api.predictions.')->group(function () {
         Route::get('/available', [PredictionController::class, 'getAvailable'])->name('available');
         Route::get('/{prediction}/user-predictions', [PredictionController::class, 'getUserPredictions'])->name('user-predictions');

@@ -52,7 +52,27 @@ class AppServiceProvider extends ServiceProvider
         // Every signup path (email, Google, X) stores the visitor's first-touch source.
         User::creating(function (User $user) {
             foreach (Attribution::forUser() as $key => $value) {
-                $user->{$key} ??= $value;
+                if (blank($user->{$key})) {
+                    $user->{$key} = $value;
+                }
+            }
+        });
+
+        // A signup that missed the cookie (Google's redirect landed on the other host)
+        // is filled in on the next request that still has the touch.
+        Event::listen(Login::class, function (Login $event) {
+            if (!$event->user instanceof User) {
+                return;
+            }
+            $dirty = false;
+            foreach (Attribution::forUser() as $key => $value) {
+                if (blank($event->user->{$key})) {
+                    $event->user->{$key} = $value;
+                    $dirty = true;
+                }
+            }
+            if ($dirty) {
+                $event->user->save();
             }
         });
     }

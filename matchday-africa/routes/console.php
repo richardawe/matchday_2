@@ -9,12 +9,14 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 // Adaptive football refresh cycle. cPanel only needs `php artisan schedule:run` every minute.
+// Close stale "live" rows before the data refresh. matches:refresh live can sit on the
+// football-data.org rate limit until PHP's time limit kills this process; anything
+// scheduled after it then never starts, which is how hundreds of matches stayed "live".
+Schedule::command('matches:close-stale')->everyTenMinutes()->withoutOverlapping(10)->name('matches-close-stale');
 Schedule::command('matches:refresh upcoming')->everySixHours()->withoutOverlapping(30)->name('matches-upcoming');
 Schedule::command('matches:refresh today')->everyFifteenMinutes()->withoutOverlapping(10)->name('matches-today');
 Schedule::command('matches:refresh live')->everyMinute()->withoutOverlapping(3)->name('matches-live');
 Schedule::command('matches:refresh results')->everyFiveMinutes()->withoutOverlapping(10)->name('matches-results');
-// Matches still "live" 3 hours after kick-off with no update are closed (the first run cleans up the backlog).
-Schedule::command('matches:close-stale')->everyTenMinutes()->withoutOverlapping(10)->name('matches-close-stale');
 // ESPN feed (no-ops while ESPN_ENABLED=false): live passes every 20s inside each minute.
 Schedule::command('espn:sync fixtures')->everySixHours()->withoutOverlapping(30)->runInBackground()->name('espn-fixtures');
 Schedule::command('espn:sync live')->everyMinute()->withoutOverlapping(2)->runInBackground()->name('espn-live');

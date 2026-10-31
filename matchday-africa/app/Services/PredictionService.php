@@ -346,7 +346,7 @@ class PredictionService
     /**
      * Get available prediction sets for user
      */
-    public function getAvailablePredictionSets(User $user): \Illuminate\Database\Eloquent\Collection
+    public function getAvailablePredictionSets(?User $user = null): \Illuminate\Database\Eloquent\Collection
     {
         return PredictionSet::with(['matches.match.homeTeam', 'matches.match.awayTeam', 'matches.match.league'])
             ->where('status', 'active')

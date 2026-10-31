@@ -22,6 +22,7 @@ class GuestPredictions
 {
     public const COOKIE = 'md_guest';
     public const LEAGUE_SESSION = 'pending_league_code';
+    public const ROUND_SESSION = 'guest_round_picks';
 
     public function __construct(private MatchPredictionRecorder $recorder) {}
 
@@ -67,6 +68,7 @@ class GuestPredictions
      */
     public function claim(User $user, Request $request): int
     {
+        $this->claimRoundPicks($user, $request);
         $this->joinPendingLeague($user, $request);
         $token = (string) $request->cookie(self::COOKIE);
         if (!self::ready() || !Str::isUuid($token)) {
@@ -81,6 +83,43 @@ class GuestPredictions
                 $moved++;
             }
             $pick->update(['claimed_by' => $user->id, 'claimed_at' => now()]);
+        }
+
+        return $moved;
+    }
+
+    /** Calls made on a prediction round before joining, kept on the session until signup. */
+    public function claimRoundPicks(User $user, Request $request): int
+    {
+        if (!$request->hasSession()) {
+            return 0;
+        }
+        $moved = 0;
+        foreach ($request->session()->pull(self::ROUND_SESSION, []) as $pick) {
+            if (!is_array($pick) || empty($pick['prediction_set_id']) || empty($pick['match_id']) || empty($pick['prediction_type'])) {
+                continue;
+            }
+            $exists = UserPrediction::where('user_id', $user->id)
+                ->where('prediction_set_id', $pick['prediction_set_id'])
+                ->where('match_id', $pick['match_id'])
+                ->where('prediction_type', $pick['prediction_type'])
+                ->exists();
+            if ($exists) {
+                continue;
+            }
+            UserPrediction::create([
+                'user_id' => $user->id,
+                'prediction_set_id' => $pick['prediction_set_id'],
+                'match_id' => $pick['match_id'],
+                'prediction_type' => $pick['prediction_type'],
+                'prediction_value' => (string) ($pick['prediction_value'] ?? ''),
+                'home_score_prediction' => $pick['home_score_prediction'] ?? null,
+                'away_score_prediction' => $pick['away_score_prediction'] ?? null,
+                'submitted_at' => $pick['submitted_at'] ?? now(),
+                'points_earned' => 0,
+                'is_scored' => false,
+            ]);
+            $moved++;
         }
 
         return $moved;

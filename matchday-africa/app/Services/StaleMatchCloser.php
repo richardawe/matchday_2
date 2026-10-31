@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\FootballMatch;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -45,8 +46,25 @@ class StaleMatchCloser
                 $meta = is_array($match->metadata) ? $match->metadata : [];
                 $meta['status_inferred_at'] = now()->toIso8601String();
                 $meta['status_before_inferred'] = $match->status;
-                $match->forceFill(['status' => 'FINISHED', 'metadata' => $meta])->saveQuietly();
-                $closed++;
+                try {
+                    $match->forceFill(['status' => 'FINISHED', 'metadata' => $meta])->saveQuietly();
+                    $closed++;
+                } catch (\Throwable $e) {
+                    // One bad metadata payload must not leave the rest of the backlog live.
+                    Log::warning('Stale match model save failed; closing the row directly', [
+                        'match_id' => $match->id, 'error' => $e->getMessage(),
+                    ]);
+                    try {
+                        DB::table('matches')->where('id', $match->id)->update([
+                            'status' => 'FINISHED',
+                            'metadata' => json_encode(['status_inferred_at' => $meta['status_inferred_at'], 'status_before_inferred' => $meta['status_before_inferred']]),
+                            'updated_at' => now(),
+                        ]);
+                        $closed++;
+                    } catch (\Throwable $again) {
+                        Log::error('Stale match could not be closed', ['match_id' => $match->id, 'error' => $again->getMessage()]);
+                    }
+                }
             }
         });
         if ($closed) {
