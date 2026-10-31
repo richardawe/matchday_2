@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>@yield('title', 'Admin Panel') - {{ config('app.name', 'Matchday Africa') }}</title>
+    <meta name="robots" content="noindex, nofollow">
     <x-favicon />
 
     <!-- Fonts -->

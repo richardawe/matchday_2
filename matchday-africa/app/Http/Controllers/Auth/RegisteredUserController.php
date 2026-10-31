@@ -32,11 +32,17 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        // The quick form (guest prediction prompt, league invites) has no confirmation field.
+        $quick = !$request->has('password_confirmation');
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => array_values(array_filter(['required', $quick ? null : 'confirmed', Rules\Password::defaults()])),
         ]);
+        $return = (string) $request->input('return');
+        if (str_starts_with($return, '/') && !str_starts_with($return, '//')) {
+            $request->session()->put('url.intended', url($return));
+        }
 
         $user = User::create([
             'name' => $request->name,
@@ -48,6 +54,6 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        return redirect()->intended(route('dashboard', absolute: false));
     }
 }

@@ -78,3 +78,18 @@ if (chronicle) {
     };
     window.setTimeout(refreshChronicle, chronicle.dataset.active === '1' ? 20000 : 120000);
 }
+
+// Share bars: "Copy link" copies the UTM-tagged link (resources/views/components/share-bar.blade.php).
+document.addEventListener('click', (event) => {
+    const button = event.target.closest('.md-copy-link');
+    if (!button) return;
+    const label = button.querySelector('span');
+    const done = () => {
+        if (!label) return;
+        label.textContent = 'Link copied';
+        window.setTimeout(() => { label.textContent = 'Copy link'; }, 2000);
+    };
+    const fallback = () => window.prompt('Copy this link', button.dataset.copy);
+    if (navigator.clipboard) navigator.clipboard.writeText(button.dataset.copy).then(done, fallback);
+    else fallback();
+});

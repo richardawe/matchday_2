@@ -1,4 +1,6 @@
 @extends('layouts.public')
+@section('meta_title', 'Football news and analysis for African fans | Matchday Africa')
+@section('meta_description', 'Football news, match analysis and African player stories from Matchday Africa.')
 @section('content')
 <section class="md-news-hero"><div class="md-wrap"><p class="md-eyebrow">MATCHDAY AFRICA NEWSROOM</p><h1>The game,<br><em>properly told.</em></h1><p>Fresh football reporting, match intelligence and stories selected for fans across Africa.</p></div></section>
 <section class="md-news-body"><div class="md-wrap"><header class="md-dash-heading"><div><p class="md-eyebrow">LATEST DISPATCHES</p><h2>From the newsroom</h2></div><a href="{{ route('matches.index') }}">Open match centre →</a></header>

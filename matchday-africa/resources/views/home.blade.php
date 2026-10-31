@@ -12,6 +12,7 @@
 <section class="md-home-stories md-home-stories-first"><div class="md-wrap"><div class="md-home-heading"><div><p class="md-eyebrow">LATEST NEWS</p><h1>Football stories worth your time.</h1></div><a href="{{ route('blogs.index') }}">All stories →</a></div><div class="md-story-grid">@foreach($featuredBlogs as $blog)<article class="md-story-card {{ $loop->first ? 'md-story-lead' : '' }}"><a href="{{ route('blogs.show', $blog) }}" class="md-story-image">@if($blog->featured_image)<img src="{{ $blog->featured_image_url }}" alt="{{ $blog->title }}">@else<span>MATCHDAY<br>AFRICA</span>@endif</a><div><small>{{ $blog->formatted_published_date }} · {{ $blog->reading_time }}</small><h3><a href="{{ route('blogs.show', $blog) }}">{{ $blog->title }}</a></h3><p>{{ Str::limit($blog->excerpt, $loop->first ? 190 : 110) }}</p><a href="{{ route('blogs.show', $blog) }}">Read story →</a></div></article>@endforeach</div></div></section>
 @endif
 
+<x-whatsapp-channel context="home" />
 @include('partials.home.command')
 
 @include('partials.home.focus')

@@ -19,7 +19,7 @@ class FixtureCardRenderer extends StoryCardRenderer
     /** Absolute path to the PNG, drawn on first request and cached until the fixture changes. */
     public function fixturePath(FootballMatch $match): string
     {
-        $key = substr(md5($match->home_team_id.'|'.$match->away_team_id.'|'.$match->match_date?->format('Y-m-d H:i')), 0, 10);
+        $key = substr(md5($match->home_team_id.'|'.$match->away_team_id.'|'.$match->match_date?->format('Y-m-d H:i').'|'.$this->result($match)), 0, 10);
         $file = storage_path("app/fixture-cards/{$match->id}-{$key}.png");
         if (!is_file($file)) {
             File::ensureDirectoryExists(dirname($file));
@@ -49,7 +49,8 @@ class FixtureCardRenderer extends StoryCardRenderer
         $textWidth = (int) ($w * 0.56);
         $this->text($img, 'mono', 20, self::MUTED, $pad, $pad + 10, $this->fit(mb_strtoupper((string) ($match->league?->name ?: 'Football')), 'mono', 20, $textWidth));
 
-        $tag = 'MATCH PREVIEW';
+        $result = $this->result($match);
+        $tag = $result ? 'FULL TIME' : 'MATCH PREVIEW';
         $box = imagettfbbox(22, 0, $this->font('mono'), $tag);
         imagesetthickness($img, 2);
         imagerectangle($img, $pad, $pad + 38, $pad + $box[2] - $box[0] + 36, $pad + 86, $this->color($img, self::GOLD));
@@ -58,18 +59,20 @@ class FixtureCardRenderer extends StoryCardRenderer
         $band = 14;
         $this->kente($img, $h - $band, $w, $band, $home['colours'] ?? ['#d2a052', '#e8e1d3']);
         $y = $h - $band - 34;
-        $this->text($img, 'mono', 16, self::MUTED, $pad, $y, 'MATCHDAY.AFRICA  ·  WHO WINS? CALL IT');
+        $this->text($img, 'mono', 16, self::MUTED, $pad, $y, $result ? 'MATCHDAY.AFRICA  ·  THE STORY IN 20 SECONDS' : 'MATCHDAY.AFRICA  ·  WHO WINS? CALL IT');
 
         $kickoff = Carbon::parse($match->match_date->format('Y-m-d H:i:s'), 'UTC')->setTimezone(config('buffer.x.timezone'));
         $y -= 50;
-        $this->text($img, 'mono', 24, self::GOLD, $pad, $y, 'KICK-OFF '.$kickoff->format('H:i').' WAT  ·  '.mb_strtoupper($kickoff->format('D j M')));
+        $this->text($img, 'mono', 24, self::GOLD, $pad, $y, $result
+            ? 'FINAL SCORE  ·  '.mb_strtoupper($kickoff->format('D j M'))
+            : 'KICK-OFF '.$kickoff->format('H:i').' WAT  ·  '.mb_strtoupper($kickoff->format('D j M')));
 
         $y -= 52;
         $name = fn ($team) => mb_strtoupper(trim(preg_replace('/\s+FC$/i', '', (string) $team?->name)) ?: 'TBC');
         // Long names ("Brighton & Hove Albion") step down in size before they are shortened.
         $width = fn (string $text, int $size) => ($box = imagettfbbox($size, 0, $this->font('display'), $text))[2] - $box[0];
-        foreach ([$name($match->awayTeam), 'V', $name($match->homeTeam)] as $i => $row) {
-            $size = $i === 1 ? 34 : 60;
+        foreach ([$name($match->awayTeam), $result ?? 'V', $name($match->homeTeam)] as $i => $row) {
+            $size = $i === 1 ? ($result ? 44 : 34) : 60;
             while ($i !== 1 && $size > 38 && $width($row, $size) > $textWidth) {
                 $size -= 2;
             }
@@ -78,5 +81,13 @@ class FixtureCardRenderer extends StoryCardRenderer
         }
 
         return $img;
+    }
+
+    /** "2–1" once the match is finished, so the shared card shows the result; null before. */
+    private function result(FootballMatch $match): ?string
+    {
+        return in_array($match->status, ['FINISHED', 'FT'], true) && $match->home_score !== null && $match->away_score !== null
+            ? $match->home_score.'–'.$match->away_score
+            : null;
     }
 }

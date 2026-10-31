@@ -13,6 +13,8 @@ Schedule::command('matches:refresh upcoming')->everySixHours()->withoutOverlappi
 Schedule::command('matches:refresh today')->everyFifteenMinutes()->withoutOverlapping(10)->name('matches-today');
 Schedule::command('matches:refresh live')->everyMinute()->withoutOverlapping(3)->name('matches-live');
 Schedule::command('matches:refresh results')->everyFiveMinutes()->withoutOverlapping(10)->name('matches-results');
+// Matches still "live" 3 hours after kick-off with no update are closed (the first run cleans up the backlog).
+Schedule::command('matches:close-stale')->everyTenMinutes()->withoutOverlapping(10)->name('matches-close-stale');
 // ESPN feed (no-ops while ESPN_ENABLED=false): live passes every 20s inside each minute.
 Schedule::command('espn:sync fixtures')->everySixHours()->withoutOverlapping(30)->runInBackground()->name('espn-fixtures');
 Schedule::command('espn:sync live')->everyMinute()->withoutOverlapping(2)->runInBackground()->name('espn-live');

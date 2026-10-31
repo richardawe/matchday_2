@@ -22,16 +22,16 @@ class HomeShowcase
      *
      * @return array{featured: ?array, rail: Collection}
      */
-    public function reels(int $limit = 12): array
+    public function reels(int $limit = 12, int $days = 14): array
     {
-        $cutoff = now('UTC')->subDays(14)->format('Y-m-d H:i:s');
+        $cutoff = now('UTC')->subDays($days)->format('Y-m-d H:i:s');
         $all = FootballMatch::with(['homeTeam', 'awayTeam', 'league'])
             ->whereHas('league', fn ($q) => $q->where('short_code', 'PL')->orWhere('espn_slug', 'eng.1'))
             ->whereIn('status', ['FINISHED', 'FT'])
             ->where('match_date', '>=', $cutoff)
             ->latest('match_date')->get()
             ->filter(fn ($m) => $this->reels->path($m))
-            ->map(fn ($m) => $this->card($m))->values();
+            ->map(fn ($m) => $this->reelCard($m))->values();
         if ($all->isEmpty()) {
             return ['featured' => null, 'rail' => collect()];
         }
@@ -65,7 +65,8 @@ class HomeShowcase
             });
     }
 
-    private function card(FootballMatch $m): array
+    /** One reel for the homepage rail and the reel pages. */
+    public function reelCard(FootballMatch $m): array
     {
         $readyAt = data_get($m->metadata, 'reel.ready_at');
 
@@ -76,6 +77,7 @@ class HomeShowcase
             'video' => app(ReelService::class)->url($m),
             'poster' => $this->reels->posterPath($m) ? route('matches.reel-poster', ['match' => $m, 'v' => $readyAt]) : null,
             'link' => route('matches.show', $m).'#match-story',
+            'page' => route('reels.show', $m),
             'played' => Carbon::parse($m->match_date->format('Y-m-d H:i:s'), 'UTC'),
             'weight' => $this->reels->weight($m),
         ];

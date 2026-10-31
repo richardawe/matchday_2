@@ -13,6 +13,30 @@ use Illuminate\Support\Facades\Http;
 class SocialAuthController extends Controller
 {
     /**
+     * Send the visitor to Google's consent screen (the same flow as the login page's button).
+     * ?return=/path brings them back there afterwards.
+     */
+    public function redirectToGoogle(Request $request)
+    {
+        $clientId = config('services.google.client_id');
+        if (!$clientId) {
+            return redirect()->route('register');
+        }
+        $return = (string) $request->query('return');
+        if (str_starts_with($return, '/') && !str_starts_with($return, '//')) {
+            $request->session()->put('url.intended', url($return));
+        }
+
+        return redirect()->away('https://accounts.google.com/o/oauth2/v2/auth?'.http_build_query([
+            'client_id' => $clientId,
+            'redirect_uri' => config('app.url').'/oauth-callback',
+            'response_type' => 'code',
+            'scope' => 'openid email profile',
+            'state' => 'google_oauth_state',
+        ]));
+    }
+
+    /**
      * Handle Google OAuth redirect callback (fallback method)
      */
     public function handleGoogleRedirect(Request $request)
@@ -119,7 +143,16 @@ class SocialAuthController extends Controller
             $code = $request->input('code');
             if ($code) {
                 \Log::info('Processing Google OAuth code flow');
-                return $this->handleGoogleRedirect($request);
+                $response = $this->handleGoogleRedirect($request);
+                // The /oauth-callback page posts JSON and follows `redirect`, so answer in JSON
+                // (and keep the intended page, e.g. the match where a guest just made a pick).
+                if ($request->isJson()) {
+                    return Auth::check()
+                        ? response()->json(['success' => true, 'redirect' => $response->getTargetUrl()])
+                        : response()->json(['error' => session('error', 'Google authentication failed')], 400);
+                }
+
+                return $response;
             }
 
             // Original ID token flow
@@ -147,7 +180,7 @@ class SocialAuthController extends Controller
                 Auth::login($user);
                 return response()->json([
                     'success' => true,
-                    'redirect' => route('dashboard')
+                    'redirect' => redirect()->intended(route('dashboard'))->getTargetUrl()
                 ]);
             }
 

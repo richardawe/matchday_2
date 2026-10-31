@@ -55,10 +55,11 @@ export async function renderReel(props, out, { composition = 'Reel', log = conso
                 if (pct !== last) { last = pct; log(`rendering ${pct}%`); }
             },
         });
-        // A still from the first big moment, for match pages, the homepage rail and link previews.
+        // A still from the opening (final score and key moment), for match pages, the homepage
+        // rail and link previews.
         if (poster) {
             await renderStill({ composition: comp, serveUrl, inputProps, output: poster, browserExecutable,
-                frame: Math.min(80, comp.durationInFrames - 1), imageFormat: 'jpeg', jpegQuality: 82 });
+                frame: Math.min(20, comp.durationInFrames - 1), imageFormat: 'jpeg', jpegQuality: 82 });
         }
         return { seconds: Math.round((Date.now() - started) / 100) / 10, frames: comp.durationInFrames };
     } finally {

@@ -40,7 +40,7 @@
                                     {{ __('Matches') }}
                                 </x-nav-link>
                                 @auth<x-nav-link :href="route('predictions.index')" :active="request()->routeIs('predictions.*')">{{ __('Predict') }}</x-nav-link>@endauth
-                                <x-nav-link :href="route('leagues.index')" :active="request()->routeIs('leagues.*')">
+                                <x-nav-link :href="route('community')" :active="request()->routeIs('community', 'groups.*')">
                                     {{ __('Community') }}
                                 </x-nav-link>
                                 <x-nav-link :href="route('war.index')" :active="request()->routeIs('war.*')">
@@ -61,6 +61,7 @@
 
                         <!-- Authentication Links -->
                         <div class="hidden sm:flex sm:items-center sm:ms-6">
+                            <div class="hidden xl:block me-3"><x-social-follow size="sm" /></div>
                             @auth
                                 <!-- User is logged in -->
                                 <x-dropdown align="right" width="48">
@@ -135,6 +136,8 @@
                         <x-responsive-nav-link :href="route('leagues.index')" :active="request()->routeIs('leagues.*')">
                             {{ __('Leagues') }}
                         </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('community')" :active="request()->routeIs('community')">{{ __('Community') }}</x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('reels.index')" :active="request()->routeIs('reels.*')">{{ __('Reels') }}</x-responsive-nav-link>
                         <x-responsive-nav-link :href="route('war.index')" :active="request()->routeIs('war.*')">
                             {{ __('War') }}
                         </x-responsive-nav-link>
@@ -148,6 +151,8 @@
                         <x-responsive-nav-link :href="route('shop.index')" :active="request()->routeIs('shop.*')">{{ __('Shop') }}</x-responsive-nav-link>
                         <x-responsive-nav-link :href="route('premium.index')" :active="request()->routeIs('premium.*')">{{ __('Premium') }}</x-responsive-nav-link>
                     </div>
+
+                    <div class="px-4 py-3 border-t border-gray-200"><x-social-follow /></div>
 
                     <!-- Responsive Authentication Links -->
                     <div class="pt-4 pb-1 border-t border-gray-200">
@@ -206,12 +211,30 @@
 
         <!-- Footer -->
         <x-footer />
+        @guest @unless(request()->routeIs('login', 'register', 'password.*'))@include('partials.signup-nudge')@endunless @endguest
         
         @stack('scripts')
         <script>
         (()=>{let id=document.cookie.match(/md_visitor=([^;]+)/)?.[1];if(!id){id=(crypto.randomUUID?.()||Date.now()+'-'+Math.random());document.cookie='md_visitor='+id+';path=/;max-age=31536000;SameSite=Lax'}
         const track=(event,properties={})=>fetch('{{ route('analytics.track') }}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content},body:JSON.stringify({event,path:location.pathname,properties}),keepalive:true}).catch(()=>{});
-        track('page_view');document.addEventListener('click',e=>{const share=e.target.closest('.md-share');if(share){const data={title:share.dataset.shareTitle,text:share.dataset.shareText,url:location.href};track('share_started',{title:data.title});navigator.share?navigator.share(data):navigator.clipboard.writeText(location.href).then(()=>{share.textContent='Link copied'})}});})();
+        track('page_view');document.addEventListener('click',e=>{const net=e.target.closest('[data-share-network]');if(net){track('share_click',{network:net.dataset.shareNetwork,campaign:net.closest('[data-share-campaign]')?.dataset.shareCampaign});}const wa=e.target.closest('[data-wa-channel]');if(wa){track('whatsapp_channel_click',{context:wa.dataset.waChannel});}const follow=e.target.closest('[data-follow]');if(follow){track('follow_click',{network:follow.dataset.follow});}if(e.target.closest('.md-copy-link'))return;const share=e.target.closest('.md-share');if(share){const data={title:share.dataset.shareTitle,text:share.dataset.shareText,url:location.href};track('share_started',{title:data.title});navigator.share?navigator.share(data):navigator.clipboard.writeText(location.href).then(()=>{share.textContent='Link copied'})}});})();
         </script>
+        @guest
+        <script>
+        // Signup nudge: after the 3rd page or the first reel play, at most every 3 days, and not for
+        // a week after "Not now". Counts live in localStorage (md_nudge), never sent anywhere.
+        (()=>{const box=document.getElementById('md-nudge');if(!box)return;const KEY='md_nudge',DAY=864e5;
+        let s={};try{s=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){return}
+        const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}};
+        const track=(event,properties={})=>fetch('{{ route('analytics.track') }}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content},body:JSON.stringify({event,path:location.pathname,properties}),keepalive:true}).catch(()=>{});
+        s.views=(s.views||0)+1;save();
+        const quiet=()=>(s.dismissed&&Date.now()-s.dismissed<7*DAY)||(s.shown&&Date.now()-s.shown<3*DAY);
+        const show=(why)=>{if(!box.hidden||quiet())return;box.hidden=false;s.shown=Date.now();save();track('nudge_shown',{reason:why,views:s.views})};
+        if(s.views>=3)setTimeout(()=>show('pages'),4000);
+        document.addEventListener('play',e=>{if(e.target.tagName==='VIDEO')setTimeout(()=>show('reel'),2500)},true);
+        box.addEventListener('click',e=>{if(e.target.closest('[data-nudge-dismiss]')){box.hidden=true;s.dismissed=Date.now();save();track('nudge_dismissed')}const cta=e.target.closest('[data-nudge-cta]');if(cta)track('nudge_clicked',{method:cta.dataset.nudgeCta})});
+        document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!box.hidden){box.hidden=true;s.dismissed=Date.now();save()}});})();
+        </script>
+        @endguest
     </body>
 </html>

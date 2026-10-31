@@ -1,4 +1,6 @@
 @extends('layouts.public')
+@section('meta_title', 'Shop: digital cards and Matchday War drops | Matchday Africa')
+@section('meta_description', 'Digital collectibles, Matchday War drops and fan goods from Matchday Africa.')
 
 @section('content')
 <section class="md-phase md-commerce"><div class="md-wrap">

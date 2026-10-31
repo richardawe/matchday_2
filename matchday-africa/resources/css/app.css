@@ -560,3 +560,118 @@
 .md-play{padding:clamp(3rem,6vw,5rem) 0;background:#0b0d0b}.md-play-arena{margin-top:1rem}.md-play-arena a{color:var(--md-gold-bright);font-size:.8rem;font-weight:800}
 @media(max-width:900px){.md-board-grid,.md-news-list{grid-template-columns:1fr 1fr}}
 @media(max-width:640px){.md-reels-grid{grid-template-columns:1fr}.md-reels-player{justify-self:center;max-width:none;width:min(100%,calc(70svh * 9 / 16))}.md-board-grid,.md-news-list{grid-template-columns:1fr}}
+
+/* Reel pages (/reels, /reels/{match}) */
+.md-reel-page h1{font:700 clamp(2.2rem,6vw,4rem)/.95 Georgia,serif;letter-spacing:-.03em}
+.md-reel-page .md-reels-thumb img{width:100%;aspect-ratio:9/16;object-fit:cover}
+.md-reel-index{display:grid;grid-template-columns:repeat(auto-fill,minmax(10rem,1fr));gap:1rem;margin-top:2rem}
+.md-reel-index a{display:grid;gap:.35rem;color:var(--md-paper)!important}
+.md-reel-index img,.md-reel-index-empty{width:100%;aspect-ratio:9/16;object-fit:cover;background:#000;border:1px solid var(--md-line)}
+.md-reel-index-empty{display:grid;place-items:center;color:var(--md-gold);font-weight:900}
+.md-reel-index small{color:var(--md-muted);font-size:.72rem}
+
+/* Follow links (config/social.php) */
+.md-follow-icons{display:inline-flex;align-items:center;gap:.9rem}
+.md-follow-icons a{color:var(--md-muted)!important;display:inline-flex;transition:color .15s}
+.md-follow-icons a:hover,.md-follow-icons a:focus-visible{color:var(--md-gold-bright)!important}
+.md-follow{padding:clamp(2rem,5vw,3rem) 0;border-bottom:1px solid var(--md-line);background:var(--md-panel)}
+.md-follow-inner{display:flex;align-items:center;justify-content:space-between;gap:2rem;flex-wrap:wrap}
+.md-follow h2{font:700 clamp(1.6rem,3.5vw,2.4rem)/1.05 Georgia,serif}
+.md-follow p:not(.md-eyebrow){color:var(--md-muted);margin-top:.5rem;max-width:34rem}
+.md-follow-list{display:flex;flex-wrap:wrap;gap:.75rem}
+.md-follow-list a{display:flex;align-items:center;gap:.7rem;min-height:3rem;padding:.6rem 1rem;border:1px solid #5b4933;background:#0c0d0b;color:var(--md-paper)!important}
+.md-follow-list a:hover{border-color:var(--md-gold)}
+.md-follow-list svg{color:var(--md-gold-bright)}
+.md-follow-list span{display:grid;line-height:1.15}
+.md-follow-list b{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase}
+.md-follow-list small{color:var(--md-muted);font-size:.75rem}
+@media(max-width:640px){.md-follow-list{width:100%}.md-follow-list li{flex:1 1 100%}}
+.md-room-follow{display:flex;align-items:center;justify-content:center;gap:.9rem;margin-top:1rem;font-size:.68rem;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--md-muted)}
+
+/* Guest prediction prompt and one-tap signup */
+.md-save-pick{margin-top:1.5rem;padding:1.2rem;border:1px solid var(--md-gold);background:#0c0d0b;color:var(--md-paper)}
+.md-save-pick.is-new{animation:md-pick-in .4s ease-out}
+@keyframes md-pick-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.md-save-pick h3{font:700 1.5rem/1.1 Georgia,serif;margin-bottom:.4rem}
+.md-save-pick>p:not(.md-eyebrow){color:var(--md-muted);font-size:.92rem;margin-bottom:1rem}
+.md-signup-options{display:grid;gap:.6rem}
+.md-google{display:flex;align-items:center;justify-content:center;gap:.6rem;min-height:3rem;background:#fff;color:#1f1f1f!important;font-weight:700;border-radius:.25rem}
+.md-signup-or{text-align:center;color:var(--md-muted);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase}
+.md-signup-email{display:grid;gap:.5rem}
+.md-signup-email input{width:100%;min-height:2.9rem;padding:.6rem .8rem;background:#080907;border:1px solid #554735;color:var(--md-paper)}
+.md-signup-email .md-primary{min-height:3rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.md-signup-error{color:#f28b82;font-size:.85rem}
+.md-signup-login{font-size:.82rem;color:var(--md-muted)}.md-signup-login a{color:var(--md-gold-bright);text-decoration:underline}
+.md-league-tabs{display:flex;gap:.5rem;margin:1.5rem 0 .5rem}
+.md-league-tabs a{padding:.5rem .9rem;border:1px solid var(--md-line);color:var(--md-muted)!important;font-size:.72rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.md-league-tabs a.is-active{border-color:var(--md-gold);color:var(--md-gold-bright)!important}
+.md-league-week{color:var(--md-muted);font-size:.85rem}
+.md-table>div.is-me{background:rgba(210,160,82,.08)}
+.md-table small{color:var(--md-muted);font-size:.75rem;margin-left:.4rem}
+.md-league-invite{margin:2rem 0}.md-league-invite p{color:var(--md-muted);margin:.4rem 0}
+.md-join-panel{margin-top:1.5rem;max-width:28rem}.md-join-panel>p{color:var(--md-muted);margin:.4rem 0 1rem}
+
+/* Share bar (WhatsApp, X, copy link) */
+.md-share-bar{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-top:1rem}
+.md-share-label{font-size:.68rem;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--md-muted);margin-right:.25rem}
+.md-share-bar a,.md-share-bar button{display:inline-flex;align-items:center;gap:.45rem;min-height:2.6rem;padding:.5rem .85rem;border:1px solid #5b4933;background:#0c0d0b;color:var(--md-paper)!important;font-size:.75rem;font-weight:800;letter-spacing:.06em;cursor:pointer}
+.md-share-bar a:hover,.md-share-bar button:hover{border-color:var(--md-gold);color:var(--md-gold-bright)!important}
+.md-share-bar [data-share-network=whatsapp] svg{color:#25d366}
+.md-room-head .md-share-bar{justify-content:center}
+
+/* WhatsApp channel CTA */
+.md-wa-channel{padding:1.4rem 0;border-bottom:1px solid var(--md-line);background:linear-gradient(100deg,#0b1a12,#0c0d0b 70%)}
+.md-wa-inner{display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap}
+.md-wa-inner>svg{color:#25d366;flex:none}
+.md-wa-inner>div{flex:1 1 18rem}
+.md-wa-channel h2{font:700 clamp(1.25rem,2.6vw,1.6rem)/1.15 Georgia,serif}
+.md-wa-channel p:not(.md-eyebrow){color:var(--md-muted);font-size:.9rem;margin-top:.25rem}
+.md-wa-join{display:inline-flex;align-items:center;justify-content:center;min-height:3rem;padding:.75rem 1.2rem;background:#25d366;color:#04140a!important;font-size:.75rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.md-wa-join:hover{background:#3be07b}
+@media(max-width:640px){.md-wa-join{width:100%}}
+
+/* Legal pages */
+.md-legal ul{list-style:disc;padding-left:1.25rem;margin:.6rem 0 1rem}.md-legal li{margin:.35rem 0}
+.md-legal a{color:var(--md-gold-bright);text-decoration:underline}
+.md-cookie-table{width:100%;border-collapse:collapse;margin:.6rem 0 1.4rem;font-size:.9rem}
+.md-cookie-table th{text-align:left;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--md-muted);border-bottom:1px solid var(--md-line);padding:.5rem}
+.md-cookie-table td{border-bottom:1px solid var(--md-line);padding:.5rem;vertical-align:top}
+.md-cookie-table td:first-child{font-family:ui-monospace,monospace;white-space:nowrap}
+@media(max-width:640px){.md-cookie-table td:first-child{white-space:normal;word-break:break-all}}
+
+/* Community hub */
+.md-gold-link{color:var(--md-gold-bright)!important;text-decoration:underline}
+.md-community-row{display:flex;justify-content:space-between;gap:1rem;padding:.6rem 0;border-bottom:1px solid var(--md-line)}
+.md-community-row small{color:var(--md-muted)}
+.md-community-chats{display:grid;grid-template-columns:repeat(auto-fill,minmax(16rem,1fr));gap:.75rem}
+.md-community-chats a{display:grid;gap:.3rem;padding:1rem;border:1px solid var(--md-line);background:var(--md-panel);color:var(--md-paper)!important}
+.md-community-chats small{color:var(--md-muted);font-size:.72rem}
+.md-community-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(18rem,1fr));gap:1rem;margin:1rem 0 2rem}
+
+/* Signup nudge (guests, after 3 pages or a reel play) */
+.md-nudge{position:fixed;z-index:60;right:1rem;bottom:1rem;width:min(24rem,calc(100% - 2rem));padding:1.3rem;background:var(--md-panel);border:1px solid var(--md-gold);color:var(--md-paper);box-shadow:0 24px 60px rgba(0,0,0,.55);animation:md-pick-in .35s ease-out}
+.md-nudge[hidden]{display:none}
+.md-nudge h2{font:700 1.45rem/1.1 Georgia,serif;margin-bottom:.7rem;padding-right:1.5rem}
+.md-nudge ul{display:grid;gap:.55rem;margin-bottom:1rem}
+.md-nudge li{font-size:.86rem;color:var(--md-muted);line-height:1.35}
+.md-nudge li b{display:block;color:var(--md-paper);font-size:.8rem;letter-spacing:.06em;text-transform:uppercase}
+.md-nudge-actions{display:grid;gap:.5rem}
+.md-nudge-actions .md-primary{display:flex;align-items:center;justify-content:center;min-height:2.9rem;font-size:.75rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.md-nudge-close{position:absolute;top:.5rem;right:.7rem;font-size:1.5rem;line-height:1;color:var(--md-muted);background:none;border:0;cursor:pointer}
+.md-nudge-later{font-size:.78rem;color:var(--md-muted);background:none;border:0;text-decoration:underline;cursor:pointer}
+@media(max-width:640px){.md-nudge{left:0;right:0;bottom:0;width:100%;border-width:1px 0 0}}
+@media(prefers-reduced-motion:reduce){.md-nudge,.md-save-pick.is-new{animation:none}}
+
+/* Footer email signup */
+.md-footer-signup{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:1.5rem;align-items:center;margin-top:2rem;padding:1.4rem;border:1px solid var(--md-line);background:var(--md-panel)}
+.md-footer-signup h3{font:700 1.3rem/1.15 Georgia,serif;color:var(--md-paper)!important}
+.md-footer-signup p{color:var(--md-muted);font-size:.86rem;margin-top:.3rem}
+.md-footer-signup form{display:flex;flex-wrap:wrap;gap:.5rem}
+.md-footer-signup input[type=email]{flex:1 1 14rem;min-height:2.9rem;padding:.6rem .8rem;background:#080907;border:1px solid #554735;color:var(--md-paper)}
+.md-footer-signup button{min-height:2.9rem;padding:.6rem 1rem;background:var(--md-gold);color:#130e08;font-size:.72rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.md-footer-signup small{flex-basis:100%;color:var(--md-muted);font-size:.72rem}.md-footer-signup small a{text-decoration:underline}
+.md-footer-signup-done{color:var(--md-gold-bright)!important;font-weight:700}
+.md-footer-signup-error{flex-basis:100%;color:#f28b82;font-size:.8rem}
+.md-hp{position:absolute!important;left:-10000px!important;width:1px;height:1px;opacity:0}
+@media(max-width:768px){.md-footer-signup{grid-template-columns:1fr}}
+.md-follow-icons.is-sm{gap:.7rem}

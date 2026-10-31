@@ -26,9 +26,10 @@
                 <h3>The whole match, told in twenty seconds.</h3>
                 <p>Every goal and red card with a talking-drum beat, made minutes after the final whistle. Sized for WhatsApp Status.</p>
                 <div class="md-story-share">
-                    <a href="https://wa.me/?text={{ rawurlencode('Watch the 20-second story of '.$match->homeTeam?->name.' v '.$match->awayTeam?->name.' '.route('matches.show', $match)) }}" target="_blank" rel="noopener">Share on WhatsApp</a>
+                    <a href="{{ route('reels.show', $match) }}">Open the reel page</a>
                     <a href="{{ $reel }}" download>Save the video</a>
                 </div>
+                <x-share-bar :url="route('reels.show', $match)" :text="'Watch '.$match->homeTeam?->name.' '.$match->home_score.'–'.$match->away_score.' '.$match->awayTeam?->name.' in 20 seconds.'" campaign="reel" />
             </div>
         </div>
     @endif

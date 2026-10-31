@@ -18,6 +18,7 @@
         <aside class="md-health-panel">
             <p class="md-eyebrow">HEALTH CHECK</p><h2>What needs attention</h2>
             <div><span>Stale live matches</span><strong>{{ $operations['stale_live'] }}</strong></div>
+            <div><span>Past kick-off + 3h, closing on the next run</span><strong>{{ $operations['stale_closable'] }}</strong></div>
             <div><span>Finals without scores</span><strong>{{ $operations['finished_missing_score'] }}</strong></div>
             <div><span>Recent finals without events</span><strong>{{ $operations['finished_missing_events'] }}</strong></div>
             <div><span>Football API</span><strong>{{ $apiStatus['is_configured'] ? 'Ready' : 'Missing key' }}</strong></div>

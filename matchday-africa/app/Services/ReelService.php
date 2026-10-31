@@ -35,7 +35,7 @@ class ReelService
             ->whereIn('id', MatchMoment::where('type', 'full_time')->where('created_at', '<=', now()->subMinutes(config('reel.delay_minutes')))->select('match_id'))
             ->orderBy('match_date')
             ->get()
-            ->filter(fn ($match) => $this->stories->tellsStory($match) && $this->due($match));
+            ->filter(fn ($match) => !$match->statusInferred() && $this->stories->tellsStory($match) && $this->due($match));
     }
 
     /**
@@ -74,8 +74,9 @@ class ReelService
         return [
             'format' => 'story',
             'competition' => 'PREMIER LEAGUE',
+            // The opening frame shows the final score, so the commentary leads with it too.
             'title' => ['headline' => "{$home['army']} v {$away['army']}", 'line' => "{$home['club']} v {$away['club']}",
-                'say' => ["{$home['club']} against {$away['club']}."]],
+                'say' => ["Full time: {$home['club']} {$home['score']}, {$away['club']} {$away['score']}.", "{$home['club']} {$home['score']}, {$away['club']} {$away['score']}.", "{$home['club']} against {$away['club']}."]],
             'home' => $home,
             'away' => $away,
             'beats' => $chapters->whereNotIn('type', ['full_time'])->map(function (MatchMoment $chapter) use ($voice, $home, $away) {

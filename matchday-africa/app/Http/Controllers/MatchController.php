@@ -210,6 +210,7 @@ class MatchController extends Controller
             $warTeams = ['home' => $warImage($match->homeTeam?->name), 'away' => $warImage($match->awayTeam?->name)];
             $predictions=$match->userPredictions()->with('user')->where('prediction_type','score')->latest('submitted_at')->get()->unique('user_id')->sortBy('submitted_at')->values();
             $currentPrediction=auth()->check()?$predictions->firstWhere('user_id',auth()->id()):null;
+            $guestPick=auth()->guest()?app(\App\Services\GuestPredictions::class)->current(request(),$match):null;
             $predictionOpen=$match->predictionsAreOpen();
             $sponsor=$match->sponsor?->active?$match->sponsor:null;
             $winnerIds=$sponsor?->awards->pluck('user_id')??collect();
@@ -229,7 +230,7 @@ class MatchController extends Controller
                 'upcomingMatches', 
                 'recentChats',
                 'matchPreview',
-                'featuredPreviews','momentum','predictionSet','mythStory','warTeams','predictions','currentPrediction','predictionOpen','sponsor','winnerIds','africanPlayers','chapters','voice','reel'
+                'featuredPreviews','momentum','predictionSet','mythStory','warTeams','predictions','currentPrediction','predictionOpen','sponsor','winnerIds','africanPlayers','chapters','voice','reel','guestPick'
             ))->with('content', $match);
 
         } catch (\Exception $e) {

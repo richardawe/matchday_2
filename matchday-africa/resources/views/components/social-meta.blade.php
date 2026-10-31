@@ -1,45 +1,26 @@
-@props(['content' => null])
-
-@php
-    $metaData = $metaData ?? [];
-@endphp
-
 <!-- Primary Meta Tags -->
-<title>{{ $metaData['title'] ?? 'Matchday Africa' }}</title>
-<meta name="title" content="{{ $metaData['title'] ?? 'Matchday Africa' }}">
-<meta name="description" content="{{ $metaData['description'] ?? 'Your ultimate destination for football match tracking, live scores, predictions, and more!' }}">
+<title>{{ $metaData['title'] }}</title>
+<meta name="description" content="{{ $metaData['description'] }}">
+<meta name="robots" content="{{ $metaData['robots'] ?? 'index, follow' }}">
+<link rel="canonical" href="{{ $metaData['url'] }}">
 
-<!-- Open Graph / Facebook -->
-@foreach($metaData['open_graph'] ?? [] as $property => $content)
-    <meta property="{{ $property }}" content="{{ $content }}">
+<!-- Open Graph -->
+<meta property="og:locale" content="en_GB">
+@foreach($metaData['open_graph'] as $property => $value)
+<meta property="{{ $property }}" content="{{ $value }}">
 @endforeach
 
-<!-- Twitter -->
-@foreach($metaData['twitter_card'] ?? [] as $name => $content)
-    <meta name="{{ $name }}" content="{{ $content }}">
+<!-- Twitter / X -->
+@foreach($metaData['twitter_card'] as $name => $value)
+<meta name="{{ $name }}" content="{{ $value }}">
 @endforeach
 
-<!-- Additional Meta Tags -->
-<meta name="robots" content="index, follow">
-<meta name="language" content="English">
-<meta name="author" content="Matchday Africa">
-
-<!-- Canonical URL -->
-<link rel="canonical" href="{{ $metaData['url'] ?? config('app.url') }}">
+@if(!empty($metaData['json_ld']))
+<script type="application/ld+json">{!! json_encode($metaData['json_ld'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
+@endif
 
 <!-- Favicon -->
 <x-favicon />
-
-<!-- Additional Open Graph Tags -->
-<meta property="og:locale" content="en_US">
-<meta property="og:image:type" content="image/png">
-<meta property="og:image:secure_url" content="{{ $metaData['image'] ?? route('images.social-default') }}">
-<meta property="og:image:url" content="{{ $metaData['image'] ?? route('images.social-default') }}">
-
-<!-- Additional Twitter Tags -->
-<meta name="twitter:creator" content="@matchdayafrica">
-<meta name="twitter:image:alt" content="{{ $metaData['title'] ?? 'Matchday Africa' }}">
-<meta name="twitter:image:src" content="{{ $metaData['image'] ?? route('images.social-default') }}">
 
 <!-- Mobile App Meta Tags -->
 <meta name="mobile-web-app-capable" content="yes">

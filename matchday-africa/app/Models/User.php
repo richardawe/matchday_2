@@ -24,6 +24,7 @@ class User extends Authenticatable
         'role',
         'is_admin',
         'username','country_code','city','war_faction','bio','matchday_points','current_streak','best_streak','last_active_on','stripe_customer_id','stripe_subscription_id','subscription_status','premium_until',
+        'utm_source','utm_medium','utm_campaign','signup_referrer','signup_landing',
     ];
 
     /**

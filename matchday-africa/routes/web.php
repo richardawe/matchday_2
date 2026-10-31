@@ -39,6 +39,14 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/api/matchday-pulse', [HomeController::class, 'pulse'])->name('home.pulse');
 
 Route::view('/terms', 'terms')->name('terms');
+Route::view('/privacy', 'legal.privacy')->name('privacy');
+Route::view('/cookies', 'legal.cookies')->name('cookies');
+Route::permanentRedirect('/privacy-policy', '/privacy');
+Route::permanentRedirect('/cookie-policy', '/cookies');
+Route::get('/community', [App\Http\Controllers\CommunityController::class, 'index'])->name('community');
+Route::get('/sitemap.xml', App\Http\Controllers\SitemapController::class)->name('sitemap');
+Route::post('/subscribe', [App\Http\Controllers\EmailSubscriptionController::class, 'store'])->middleware('throttle:6,1')->name('subscribe');
+Route::get('/unsubscribe/{token}', [App\Http\Controllers\EmailSubscriptionController::class, 'unsubscribe'])->where('token', '[A-Za-z0-9]{20,64}')->name('unsubscribe');
 
 Route::get('/listen', [App\Http\Controllers\RadioController::class, 'index'])->name('radio.index');
 // Check readiness before implicit binding can query a table that is not migrated yet.
@@ -100,6 +108,8 @@ Route::get('/matches/{match}/card.png', [App\Http\Controllers\MomentCardControll
 Route::get('/matches/{match}/reel', [App\Http\Controllers\ReelController::class, 'show'])->name('matches.reel');
 Route::get('/matches/{match}/reel.mp4', [App\Http\Controllers\ReelController::class, 'show'])->name('matches.reel.legacy');
 Route::get('/matches/{match}/reel.jpg', [App\Http\Controllers\ReelController::class, 'poster'])->name('matches.reel-poster');
+Route::get('/reels', [App\Http\Controllers\ReelPageController::class, 'index'])->name('reels.index');
+Route::get('/reels/{match}', [App\Http\Controllers\ReelPageController::class, 'show'])->name('reels.show');
 Route::get('/reels/{match}/props', [App\Http\Controllers\ReelController::class, 'props'])->middleware('signed')->name('reels.props');
 Route::get('/moments/{moment}/card/{voice}/{format}.png', [App\Http\Controllers\MomentCardController::class, 'show'])
     ->where(['voice' => 'en|pcm|sw|za', 'format' => 'story|feed|og'])->name('moments.card');
@@ -129,6 +139,10 @@ Route::get('/premium', [CommerceController::class, 'premium'])->name('premium.in
 Route::get('/sponsors/{sponsor}/go', [SponsorController::class, 'click'])->name('sponsors.click');
 Route::post('/stripe/webhook', StripeWebhookController::class)->name('stripe.webhook');
 
+// Predictions: open to visitors too (a guest pick is saved and moves onto the account at signup).
+Route::post('/matches/{match}/prediction', [App\Http\Controllers\MatchPredictionController::class, 'store'])->middleware('throttle:20,1')->name('matches.prediction.store');
+Route::get('/prediction-leagues/invite/{code}', [ExperienceController::class, 'invite'])->where('code', '[A-Za-z0-9]{4,10}')->name('groups.invite');
+
 // Chat routes (viewing is public)
 Route::get('/matches/{match}/chats', [ChatController::class, 'getMessages'])->name('matches.chats');
 
@@ -148,7 +162,6 @@ Route::get('/api/popular-content', [SocialSharingController::class, 'getPopularC
 // ============================================================================
 
 Route::middleware('auth')->group(function () {
-    Route::post('/matches/{match}/prediction', [App\Http\Controllers\MatchPredictionController::class, 'store'])->name('matches.prediction.store');
     Route::get('/checkout/success', [CommerceController::class, 'success'])->name('commerce.success');
     Route::post('/checkout/{product:slug}', [CommerceController::class, 'checkout'])->name('commerce.checkout');
     Route::get('/library', [CommerceController::class, 'library'])->name('library.index');

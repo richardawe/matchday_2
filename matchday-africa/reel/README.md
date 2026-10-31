@@ -1,7 +1,9 @@
 # The Griot's 20-second reel
 
 A Remotion project that turns a finished Premier League match into a 20-second vertical video:
-title, one beat per goal or red card (with a talking-drum hit), the numbers, and the full-time verdict.
+the final score and the key moment (both fully drawn on the first frame, because viewers decide in
+about two seconds), one beat per goal or red card (with a talking-drum hit), the numbers, and the
+full-time verdict. The poster is a still from the opening.
 The soundtrack is synthesised in `audio.mjs`, so there is no music to license. Art is the crest-free
 army cut-outs from `resources/armies` (built by `scripts/build-armies.mjs`).
 

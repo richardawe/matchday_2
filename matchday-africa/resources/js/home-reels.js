@@ -23,13 +23,13 @@ export function start(hero) {
     });
 
     hero.querySelectorAll('[data-reel-video]').forEach((thumb) => thumb.addEventListener('click', () => {
-        const { reelVideo, reelPoster, reelTitle, reelLink } = thumb.dataset;
+        const { reelVideo, reelPoster, reelTitle, reelLink, reelShare } = thumb.dataset;
         video.poster = reelPoster || '';
         video.src = reelVideo;
         video.setAttribute('aria-label', `${reelTitle}: the 20-second reel`);
         if (title) title.textContent = reelTitle;
         if (link) link.href = reelLink;
-        if (share) share.href = `https://wa.me/?text=${encodeURIComponent(`Watch ${reelTitle} in 20 seconds ${reelLink}`)}`;
+        if (share) share.href = `https://wa.me/?text=${encodeURIComponent(`Watch ${reelTitle} in 20 seconds ${reelShare || reelLink}`)}`;
         play();
         video.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'nearest' });
     }));
