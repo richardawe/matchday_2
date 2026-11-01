@@ -194,22 +194,16 @@ export function openingCall(track, kind, rate = RATE) {
         goal: () => { talkingDrum(track, 0, { high: 230, low: 120, gain: 0.8, rate }); talkingDrum(track, 0.2, { high: 260, low: 140, gain: 0.6, rate }); talkingDrum(track, 0.42, { high: 200, low: 110, gain: 0.7, rate }); return 0.9; },
         red_card: () => { thud(track, 0, rate); return 0.6; },
         var: () => { thud(track, 0, rate); return 0.6; },
-        kickoff: () => { whistle(track, 0, [[0, 0.7]], rate); talkingDrum(track, 0.8, { high: 180, low: 110, gain: 0.6, rate }); return 1.2; },
-        half_time: () => { whistle(track, 0, [[0, 0.35], [0.5, 0.7]], rate); return 1.3; },
-        full_time: () => { whistle(track, 0, [[0, 0.35], [0.5, 0.35], [1.0, 0.9]], rate); return 2.0; },
+        kickoff: () => { talkingDrum(track, 0, { high: 180, low: 110, gain: 0.6, rate }); talkingDrum(track, 0.3, { high: 240, low: 140, gain: 0.5, rate }); return 0.8; },
+        half_time: () => { talkingDrum(track, 0, { high: 200, low: 120, gain: 0.5, rate }); thud(track, 0.35, rate); return 1.0; },
+        full_time: () => { drumRoll(track, 0, 1.0, rate); thud(track, 1.05, rate); return 1.6; },
         pressure: () => { drumRoll(track, 0, 0.9, rate); return 1.0; },
     };
     return (calls[kind] ?? (() => { talkingDrum(track, 0, { high: 190, low: 120, gain: 0.45, rate }); return 0.55; }))();
 }
 
-/** Effects that play under the words, timed from the clip's start (lead = when the voice begins). */
-export function underneath(track, kind, lead, voiceSeconds, rate = RATE) {
-    if (kind === 'goal') crowd(track, 0.2, lead + Math.min(voiceSeconds, 4) + 1, 'roar', rate);
-    else if (kind === 'big_chance' || kind === 'woodwork') crowd(track, lead + 0.2, 2.2, 'ooh', rate);
-    else if (kind === 'full_time') crowd(track, 1.0, lead + voiceSeconds + 1.5, 'roar', rate);
-    else if (kind === 'red_card' || kind === 'var') crowd(track, lead, voiceSeconds + 0.5, 'murmur', rate);
-    else if (kind === 'pressure') crowd(track, 0, lead + voiceSeconds, 'murmur', rate);
-}
+/** Effects under the words. The owner asked for beats only (no crowd), so nothing plays under the voice but the groove. */
+export function underneath() {}
 
 // ---------------------------------------------------------------- mixing
 
@@ -273,13 +267,13 @@ export function griotVoiceFx(voice, rate = RATE) {
     return room;
 }
 
-/** Duck the bed while the voice is speaking: down to ~15% with a soft release. */
+/** Duck the bed while the voice is speaking: down to a quarter (about 20 dB under the voice), so it never drowns him. */
 export function duck(bed, voice, rate = RATE) {
     const env = envelope(voice, 0.015, 0.4, rate);
     const out = new Float32Array(bed.length);
     for (let i = 0; i < bed.length; i++) {
         const speaking = Math.min(1, (env[i] ?? 0) / 0.03);
-        out[i] = bed[i] * (1 - 0.85 * speaking);
+        out[i] = bed[i] * (1 - 0.75 * speaking);
     }
     return out;
 }
@@ -329,7 +323,7 @@ export async function clip(out, kind, voice, { bitrate = '40k' } = {}) {
     const fx = new Float32Array(length);
     openingCall(fx, kind);
     underneath(fx, kind, lead, voice.length / RATE);
-    await mixToMp3(out, voiceTrack, groove(seconds, { gain: 0.55 }), fx, bitrate);
+    await mixToMp3(out, voiceTrack, groove(seconds, { gain: 0.35 }), fx, bitrate);
     return seconds;
 }
 
@@ -343,11 +337,11 @@ export async function bulletin(out, voice, cueStarts, { bitrate = '32k', intro =
     const voiceTrack = new Float32Array(length);
     voiceTrack.set(voice);
     const fx = new Float32Array(length);
-    whistle(fx, 0.05, [[0, 0.45]]);
-    talkingDrum(fx, 0.55, { high: 230, low: 130, gain: 0.7 });
+    talkingDrum(fx, 0.05, { high: 180, low: 110, gain: 0.6 });
+    talkingDrum(fx, 0.45, { high: 240, low: 140, gain: 0.6 });
     for (const at of cueStarts.slice(1)) talkingDrum(fx, Math.max(intro, at - 0.25), { high: 220, low: 130, gain: 0.45 });
     drumRoll(fx, voice.length / RATE + 0.2, 1.2);
     thud(fx, voice.length / RATE + 1.45);
-    await mixToMp3(out, voiceTrack, groove(seconds, { gain: 0.45 }), fx, bitrate);
+    await mixToMp3(out, voiceTrack, groove(seconds, { gain: 0.3 }), fx, bitrate);
     return seconds;
 }

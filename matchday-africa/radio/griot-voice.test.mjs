@@ -31,11 +31,12 @@ test('the groove fills the time, fades at both ends and stays finite', () => {
 test('each kind of moment opens differently and the voice waits for it', () => {
     const lengths = Object.fromEntries(['goal', 'full_time', 'big_chance', 'red_card', 'kickoff'].map((k) => [k, openingCall(new Float32Array(RATE * 3), k)]));
     assert.ok(lengths.full_time > lengths.goal && lengths.goal > lengths.big_chance);
-    const roar = new Float32Array(RATE * 6), none = new Float32Array(RATE * 6);
-    underneath(roar, 'goal', 1, 3);
-    underneath(none, 'injury', 1, 3);
-    assert.ok(peak(roar) > 0.05);
-    assert.equal(peak(none), 0);
+    // Beats only: no crowd under the voice for any kind of moment.
+    for (const kind of ['goal', 'big_chance', 'woodwork', 'full_time', 'red_card', 'pressure']) {
+        const under = new Float32Array(RATE * 6);
+        underneath(under, kind, 1, 3);
+        assert.equal(peak(under), 0, kind);
+    }
 });
 
 test('the groove ducks under the voice', () => {
