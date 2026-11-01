@@ -30,8 +30,12 @@ class GriotVoice extends Command
         if (!$timeline->ready() || !config('griot.voice.enabled')) {
             return self::SUCCESS;
         }
+        // After a failure, wait before trying again rather than re-running Kokoro every minute.
+        if (\Illuminate\Support\Facades\Cache::has('griot-voice:failed')) {
+            return self::SUCCESS;
+        }
         $posts = GriotPost::with(['match.homeTeam', 'match.awayTeam'])
-            ->whereNull('audio_path')->where('updated_at', '>=', now()->subHours(3))
+            ->whereNull('audio_path')->where('updated_at', '>=', now()->subHours(24))
             // With the writer on, give it two minutes to word the post before the Griot speaks it.
             ->when(config('griot.writer.enabled'), fn ($q) => $q->where(fn ($q) => $q->whereNotNull('written')->orWhere('updated_at', '<=', now()->subMinutes(2))))
             ->orderBy('seq')->limit((int) config('griot.voice.per_run', 6))->get();
@@ -50,6 +54,9 @@ class GriotVoice extends Command
         File::put($file, json_encode($jobs));
         try {
             $done = $this->run_(['--jobs', $file]);
+            if ($done === null) {
+                \Illuminate\Support\Facades\Cache::put('griot-voice:failed', true, now()->addMinutes(15));
+            }
         } finally {
             File::delete($file);
         }

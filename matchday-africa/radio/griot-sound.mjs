@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const RATE = 24000;
 export const BPM = 96;
+const PITCH = 0.94;
 
 export function parseBlend(text) {
     const parts = String(text || '').split(',').map((part) => part.trim()).filter(Boolean).map((part) => {
@@ -55,7 +56,11 @@ export async function griotSpeaker() {
         return new RawAudio(waveform.data, RATE);
     };
     const speed = Number(process.env.GRIOT_VOICE_SPEED || 0.92);
-    return (text) => tts.generate(text.replace(/(\d)\s*[–-]\s*(\d)/g, '$1 $2'), { voice: 'griot', speed });
+    // Spoken 6% faster, then lowered a semitone (which slows it back down): the Griot's pitch at the set pace.
+    return async (text) => {
+        const audio = await tts.generate(text.replace(/(\d)\s*[–-]\s*(\d)/g, '$1 $2'), { voice: 'griot', speed: speed / PITCH });
+        return { audio: lowerPitch(audio.audio, PITCH), sampling_rate: RATE };
+    };
 }
 
 // ---------------------------------------------------------------- instruments
@@ -213,39 +218,104 @@ function ffmpeg(args) {
     if (result.error || result.status !== 0) throw new Error('FFmpeg failed: ' + (result.error?.message || result.stderr?.slice(-800)));
 }
 
+// All voice processing, ducking and mixing happens here in JavaScript. The server's FFmpeg is the small build
+// that ships with the reel renderer (no equalizer, echo, compressor or sidechain filters), so FFmpeg is only
+// asked for what that build has: loudness normalisation and the MP3 encoder.
+export const FFMPEG_FILTERS = ['loudnorm'];
+
+/** RBJ biquad: 'highpass' or 'peak' (gain in dB). Returns a new array. */
+export function biquad(input, type, freq, { q = 0.707, gain = 0, rate = RATE } = {}) {
+    const w = (2 * Math.PI * freq) / rate, cos = Math.cos(w), alpha = Math.sin(w) / (2 * q), A = 10 ** (gain / 40);
+    let b0, b1, b2, a0, a1, a2;
+    if (type === 'highpass') {
+        b0 = (1 + cos) / 2; b1 = -(1 + cos); b2 = (1 + cos) / 2; a0 = 1 + alpha; a1 = -2 * cos; a2 = 1 - alpha;
+    } else {
+        b0 = 1 + alpha * A; b1 = -2 * cos; b2 = 1 - alpha * A; a0 = 1 + alpha / A; a1 = -2 * cos; a2 = 1 - alpha / A;
+    }
+    const out = new Float32Array(input.length);
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < input.length; i++) {
+        const x = input[i];
+        const y = (b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2) / a0;
+        x2 = x1; x1 = x; y2 = y1; y1 = y;
+        out[i] = y;
+    }
+    return out;
+}
+
+/** Envelope follower (peak, attack/release in seconds). */
+export function envelope(input, attack, release, rate = RATE) {
+    const out = new Float32Array(input.length);
+    const up = Math.exp(-1 / (attack * rate)), down = Math.exp(-1 / (release * rate));
+    let level = 0;
+    for (let i = 0; i < input.length; i++) {
+        const x = Math.abs(input[i]);
+        level = x > level ? up * level + (1 - up) * x : down * level + (1 - down) * x;
+        out[i] = level;
+    }
+    return out;
+}
+
+/** The Griot's colour: warmth at 140 Hz, presence at 3.2 kHz, rumble cut, a small room, gentle compression. */
+export function griotVoiceFx(voice, rate = RATE) {
+    let v = biquad(voice, 'highpass', 70, { rate });
+    v = biquad(v, 'peak', 140, { q: 1, gain: 3, rate });
+    v = biquad(v, 'peak', 3200, { q: 1.2, gain: 2, rate });
+    // Small room: two early reflections (as FFmpeg's aecho 0.85:0.55:38|74:0.16|0.09).
+    const d1 = Math.round(0.038 * rate), d2 = Math.round(0.074 * rate);
+    const room = new Float32Array(v.length);
+    for (let i = 0; i < v.length; i++) room[i] = 0.85 * v[i] + 0.16 * (v[i - d1] ?? 0) + 0.09 * (v[i - d2] ?? 0);
+    // Compressor: above the threshold, level rises at a third of the rate.
+    const env = envelope(room, 0.005, 0.12, rate), threshold = 0.1, ratio = 3;
+    for (let i = 0; i < room.length; i++) {
+        if (env[i] > threshold) room[i] *= (threshold * (env[i] / threshold) ** (1 / ratio)) / env[i];
+    }
+    return room;
+}
+
+/** Duck the bed while the voice is speaking: down to ~15% with a soft release. */
+export function duck(bed, voice, rate = RATE) {
+    const env = envelope(voice, 0.015, 0.4, rate);
+    const out = new Float32Array(bed.length);
+    for (let i = 0; i < bed.length; i++) {
+        const speaking = Math.min(1, (env[i] ?? 0) / 0.03);
+        out[i] = bed[i] * (1 - 0.85 * speaking);
+    }
+    return out;
+}
+
 /**
- * The voice lowered ~1 semitone with its pace kept, warmed and given a small room; the groove ducks
- * under it (sidechain) and the effects ride on top; then loudness-normalised to a small MP3.
- * Durations are kept, so timings measured from the raw voice still hold.
+ * Lower a voice by `factor` in pitch (0.94 is about a semitone), making it 1/factor longer. Ask Kokoro for
+ * speech `factor` times faster first and the pace comes back to normal (as asetrate + atempo would).
  */
-export function griotGraph() {
-    return [
-        `[0:a]asetrate=${RATE}*0.94,aresample=${RATE},atempo=1/0.94,`
-            + 'equalizer=f=140:t=q:w=1:g=3,equalizer=f=3200:t=q:w=1.2:g=2,highpass=f=70,'
-            + 'aecho=0.85:0.55:38|74:0.16|0.09,acompressor=threshold=0.1:ratio=3:attack=5:release=120,asplit=2[v][key]',
-        '[1:a][key]sidechaincompress=threshold=0.015:ratio=12:attack=15:release=400:makeup=1[bed]',
-        '[2:a]volume=0.9[fx]',
-        '[v][bed][fx]amix=inputs=3:duration=longest:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=9[out]',
-    ].join(';');
+export function lowerPitch(samples, factor = 0.94) {
+    const out = new Float32Array(Math.floor(samples.length / factor));
+    for (let i = 0; i < out.length; i++) {
+        const pos = i * factor, j = Math.floor(pos), t = pos - j;
+        out[i] = (samples[j] ?? 0) * (1 - t) + (samples[j + 1] ?? 0) * t;
+    }
+    return out;
 }
 
 async function f32(file, samples) {
     await writeFile(file, Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength));
 }
 
-/** Mix three equal-rate mono tracks (voice, groove bed, effects) into an MP3 and check it decodes. */
+/** Mix voice (already pitched), groove bed and effects into an MP3 and check it decodes. */
 export async function mixToMp3(out, voice, bed, fx, bitrate = '40k') {
-    const files = [out + '.voice.f32', out + '.bed.f32', out + '.fx.f32'];
+    const v = griotVoiceFx(voice);
+    const b = duck(bed, v);
+    const length = Math.max(v.length, b.length, fx.length);
+    const mix = new Float32Array(length);
+    for (let i = 0; i < length; i++) mix[i] = (v[i] ?? 0) + (b[i] ?? 0) + 0.9 * (fx[i] ?? 0);
+    const file = out + '.mix.f32';
     try {
-        await f32(files[0], voice);
-        await f32(files[1], bed);
-        await f32(files[2], fx);
-        ffmpeg(['-hide_banner', '-loglevel', 'error', '-nostdin', '-y',
-            ...files.flatMap((file) => ['-f', 'f32le', '-ar', String(RATE), '-ac', '1', '-i', file]),
-            '-filter_complex', griotGraph(), '-map', '[out]', '-ar', '24000', '-ac', '1', '-c:a', 'libmp3lame', '-b:a', bitrate, out]);
+        await f32(file, mix);
+        ffmpeg(['-hide_banner', '-loglevel', 'error', '-nostdin', '-y', '-f', 'f32le', '-ar', String(RATE), '-ac', '1', '-i', file,
+            '-af', 'loudnorm=I=-16:TP=-1.5:LRA=9', '-ar', '24000', '-ac', '1', '-c:a', 'libmp3lame', '-b:a', bitrate, out]);
         ffmpeg(['-hide_banner', '-loglevel', 'error', '-nostdin', '-i', out, '-f', 'null', '-']);
     } finally {
-        for (const file of files) await unlink(file).catch(() => {});
+        await unlink(file).catch(() => {});
     }
 }
 
