@@ -233,4 +233,15 @@ class GriotTimelineTest extends TestCase
         $this->assertNull($writer->accept($input, '{"headline":"Isak doubles it","line":"Mohamed Salah makes it 3–0."}'));
         $this->assertNull($writer->accept($input, 'not json'));
     }
+
+    public function test_a_failed_recording_backs_off_instead_of_retrying_every_minute(): void
+    {
+        app(GriotTimeline::class)->savePlays($this->match, $this->plays('summary-liverpool-brighton'));
+        app(GriotTimeline::class)->build($this->match);
+        config(['griot.voice.enabled' => true, 'griot.voice.node' => '/bin/false']);
+
+        $this->artisan('griot:voice')->assertSuccessful();
+        $this->assertTrue(\Illuminate\Support\Facades\Cache::has('griot-voice:failed'));
+        $this->assertSame(0, GriotPost::whereNotNull('audio_path')->count());
+    }
 }

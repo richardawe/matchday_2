@@ -20,7 +20,8 @@ or the spoken introduction. Every episode has a stable URL and RSS GUID.
    generates `storage/app/radio/audition.mp3`. Audition it, including pronunciation.
    The voice defaults to **griot** (owner's choice, 31 Oct 2026): two stock Kokoro voices blended
    (`GRIOT_VOICE_BLEND`), lowered and warmed, over a synthesised talking-drum groove that ducks while he
-   speaks, with a whistle and drum call to open, a drum accent on each story and a drum roll to close
+   speaks, with a drum call to open, a drum accent on each story and a drum roll to close (beats only: the owner
+   asked on 1 Nov 2026 for no crowd effects and for the beat never to drown the voice)
    (`radio/griot-sound.mjs`; no recorded music, so nothing to license). It is not presented as an African
    accent. `RADIO_VOICE=bm_george` (or Actions → Server operations → `configure-radio-voice`) goes back to
    the plain voice. Voice replacement is isolated in `RadioAudio`.

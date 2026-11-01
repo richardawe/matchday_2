@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseBlend, blendVoices, groove, openingCall, underneath, griotGraph, clip, bulletin, RATE } from './griot-sound.mjs';
+import { parseBlend, blendVoices, groove, openingCall, underneath, clip, bulletin, lowerPitch, duck, griotVoiceFx, RATE } from './griot-sound.mjs';
+import { readFileSync } from 'node:fs';
 
 const peak = (track) => track.reduce((m, v) => Math.max(m, Math.abs(v)), 0);
 
@@ -30,16 +31,41 @@ test('the groove fills the time, fades at both ends and stays finite', () => {
 test('each kind of moment opens differently and the voice waits for it', () => {
     const lengths = Object.fromEntries(['goal', 'full_time', 'big_chance', 'red_card', 'kickoff'].map((k) => [k, openingCall(new Float32Array(RATE * 3), k)]));
     assert.ok(lengths.full_time > lengths.goal && lengths.goal > lengths.big_chance);
-    const roar = new Float32Array(RATE * 6), none = new Float32Array(RATE * 6);
-    underneath(roar, 'goal', 1, 3);
-    underneath(none, 'injury', 1, 3);
-    assert.ok(peak(roar) > 0.05);
-    assert.equal(peak(none), 0);
+    // Beats only: no crowd under the voice for any kind of moment.
+    for (const kind of ['goal', 'big_chance', 'woodwork', 'full_time', 'red_card', 'pressure']) {
+        const under = new Float32Array(RATE * 6);
+        underneath(under, kind, 1, 3);
+        assert.equal(peak(under), 0, kind);
+    }
 });
 
 test('the groove ducks under the voice', () => {
-    assert.match(griotGraph(), /sidechaincompress/);
-    assert.match(griotGraph(), /asetrate=24000\*0\.94/);
+    const bed = new Float32Array(RATE).fill(0.5);
+    const voice = new Float32Array(RATE);
+    voice.fill(0.3, RATE / 2);
+    const ducked = duck(bed, voice);
+    assert.ok(ducked[RATE / 4] > 0.45);
+    assert.ok(ducked[RATE - 1] < 0.15);
+});
+
+test('the voice is lowered a semitone and coloured without blowing up', () => {
+    const tone = Float32Array.from({ length: RATE }, (_, i) => Math.sin(2 * Math.PI * 200 * i / RATE) * 0.3);
+    const low = lowerPitch(tone, 0.94);
+    assert.equal(low.length, Math.floor(RATE / 0.94));
+    // Zero crossings drop by 6%: 200 Hz becomes 188 Hz.
+    const crossings = (a) => a.reduce((n, v, i) => n + (i && Math.sign(v) !== Math.sign(a[i - 1]) ? 1 : 0), 0) / (a.length / RATE);
+    assert.ok(Math.abs(crossings(low) / 2 - 188) < 3);
+    const fx = griotVoiceFx(tone);
+    assert.ok(fx.every(Number.isFinite) && Math.max(...fx.map(Math.abs)) < 1);
+});
+
+test('only FFmpeg features the server build has are used', () => {
+    // The server runs the reel renderer's small FFmpeg: no equalizer, aecho, acompressor or sidechain filters.
+    const source = readFileSync(new URL('./griot-sound.mjs', import.meta.url), 'utf8');
+    for (const filter of ['sidechaincompress', 'aecho', 'equalizer', 'acompressor', 'asplit', 'highpass=', 'asetrate']) {
+        assert.ok(!source.includes(`'${filter}`) && !source.includes(`,${filter}`) && !source.includes(`[0:a]${filter}`), filter);
+    }
+    assert.match(source, /'-af', 'loudnorm=/);
 });
 
 test('a clip and a bulletin encode to decodable MP3s with the music around the voice', async () => {
