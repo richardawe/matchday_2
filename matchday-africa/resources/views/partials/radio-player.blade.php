@@ -1,4 +1,4 @@
-<section class="md-radio" aria-labelledby="radio-title-{{ $bulletin->id }}" data-radio-player data-share-url="{{ route('radio.show', $bulletin) }}" data-share-title="Matchday Africa · {{ $bulletin->title }}">
+<section class="md-radio" aria-labelledby="radio-title-{{ $bulletin->id }}" data-radio-player data-radio-unlock="{{ asset('radio/silence.wav') }}" data-share-url="{{ route('radio.show', $bulletin) }}" data-share-title="Matchday Africa · {{ $bulletin->title }}">
  <p class="md-eyebrow">MATCHDAY RADIO</p>
  <div class="md-radio-heading"><h2 id="radio-title-{{ $bulletin->id }}">{{ $bulletin->title }}</h2><span>{{ $bulletin->duration_label }}</span></div>
  <p class="md-radio-time">{{ $bulletin->recorded_at->copy()->timezone('Africa/Lagos')->format('j M · H:i') }} WAT</p>
