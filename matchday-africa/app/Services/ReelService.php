@@ -297,14 +297,15 @@ class ReelService
      * (older matches predate them) and resets its attempts. Returns false when the match can't
      * have a reel (not a finished Premier League match between two clubs with art).
      */
-    public function queue(FootballMatch $match): bool
+    /** @param bool $repost post the redrawn reel to social again once it is ready (see GrowthPostGenerator::redraws) */
+    public function queue(FootballMatch $match, bool $repost = false): bool
     {
         if (!in_array($match->status, ['FINISHED', 'FT'], true) || !$this->stories->tellsStory($match)) {
             return false;
         }
         $this->stories->sync($match);
         MatchMoment::where('match_id', $match->id)->where('type', 'full_time')->update(['created_at' => now()->subMinutes(config('reel.delay_minutes') + 1)]);
-        $this->mark($match, ['status' => 'queued', 'attempts' => 0, 'queued_at' => now()->toIso8601String()]);
+        $this->mark($match, ['status' => 'queued', 'attempts' => 0, 'queued_at' => now()->toIso8601String()] + ($repost ? ['repost' => true] : []));
 
         return true;
     }

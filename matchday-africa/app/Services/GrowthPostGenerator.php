@@ -64,6 +64,56 @@ class GrowthPostGenerator
                 $created += $this->plan("reel:{$match->id}", 'reel', XText::compose($body, $link, $this->tags($match)), null, $link, $readyAt->isFuture() ? now() : $readyAt, $this->nextRound($match), $video);
             });
 
+        return $created + $this->redraws();
+    }
+
+    public const REDRAW_SLOTS = ['09:00', '12:00', '15:00', '18:00'];
+
+    /**
+     * Reels redrawn in the new look and marked for reposting (reel:queue, latest round only) go out
+     * once more with a note about the new look, newest match first, one per Lagos slot
+     * (REDRAW_SLOTS: four a day). They are sent by the reels-now rule when their slot comes.
+     */
+    private function redraws(): int
+    {
+        $tz = config('buffer.x.timezone');
+        $ready = FootballMatch::with(['homeTeam', 'awayTeam'])->where('match_date', '>=', now('UTC')->subDays(21))->whereNotNull('metadata')->get()
+            ->filter(fn ($m) => data_get($m->metadata, 'reel.repost') && data_get($m->metadata, 'reel.status') === 'ready'
+                && data_get($m->metadata, 'reel.style') === ReelService::style())
+            ->reject(fn ($m) => GrowthPost::where('content_key', "reel:{$m->id}:redraw")->exists())
+            ->sortByDesc('match_date');
+        if ($ready->isEmpty()) {
+            return 0;
+        }
+        $taken = GrowthPost::where('content_key', 'like', 'reel:%:redraw')->pluck('scheduled_at')
+            ->map(fn ($at) => Carbon::parse($at)->setTimezone($tz)->format('Y-m-d H:i'))->all();
+        $slots = function () use ($tz, &$taken) {
+            for ($day = now($tz)->startOfDay(); ; $day->addDay()) {
+                foreach (self::REDRAW_SLOTS as $time) {
+                    $at = Carbon::parse($day->format('Y-m-d').' '.$time, $tz);
+                    if ($at->isFuture() && !in_array($at->format('Y-m-d H:i'), $taken, true)) {
+                        $taken[] = $at->format('Y-m-d H:i');
+
+                        return $at;
+                    }
+                }
+            }
+        };
+        $created = 0;
+        foreach ($ready as $match) {
+            if (!$video = app(ReelService::class)->url($match)) {
+                continue;
+            }
+            $final = $this->stories->chapters($match)->firstWhere('type', 'full_time');
+            $verdict = $final ? implode(' ', $this->griot->tell($final)) : '';
+            $body = "🎨 New look! ".$this->name($match->homeTeam)." {$match->home_score}–{$match->away_score} ".$this->name($match->awayTeam)
+                ." retold by the Griot in our new comic style: victory, heartbreak and every big moment.\n\n{$verdict}"
+                ."\n\nEvery Premier League match now gets a reel like this at the final whistle. Full story on Matchday Africa 👇";
+            $link = route('matches.show', $match);
+            $at = $slots();
+            $created += $this->plan("reel:{$match->id}:redraw", 'reel', XText::compose($body, $link, $this->tags($match)), null, $link, $at, $at->copy()->addHours(5), $video);
+        }
+
         return $created;
     }
 

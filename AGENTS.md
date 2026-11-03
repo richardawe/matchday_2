@@ -163,6 +163,11 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `GRIOT_PICKER_MODEL` | storage/app/griot/picker.json | Learned moment picker; missing file = strict rules |
 
 ## 7. Open items and known issues
+### Redrawn reels (3 Nov 2026)
+- `reel:queue` (Server operations → `reel-queue`) redraws reels made in an earlier look (`metadata.reel.style`).
+  Owner's choice: only the latest round's redrawn reels go out on social again ("New look!" posts, content key
+  `reel:{id}:redraw`), four a day at 09:00/12:00/15:00/18:00 Lagos, newest first (`GrowthPostGenerator::redraws`).
+
 ### Cartoon look (3 Nov 2026)
 - Owner approved the mockups and asked for the whole site, admin and /war in the cartoon style. Built behind `SITE_STYLE`
   (default classic); preview with `?style=cartoon`. Plan and state in `matchday-africa/docs/CARTOON.md`.
