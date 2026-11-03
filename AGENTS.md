@@ -1,8 +1,8 @@
 # Matchday Africa: agent guide
 
 Read this first. It is the project memory for coding agents (Codex reads `AGENTS.md`; Claude Code
-reads `CLAUDE.md`, which points here). Last updated 19 Oct 2026, after the live-data, story-card,
-reel, Buffer and arena work (commits up to `22bcc73` on `main`).
+reads `CLAUDE.md`, which points here). Last updated 3 Nov 2026, after the cartoon look, brand pass, radio
+fix, fixture cards, redrawn-reel reposts and the swipeable home reels (PRs #40–#46; see section 7 "State on 3 Nov").
 
 ## 1. What is where
 
@@ -58,8 +58,8 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Bright v2 reel (comic panels, army moods, 20-45 s, Griot timeline moments) | `reel/src/ReelV2.jsx`, moods in `reel/src/timeline.js`, `ReelService::timelineBeats()`, solid cut-outs `public/war/army/*-solid.webp` and poses `public/war/army/poses/` from `scripts/build-armies.mjs`, approved poses in `config/armies.php` `poses`; `node reel/preview.mjs` renders one still per scene | as above | `REEL_STYLE=v2` |
 | Match alerts + inbox ("Alert me" on any match, accounts only; kick-off reminder, kick-off, goals, red cards, HT, FT, reel) and messages to users | `app/Services/Alerts/*` (`WebPush` = RFC 8291/8292 with OpenSSL only, `MatchAlerts`, `Alerts`), `AlertController`, `Admin/AnnouncementController` (`/admin/messages`), `public/sw.js`, `public/manifest.webmanifest`, `resources/js/alerts.js`, tables `notifications`, `push_subscriptions`, `match_alerts`, `match_alert_log`, `announcements` | `alerts:scan` 1m | `PUSH_ENABLED` + VAPID keys (`push:keys --write`); inbox needs the migration |
 | Buffer → X, Instagram (live goal and red-card cards; reels go through growth_posts) | `app/Services/BufferPublisher.php`, `BufferClient.php` (ported from ngr.ltd), `buffer:publish`, `config/buffer.php`, table `social_posts` | `buffer:publish` 1m | `BUFFER_API_KEY` + `BUFFER_CHANNEL_*` |
-| Planned social posts (reels, news, fixture previews with a GD fixture card, morning fixtures, night results; X all, Instagram image/video, TikTok reels) | `GrowthPostGenerator.php` (`twitter:engage`), `FixtureCardRenderer.php` (route `matches.card`), table `growth_posts` (per channel), admin `/admin/twitter` | `twitter:engage` 10m plans; `buffer:publish` 1m sends when a channel's slot is free | `BUFFER_AUTO` + `BUFFER_CHANNEL_*` |
-| Reels-first homepage | `resources/views/home-v2.blade.php`, `HomeShowcase.php` (reels, matchweek board), `resources/js/home-reels.js`, shared blocks in `resources/views/partials/home/`; arena at `/war/arena` (`ArenaService.php`) | n/a | `HOME_V2` (preview `/?home=v2`) |
+| Planned social posts (reels, news, fixture previews with a GD fixture card, morning fixtures, night results, "New look!" reposts of redrawn reels; X all, Instagram image/video, TikTok reels) | `GrowthPostGenerator.php` (`twitter:engage`), `FixtureCardRenderer.php` (route `matches.card`; `drawCartoon` in the cartoon look; always link it with `FixtureCardRenderer::url()`, which is versioned by look and result), table `growth_posts` (per channel), admin `/admin/twitter` | `twitter:engage` 10m plans; `buffer:publish` 1m sends when a channel's slot is free | `BUFFER_AUTO` + `BUFFER_CHANNEL_*` |
+| Reels-first homepage | `resources/views/home-v2.blade.php`, `HomeShowcase.php` (reels, matchweek board), `resources/js/home-reels.js` (swipeable scroll-snap strip: the reel on screen autoplays muted, Tap to play when blocked; fixture cards 16:9 when there are no reels), shared blocks in `resources/views/partials/home/`; arena at `/war/arena` (`ArenaService.php`) | n/a | `HOME_V2` (preview `/?home=v2`) |
 | Signup attribution + `/admin/users` | `app/Support/Attribution.php` (first-touch `md_attr` cookie), `CaptureAttribution` middleware, `User::creating` hook in `AppServiceProvider`, `Admin/UserController.php` | n/a | needs `users.utm_*` migration |
 | Guest predictions + league invites | `GuestPredictions.php` (`md_guest` cookie, claimed on `Login`), `MatchPredictionRecorder.php`, `LeagueTable.php` (weekly Mon–Sun Lagos), `/prediction-leagues/invite/{code}`, `GET /auth/google` | n/a | needs `guest_predictions` migration |
 | Follow/share/WhatsApp | `config/social.php`, components `social-follow`, `share-bar` (`App\Support\ShareLink`, UTM `utm_medium=share`), `whatsapp-channel`; reel pages `/reels`, `/reels/{match}` (`ReelPageController`) | n/a | `WHATSAPP_CHANNEL_URL` (CTA hidden while empty) |
@@ -163,6 +163,27 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `GRIOT_PICKER_MODEL` | storage/app/griot/picker.json | Learned moment picker; missing file = strict rules |
 
 ## 7. Open items and known issues
+### State on 3 Nov 2026 (end of session)
+- Live in production: `SITE_STYLE=cartoon`, `REEL_STYLE=v2`, `BUFFER_REELS_NOW=true`, `REEL_DELAY_MINUTES=1`, `PUSH_ENABLED=true`
+  (VAPID keys set), `GRIOT_TIMELINE=true`, `REEL_RENDERER=server` with no `REEL_GITHUB_TOKEN` (owner is happy with
+  server-only queueing). `.env` backup from that change: `.env.backup-20261103-111103`.
+- Brand: one logo everywhere (`.matchday-wordmark` sun sticker + ink `.matchday-monogram` tile with a sun Anton "MD",
+  same as `public/favicon.svg` and `public/icons/*`). Share image `public/images/social-default.png` = the Roman legion
+  card (owner's pick), versioned `?v=20261103` in `SocialMetaService`/`Blog`. Branded error pages in `resources/views/errors/`
+  (the 503 is the deploy maintenance page and skips Vite if the manifest is missing).
+- Clubs outside the army gallery show their `logo_url` badge in mood slots on web pages only (`ArmyMoods`, `is-logo`);
+  automated outputs stay crest-free (fixture cards use monogram tiles).
+- Radio: the 12:00 Lagos edition on 3 Nov failed the number check ("two from nine" vs "2 from 9"); `RadioScript::numbersIn()`
+  now accepts number words and 12-hour kick-off times. A missed edition is not re-run automatically.
+- Reel backfill run on 3 Nov (20 Oct–3 Nov): 20 reels queued for redrawing; 10 from the latest round are reposted
+  4 a day from 4 Nov 09:00 Lagos.
+- PR #46 (swipeable home reels) was green and held until after the 17:00 UTC radio edition so the deploy's
+  maintenance window would not skip it; check it was merged and deployed. Don't deploy across 05:00/11:00/17:00 UTC.
+- Still dark (not yet in the cartoon look): live goal and red-card story cards (`StoryCardRenderer`). The match chronicle
+  endpoint (`/matches/{id}/chronicle`) is JSON, not a page.
+- Local review tooling used on 3 Nov: a demo SQLite database plus Playwright scripts that screenshot every page at
+  phone width and flag elements still in the classic serif/beige/Tailwind colours. Re-create them if needed; they are not in the repo.
+
 ### Redrawn reels (3 Nov 2026)
 - `reel:queue` (Server operations → `reel-queue`) redraws reels made in an earlier look (`metadata.reel.style`).
   Owner's choice: only the latest round's redrawn reels go out on social again ("New look!" posts, content key
