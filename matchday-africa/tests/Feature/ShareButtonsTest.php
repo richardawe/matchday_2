@@ -39,7 +39,7 @@ class ShareButtonsTest extends TestCase
             ->assertSee('utm_campaign=match', false)
             ->assertSee('data-share-campaign="match"', false)
             ->assertSee("const network=navigator.share?'native':'copy'", false)
-            ->assertSee('<meta property="og:image" content="'.e(route('matches.card', $match)), false);
+            ->assertSee('<meta property="og:image" content="'.e(\App\Services\FixtureCardRenderer::url($match)), false);
     }
 
     public function test_moment_share_links_are_tagged_as_moment_shares(): void
