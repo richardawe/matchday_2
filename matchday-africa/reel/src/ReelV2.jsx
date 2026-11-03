@@ -311,7 +311,7 @@ const Beat = ({ beat, home, away }) => {
                         <Sky colour={hue(foe)} mood={foeMood} x="40%" />
                     </div>
                     <Statue side={foe} mood={foeMood} height={0.36} left="20%" bottom={0.21} flip enter="left" delay={6} />
-                    <Statue side={hero} mood={heroMood} height={0.54} left="62%" bottom={0.2} enter="right" />
+                    <Statue side={hero} mood={heroMood} height={0.5} left="64%" bottom={0.19} enter="right" />
                     {heroMood === 'victory' && <Confetti colours={hero.colours} />}
                 </>
             ) : (
@@ -319,7 +319,8 @@ const Beat = ({ beat, home, away }) => {
             )}
             <AbsoluteFill style={{ background: '#ffffff', opacity: flash }} />
             <Board home={home} away={away} homeScore={beat.home_score} awayScore={beat.away_score} tag={beat.tag} />
-            <Burst text={BURSTS[beat.type] ?? beat.type.toUpperCase()} colour={burstColour} top={235 * u} left={who === 'away' ? '58%' : '42%'} size={beat.type === 'goal' ? 0.82 : 0.66} />
+            {/* In the sky above the other army (top left), clear of the hero's head (it starts at ~31% of the height). */}
+            <Burst text={BURSTS[beat.type] ?? beat.type.toUpperCase()} colour={burstColour} top={250 * u} left={who ? '31%' : '50%'} size={who ? 0.6 : 0.58} />
             <Caption headline={beat.headline} line={beat.line} colour={hue(hero)} />
             <Footer colours={hero.colours} />
             <Wipe />
@@ -390,7 +391,7 @@ const Final = ({ home, away, final }) => {
                 <FaceOff home={home} away={away} mood={mood} height={0.5} bottom={0.2} />
             )}
             <Board home={home} away={away} homeScore={home.score} awayScore={away.score} tag="FULL TIME" />
-            <Burst text={winner ? 'VICTORY!' : 'HONOURS EVEN'} colour={SUN} top={235 * u} left={winner === away ? '58%' : '50%'} size={0.82} />
+            <Burst text={winner ? 'VICTORY!' : 'HONOURS EVEN'} colour={SUN} top={240 * u} left={winner === away ? '58%' : '50%'} size={0.66} />
             <Caption headline={final.headline} line={final.line} colour={hue(winner ?? home)} delay={4} />
             <div style={{ position: 'absolute', left: '41%', width: '50%', bottom: 400 * u, textAlign: 'center', opacity: end, transform: `scale(${interpolate(end, [0, 1], [0.7, 1])})` }}>
                 <div style={{ display: 'inline-block', padding: `${12 * u}px ${28 * u}px`, background: INK, border: `${5 * u}px solid ${SUN}`, font: `${50 * u}px Anton`, color: SUN, letterSpacing: 2 * u }}>MATCHDAY.AFRICA</div>

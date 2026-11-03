@@ -108,7 +108,7 @@ class BufferPublisherTest extends TestCase
         $this->assertTrue(data_get($this->match->fresh()->metadata, 'reel.repost'));
 
         // Redrawn in the new look (the scheduler's render, done by hand here).
-        $this->match->update(['metadata' => array_merge($this->match->fresh()->metadata, ['reel' => ['status' => 'ready', 'style' => 'v2', 'repost' => true, 'ready_at' => now()->toIso8601String()]])]);
+        $this->match->update(['metadata' => array_merge($this->match->fresh()->metadata, ['reel' => ['status' => 'ready', 'style' => \App\Services\ReelService::V2_REVISION, 'repost' => true, 'ready_at' => now()->toIso8601String()]])]);
         File::ensureDirectoryExists(storage_path('app/reels'));
         File::put(storage_path("app/reels/{$this->match->id}.mp4"), 'mp4');
         Http::fake(['*' => Http::response('m', 206, ['Content-Type' => 'video/mp4'])]);
