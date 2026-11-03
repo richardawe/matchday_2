@@ -216,6 +216,7 @@
 
         <!-- Footer -->
         <x-footer />
+        @unless(request()->routeIs('app.install'))@include('partials.install-banner')@endunless
         @guest @unless(request()->routeIs('login', 'register', 'password.*'))@include('partials.signup-nudge')@endunless @endguest
         
         @stack('scripts')

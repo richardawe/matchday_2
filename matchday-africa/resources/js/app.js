@@ -1,11 +1,15 @@
 import './bootstrap';
 import './radio';
+import { start as startInstall } from './install';
 
 import Alpine from 'alpinejs';
 
 window.Alpine = Alpine;
 
 Alpine.start();
+
+// Installable app: service worker, install banner and the /app page.
+startInstall();
 
 // The arena's motion is a separate chunk, fetched only on the home page.
 const arena = document.getElementById('arena');

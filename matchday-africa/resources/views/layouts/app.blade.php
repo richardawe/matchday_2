@@ -47,5 +47,6 @@
 
         <!-- Footer -->
         <x-footer />
+        @unless(request()->routeIs('app.install'))@include('partials.install-banner')@endunless
     </body>
 </html>

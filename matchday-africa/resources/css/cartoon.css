@@ -203,6 +203,16 @@ body.md-cartoon .md-inbox-follow li { background: var(--c-surface); border: 3px 
 body.md-cartoon .md-alert-note, body.md-cartoon .md-alert-toast { background: var(--c-sun); color: var(--c-ink); border: 3px solid var(--c-ink); box-shadow: var(--c-shadow); }
 body.md-cartoon .md-alert-note a, body.md-cartoon .md-link { color: var(--c-ink); }
 
+/* "Get the app" banner and the /app page. */
+body.md-cartoon .md-install { background: var(--c-surface); color: var(--c-ink); border: 3px solid var(--c-ink); box-shadow: var(--c-shadow); }
+body.md-cartoon .md-install-copy { color: var(--c-muted); }
+body.md-cartoon .md-install-copy strong { color: var(--c-ink); font-family: var(--c-display); font-weight: 400; font-size: 1.1rem; letter-spacing: .02em; text-transform: uppercase; }
+body.md-cartoon .md-install-icon { border: 3px solid var(--c-ink); }
+body.md-cartoon .md-install-close { color: var(--c-ink); }
+body.md-cartoon .md-app-steps ol { color: var(--c-ink); }
+body.md-cartoon .md-app-steps b { color: var(--c-red); }
+@media (max-width: 640px) { body.md-cartoon .md-install { border-width: 3px 0 0; box-shadow: none; } }
+
 /* Images get an ink frame. */
 body.md-cartoon main article img:not(.md-mood):not([class*="avatar"]) { border: 3px solid var(--c-ink); }
 
