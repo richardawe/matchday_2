@@ -125,6 +125,20 @@ class GriotReelTest extends TestCase
         $this->assertSame(1, \App\Models\MatchMoment::where('match_id', $this->match->id)->where('type', 'full_time')->count());
     }
 
+    public function test_backfill_redraws_reels_made_in_another_look_only(): void
+    {
+        $this->match->update(['match_date' => now('UTC')->subDays(5)]);
+        $day = now('Africa/Lagos')->subDays(5)->toDateString();
+        config(['reel.style' => 'v2']);
+
+        $this->match->forceFill(['metadata' => ['reel' => ['status' => 'ready', 'style' => 'v2']]])->save();
+        $this->artisan('reel:queue', ['--from' => $day, '--to' => $day])->expectsOutput('0 reels queued; the scheduler renders one a minute.');
+
+        $this->match->forceFill(['metadata' => ['reel' => ['status' => 'ready']]])->save(); // made before styles were recorded: classic
+        $this->artisan('reel:queue', ['--from' => $day, '--to' => $day])->expectsOutput('1 reels queued; the scheduler renders one a minute.');
+        $this->assertSame('queued', data_get($this->match->fresh()->metadata, 'reel.status'));
+    }
+
     public function test_admin_reel_desk_lists_matches_and_flags_missing_goals(): void
     {
         $this->match->update(['home_score' => 2]);

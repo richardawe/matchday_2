@@ -77,6 +77,8 @@
  .md-signup-chart .key-bar{background:var(--md-gold)}.md-signup-chart .key-dot{background:#3fae6a;border-radius:50%}
  .md-signup-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:2rem}
  @media(max-width:900px){.md-signup-grid{grid-template-columns:1fr}}
+ .md-signup-table{display:block;max-width:100%;overflow-x:auto}
+ .md-signups>*,.md-signup-grid>*{min-width:0}
  .md-signup-table{width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:2rem}
  .md-signup-table th{text-align:left;font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;color:var(--md-muted);padding:.5rem;border-bottom:1px solid var(--md-line)}
  .md-signup-table td{padding:.5rem;border-bottom:1px solid var(--md-line)}

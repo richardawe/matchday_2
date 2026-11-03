@@ -322,7 +322,8 @@ body.md-cartoon .md-arena-hud h1 em { color: var(--c-red); }
 /* Admin top bar: ink, like the public header (beats the generic dark-surface rule). */
 body.md-cartoon.matchday-admin nav.matchday-admin-nav { background: var(--c-ink) !important; border-bottom: 4px solid var(--c-sun) !important; }
 body.md-cartoon.matchday-admin nav.matchday-admin-nav a, body.md-cartoon.matchday-admin nav.matchday-admin-nav button { color: var(--c-paper) !important; }
-body.md-cartoon.matchday-admin nav.matchday-admin-nav .matchday-wordmark, body.md-cartoon.matchday-admin nav.matchday-admin-nav .matchday-wordmark * { color: var(--c-ink) !important; }
+body.md-cartoon.matchday-admin nav.matchday-admin-nav .matchday-wordmark, body.md-cartoon.matchday-admin nav.matchday-admin-nav .matchday-wordmark > span:last-child * { color: var(--c-ink) !important; }
+body.md-cartoon.matchday-admin nav.matchday-admin-nav .matchday-wordmark .matchday-monogram { color: var(--c-sun) !important; }
 body.md-cartoon.matchday-admin nav.matchday-admin-nav [x-show] { background: var(--c-surface) !important; }
 body.md-cartoon.matchday-admin nav.matchday-admin-nav [x-show] a { color: var(--c-ink) !important; }
 body.md-cartoon.matchday-admin nav.matchday-admin-nav a.bg-gray-900, body.md-cartoon.matchday-admin nav.matchday-admin-nav a[aria-current] { color: var(--c-ink) !important; background: var(--c-sun) !important; }
@@ -346,3 +347,76 @@ body.md-cartoon .md-voices > article > span { background: var(--c-sun); color: v
 body.md-cartoon .md-voices article img { border: 3px solid var(--c-ink); }
 body.md-cartoon .md-discussion-empty > b { padding: .1rem .6rem; background: var(--c-live); color: #fff; border: 3px solid var(--c-ink); box-shadow: 4px 4px 0 var(--c-ink); font-family: var(--c-display); font-weight: 400; font-size: 2.2rem; transform: rotate(-3deg); }
 body.md-cartoon .md-alert-note .md-alert-close { color: var(--c-ink); }
+
+/* ---------------------------------------------------------------------------------------------
+   Brand pass (3 Nov): one logo everywhere, the radio card, and the last classic leftovers.
+   --------------------------------------------------------------------------------------------- */
+
+/* The logo: the favicon's ink tile with a sun Anton "MD", inside a tilted sun sticker, in the
+   header, footer, sign-in pages and admin alike. */
+body.md-cartoon .matchday-wordmark { display: inline-flex; align-items: center; gap: .55rem; color: var(--c-ink) !important; background: var(--c-sun); border: 3px solid var(--c-paper); padding: .25rem .65rem .25rem .3rem; transform: rotate(-2deg); font-family: var(--c-display); font-weight: 400; letter-spacing: .03em; }
+body.md-cartoon .matchday-wordmark > span:last-child, body.md-cartoon .matchday-wordmark > span:last-child * { color: var(--c-ink) !important; }
+body.md-cartoon .matchday-wordmark small { font-family: var(--c-mono); font-weight: 600; }
+body.md-cartoon .matchday-wordmark .matchday-monogram,
+body.md-cartoon .matchday-footer .matchday-wordmark .matchday-monogram,
+body.md-cartoon .matchday-monogram { display: grid; place-items: center; width: 2.35rem; height: 2.35rem; background: var(--c-ink) !important; color: var(--c-sun) !important; border: 0; font: 400 1.15rem/1 var(--c-display) !important; letter-spacing: 0; }
+body.md-cartoon.matchday-guest .matchday-wordmark { border-color: var(--c-ink); box-shadow: 4px 4px 0 var(--c-ink); }
+
+/* Matchday Radio: a comic panel on a sun band, an ON AIR sticker and a big play button. */
+body.md-cartoon .md-radio-home { background: var(--c-sun) radial-gradient(rgba(11, 11, 11, .12) 1.5px, transparent 1.6px) 0 0 / 14px 14px; border-bottom: 4px solid var(--c-ink); padding: 1.6rem 0; }
+body.md-cartoon .md-radio { position: relative; background: var(--c-surface); color: var(--c-ink); border: 4px solid var(--c-ink); border-top-width: 4px; box-shadow: var(--c-shadow-lg); }
+body.md-cartoon .md-radio .md-eyebrow { display: inline-flex; align-items: center; gap: .5rem; background: var(--c-live); color: #fff; border: 2px solid var(--c-ink); transform: rotate(-2deg); }
+body.md-cartoon .md-radio .md-eyebrow::before { content: ''; width: .55rem; height: .55rem; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px rgba(255, 255, 255, .35); animation: md-on-air 1.6s ease-in-out infinite; }
+@keyframes md-on-air { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { body.md-cartoon .md-radio .md-eyebrow::before { animation: none; } }
+body.md-cartoon .md-radio h2 { font-family: var(--c-display); font-weight: 400; font-size: clamp(1.8rem, 6vw, 2.6rem); line-height: 1; letter-spacing: .01em; color: var(--c-ink); margin: .7rem 0 .3rem; }
+body.md-cartoon .md-radio-heading { align-items: flex-start; }
+body.md-cartoon .md-radio-heading > span { margin-top: .9rem; padding: .15rem .5rem; background: var(--c-sun); border: 2px solid var(--c-ink); color: var(--c-ink); font-family: var(--c-mono); font-weight: 600; }
+body.md-cartoon .md-radio .md-radio-time { font-family: var(--c-mono); color: var(--c-muted); margin-bottom: 1.1rem; }
+body.md-cartoon .md-radio-controls { gap: .9rem; }
+body.md-cartoon .md-radio-play, body.md-cartoon .md-radio-share { min-height: 56px; border: 3px solid var(--c-ink); box-shadow: 5px 5px 0 var(--c-ink); font-family: var(--c-display); font-weight: 400; font-size: 1.2rem; letter-spacing: .04em; text-transform: uppercase; transition: transform .08s, box-shadow .08s; }
+body.md-cartoon .md-radio-play { background: var(--c-sun); color: var(--c-ink) !important; }
+body.md-cartoon .md-radio-play [data-radio-icon] { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--c-ink); color: var(--c-sun); font-size: .8rem; padding-left: .12rem; }
+body.md-cartoon .md-radio-play[aria-pressed="true"] { background: var(--c-live); color: #fff !important; }
+body.md-cartoon .md-radio-share { background: var(--c-surface); color: var(--c-ink) !important; }
+body.md-cartoon .md-radio-play:active, body.md-cartoon .md-radio-share:active { transform: translate(4px, 4px); box-shadow: 1px 1px 0 var(--c-ink); }
+body.md-cartoon .md-radio-progress input { accent-color: var(--c-ink); }
+body.md-cartoon .md-radio-progress span { font-family: var(--c-mono); color: var(--c-ink); }
+body.md-cartoon .md-radio-delayed { margin-top: 1rem; padding: .45rem .7rem; border: 2px dashed var(--c-ink); border-left-width: 2px; background: var(--c-paper); color: var(--c-ink) !important; font-family: var(--c-mono); font-size: .78rem; line-height: 1.4; }
+body.md-cartoon .md-radio-transcript { border-top: 3px solid var(--c-ink); }
+body.md-cartoon .md-radio-transcript summary, body.md-cartoon .md-radio a { color: var(--c-ink); text-decoration: underline; }
+body.md-cartoon .md-radio .md-radio-disclosure { background: var(--c-paper); border: 2px solid var(--c-ink); }
+body.md-cartoon .md-radio-story { border: 3px solid var(--c-ink); }
+body.md-cartoon .md-radio-archive > a { color: var(--c-ink); border-bottom: 2px solid var(--c-ink); }
+body.md-cartoon .md-radio-archive span { color: var(--c-muted); }
+
+/* Stat panels (predictions, dashboard, admin): white tiles with ink rules on the paper. */
+body.md-cartoon :is(.md-pred-stats, .md-dash-scorecard, .md-ops-stats) { border-top: 3px solid var(--c-ink); border-bottom: 3px solid var(--c-ink); }
+body.md-cartoon :is(.md-pred-stats, .md-dash-scorecard, .md-ops-stats) strong { color: var(--c-ink); font-size: 2.4rem; }
+
+/* Onboarding club cards: the name and country keep the text column with or without a logo. */
+body.md-cartoon .md-team-choice span, .md-team-choice span { grid-template-columns: 2.4rem minmax(0, 1fr); }
+.md-team-choice strong, .md-team-choice small { grid-column: 2; }
+body.md-cartoon .md-team-choice span { background: var(--c-surface); border: 3px solid var(--c-ink); color: var(--c-ink); }
+body.md-cartoon .md-team-choice input:checked + span { background: var(--c-sun); box-shadow: 4px 4px 0 var(--c-ink); }
+body.md-cartoon .md-team-choice strong { font-family: var(--c-display); font-weight: 400; letter-spacing: .02em; }
+
+/* Older admin pages built with stock Tailwind colours: the same ink-bordered buttons as the rest.
+   Matched on the bg-* class itself, never on hover:bg-* (menu buttons carry only those). */
+body.md-cartoon :is(a, button):is([class^="bg-blue-"], [class*=" bg-blue-"], [class^="bg-indigo-"], [class*=" bg-indigo-"]) { background: var(--c-sky) !important; }
+body.md-cartoon :is(a, button):is([class^="bg-green-"], [class*=" bg-green-"]) { background: #3ecf6e !important; }
+body.md-cartoon :is(a, button):is([class^="bg-red-"], [class*=" bg-red-"]) { background: var(--c-live) !important; }
+body.md-cartoon :is(a, button):is([class^="bg-yellow-"], [class*=" bg-yellow-"]) { background: var(--c-sun) !important; }
+body.md-cartoon :is(a, button):is([class^="bg-gray-5"], [class*=" bg-gray-5"], [class^="bg-gray-6"], [class*=" bg-gray-6"]) { background: var(--c-surface) !important; }
+body.md-cartoon :is(a, button):is([class^="bg-blue-"], [class*=" bg-blue-"], [class^="bg-indigo-"], [class*=" bg-indigo-"], [class^="bg-green-"], [class*=" bg-green-"], [class^="bg-red-"], [class*=" bg-red-"], [class^="bg-yellow-"], [class*=" bg-yellow-"], [class^="bg-gray-5"], [class*=" bg-gray-5"], [class^="bg-gray-6"], [class*=" bg-gray-6"]) { color: var(--c-ink) !important; border: 3px solid var(--c-ink) !important; border-radius: 0 !important; box-shadow: 4px 4px 0 var(--c-ink) !important; font-family: var(--c-display); font-weight: 400 !important; letter-spacing: .04em; }
+body.md-cartoon div[class*="w-12"][class*="h-12"]:is([class^="bg-blue-"], [class*=" bg-blue-"], [class^="bg-green-"], [class*=" bg-green-"], [class^="bg-yellow-"], [class*=" bg-yellow-"], [class^="bg-red-"], [class*=" bg-red-"]) { background: var(--c-sun) !important; border: 3px solid var(--c-ink); border-radius: 0 !important; color: var(--c-ink); }
+
+/* Error pages (404, 403, 419, 500, 503). */
+body.md-cartoon .md-error { background: var(--c-sun) radial-gradient(rgba(11, 11, 11, .12) 1.5px, transparent 1.6px) 0 0 / 14px 14px; color: var(--c-ink); }
+body.md-cartoon .md-error .matchday-wordmark { border-color: var(--c-ink); box-shadow: 4px 4px 0 var(--c-ink); text-decoration: none; }
+body.md-cartoon .md-error-card { background: var(--c-surface); border: 4px solid var(--c-ink); box-shadow: var(--c-shadow-lg); }
+body.md-cartoon .md-error-army { border: 4px solid var(--c-ink); }
+body.md-cartoon .md-error-code { display: inline-block; padding: .2rem .7rem; background: var(--c-live); color: #fff; border: 3px solid var(--c-ink); transform: rotate(-3deg); font-family: var(--c-display); font-size: 1.5rem; letter-spacing: .06em; }
+body.md-cartoon .md-error h1 { font-family: var(--c-display); font-weight: 400; color: var(--c-ink); }
+body.md-cartoon .md-error-card > p:not(.md-error-code) { color: var(--c-muted); }
+body.md-cartoon .md-signup-stats b { font-family: var(--c-display); font-weight: 400; color: var(--c-ink); }

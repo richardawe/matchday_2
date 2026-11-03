@@ -24,6 +24,8 @@
         }
         .admin-content {
             min-height: calc(100vh - 4rem);
+            min-width: 0;
+            overflow-x: auto;
         }
     </style>
 </head>
