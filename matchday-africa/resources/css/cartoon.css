@@ -187,6 +187,7 @@ body.md-cartoon .md-tl-pitch { fill: #3f9b4f; }
 /* Army mood thumbnails anywhere (pulse cards, tables, inbox). */
 .md-mood { display: block; width: 56px; height: 56px; object-fit: cover; border: 3px solid var(--c-ink, #0b0b0b); background: var(--c-surface, #fff); }
 body:not(.md-cartoon) .md-mood { display: none; }
+.md-mood.is-logo { object-fit: contain; padding: 4px; box-sizing: border-box; background: #fff; }
 
 /* Tables (standings, leaderboards, admin). */
 body.md-cartoon table { border-collapse: collapse; }

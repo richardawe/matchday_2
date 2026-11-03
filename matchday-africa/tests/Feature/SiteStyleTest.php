@@ -80,6 +80,18 @@ class SiteStyleTest extends TestCase
         $this->assertCount(2, ArmyMoods::forPost(new GriotPost(['kind' => 'kickoff', 'home_score' => 0, 'away_score' => 0]), $match));
     }
 
+    public function test_clubs_outside_the_gallery_show_their_badge_and_nothing_without_one(): void
+    {
+        $roma = Team::create(['name' => 'AS Roma', 'logo_url' => 'https://crests.example/roma.png']);
+        $plain = Team::create(['name' => 'Unknown FC']);
+        $this->assertNull(ArmyMoods::image($roma, 'victory'), 'classic: no images');
+
+        request()->attributes->set('site_style', 'cartoon');
+        $this->assertSame(['url' => 'https://crests.example/roma.png', 'alt' => 'AS Roma badge', 'logo' => true], ArmyMoods::image($roma, 'victory'));
+        $this->assertNull(ArmyMoods::image($plain, 'victory'));
+        $this->assertFalse(ArmyMoods::image(Team::create(['name' => 'Arsenal FC']), 'victory')['logo']);
+    }
+
     public function test_every_army_has_its_mood_thumbnails(): void
     {
         foreach (config('armies.clubs') as $club) {

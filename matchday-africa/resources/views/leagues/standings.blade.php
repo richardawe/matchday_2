@@ -58,7 +58,7 @@
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="flex items-center space-x-3">
                                                 @if($mood = $tableMoods[$standing->team->id] ?? null)
-                                                    <img class="md-mood" src="{{ $mood['url'] }}" alt="{{ $mood['alt'] }}" width="40" height="40" loading="lazy">
+                                                    <img class="md-mood{{ $mood['logo'] ? ' is-logo' : '' }}" src="{{ $mood['url'] }}" alt="{{ $mood['alt'] }}" width="40" height="40" loading="lazy">
                                                 @elseif($standing->team->logo_url)
                                                     <img src="{{ $standing->team->logo_url }}" alt="{{ $standing->team->name }}" class="w-8 h-8 object-contain">
                                                 @endif
