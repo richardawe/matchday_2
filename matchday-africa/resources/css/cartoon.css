@@ -326,3 +326,23 @@ body.md-cartoon.matchday-admin nav.matchday-admin-nav .matchday-wordmark, body.m
 body.md-cartoon.matchday-admin nav.matchday-admin-nav [x-show] { background: var(--c-surface) !important; }
 body.md-cartoon.matchday-admin nav.matchday-admin-nav [x-show] a { color: var(--c-ink) !important; }
 body.md-cartoon.matchday-admin nav.matchday-admin-nav a.bg-gray-900, body.md-cartoon.matchday-admin nav.matchday-admin-nav a[aria-current] { color: var(--c-ink) !important; background: var(--c-sun) !important; }
+
+/* Supporter voices on the match page: a sky band with a white comic panel, like the other match sections. */
+body.md-cartoon .md-discussion { background: var(--c-sky); color: var(--c-ink); border-top: 4px solid var(--c-ink); }
+body.md-cartoon .md-discussion > .md-wrap { background: var(--c-surface); border: 4px solid var(--c-ink); box-shadow: var(--c-shadow-lg); padding: clamp(1.2rem, 4vw, 2.2rem); }
+body.md-cartoon .md-discussion > .md-wrap > header { border-bottom: 3px solid var(--c-ink); }
+body.md-cartoon .md-discussion h2 { font-family: var(--c-display); font-weight: 400; color: var(--c-ink); }
+body.md-cartoon .md-discussion header p:not(.md-eyebrow), body.md-cartoon .md-discussion-empty p, body.md-cartoon .md-voices article time { color: var(--c-muted); }
+body.md-cartoon .md-discussion > .md-wrap > header > span { padding: .2rem .55rem; background: var(--c-sun); border: 2px solid var(--c-ink); color: var(--c-ink); font-family: var(--c-mono); }
+body.md-cartoon .md-discussion-login, body.md-cartoon .md-discussion-form { background: var(--c-paper); color: var(--c-ink); border: 3px solid var(--c-ink); }
+body.md-cartoon .md-discussion-login p { font-weight: 700; }
+body.md-cartoon .md-discussion-form > label { color: var(--c-ink); }
+body.md-cartoon .md-discussion-form textarea { border: 3px solid var(--c-ink); color: var(--c-ink); }
+body.md-cartoon .md-discussion-form small { color: var(--c-muted); }
+body.md-cartoon .md-discussion-error { color: var(--c-red); }
+body.md-cartoon .md-voices { border-top: 0; }
+body.md-cartoon .md-voices > article { border-bottom: 2px solid var(--c-ink); }
+body.md-cartoon .md-voices > article > span { background: var(--c-sun); color: var(--c-ink); border: 2px solid var(--c-ink); font-family: var(--c-display); font-weight: 400; }
+body.md-cartoon .md-voices article img { border: 3px solid var(--c-ink); }
+body.md-cartoon .md-discussion-empty > b { padding: .1rem .6rem; background: var(--c-live); color: #fff; border: 3px solid var(--c-ink); box-shadow: 4px 4px 0 var(--c-ink); font-family: var(--c-display); font-weight: 400; font-size: 2.2rem; transform: rotate(-3deg); }
+body.md-cartoon .md-alert-note .md-alert-close { color: var(--c-ink); }

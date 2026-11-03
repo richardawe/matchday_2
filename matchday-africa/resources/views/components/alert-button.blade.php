@@ -12,6 +12,7 @@
         <span class="md-alert-guest" x-data="{ open: false }">
             <button type="button" class="md-secondary md-alert-button" @click="open = !open">🔔 Alert me</button>
             <span class="md-alert-note" x-show="open" x-cloak @click.away="open = false">
+                <button type="button" class="md-alert-close" @click="open = false" aria-label="Close">×</button>
                 You need an account to get match alerts.
                 <a href="{{ route('register') }}">Create one free</a> or <a href="{{ route('login') }}">log in</a>.
             </span>
