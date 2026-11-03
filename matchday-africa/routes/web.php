@@ -186,6 +186,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/prediction-leagues/{group}', [ExperienceController::class, 'group'])->name('groups.show');
     Route::get('/notification-settings', [ExperienceController::class, 'settings'])->name('notification-settings');
     Route::put('/notification-settings', [ExperienceController::class, 'saveSettings'])->name('notification-settings.update');
+    // Inbox, "Alert me" and web push (accounts only).
+    Route::get('/notifications', [App\Http\Controllers\AlertController::class, 'inbox'])->name('notifications.index');
+    Route::post('/notifications/read', [App\Http\Controllers\AlertController::class, 'read'])->name('notifications.read');
+    Route::get('/notifications/{id}', [App\Http\Controllers\AlertController::class, 'open'])->name('notifications.open');
+    Route::post('/matches/{match}/alert', [App\Http\Controllers\AlertController::class, 'follow'])->middleware('throttle:30,1')->name('matches.alert');
+    Route::post('/push/subscriptions', [App\Http\Controllers\AlertController::class, 'subscribe'])->middleware('throttle:20,1')->name('push.subscribe');
+    Route::delete('/push/subscriptions', [App\Http\Controllers\AlertController::class, 'unsubscribe'])->middleware('throttle:20,1')->name('push.unsubscribe');
     // User dashboard
     Route::get('/dashboard', [App\Http\Controllers\UserDashboardController::class, 'dashboard'])
         ->middleware('verified')
@@ -263,6 +270,12 @@ Route::prefix('api/odds')->group(function () {
 Route::get('/twitter/oauth/authorize', [App\Http\Controllers\TwitterOAuthController::class, 'authorize'])->name('twitter.oauth.authorize');
 Route::get('/auth/twitter/callback', [App\Http\Controllers\TwitterOAuthController::class, 'callback'])->name('twitter.oauth.callback');
 Route::post('/twitter/oauth/revoke', [App\Http\Controllers\TwitterOAuthController::class, 'revoke'])->name('twitter.oauth.revoke');
+
+// Messages to users (admin only)
+Route::middleware(['auth', 'admin'])->prefix('admin/messages')->group(function () {
+    Route::get('/', [App\Http\Controllers\Admin\AnnouncementController::class, 'index'])->name('admin.messages.index');
+    Route::post('/', [App\Http\Controllers\Admin\AnnouncementController::class, 'store'])->name('admin.messages.store');
+});
 
 // Reel desk (admin only)
 Route::middleware(['auth', 'admin'])->prefix('admin/reels')->group(function () {

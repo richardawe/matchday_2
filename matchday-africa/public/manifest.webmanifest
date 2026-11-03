@@ -1,0 +1,14 @@
+{
+  "name": "Matchday Africa",
+  "short_name": "Matchday",
+  "description": "Live scores, the Griot's match stories and reels, predictions and match alerts.",
+  "start_url": "/?utm_source=homescreen",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#070807",
+  "theme_color": "#070807",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

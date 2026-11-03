@@ -63,6 +63,7 @@
                         <div class="hidden sm:flex sm:items-center sm:ms-6">
                             <div class="hidden xl:block me-3"><x-social-follow size="sm" /></div>
                             @auth
+                                <x-inbox-bell />
                                 <!-- User is logged in -->
                                 <x-dropdown align="right" width="48">
                                     <x-slot name="trigger">
@@ -85,6 +86,7 @@
                                             {{ __('Profile') }}
                                         </x-dropdown-link>
                                         <x-dropdown-link :href="route('groups.index')">{{ __('Prediction leagues') }}</x-dropdown-link>
+                                        @if(app(\App\Services\Alerts\Alerts::class)->ready())<x-dropdown-link :href="route('notifications.index')">{{ __('Inbox & alerts') }}</x-dropdown-link>@endif
                                         <x-dropdown-link :href="route('notification-settings')">{{ __('Alerts & digest') }}</x-dropdown-link>
                                         <x-dropdown-link :href="route('library.index')">{{ __('Digital library') }}</x-dropdown-link>
 
@@ -114,6 +116,7 @@
 
                         <!-- Hamburger -->
                         <div class="-me-2 flex items-center sm:hidden">
+                            @auth<x-inbox-bell />@endauth
                             <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
                                 <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                                     <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -169,6 +172,7 @@
                                 <x-responsive-nav-link :href="route('profile.edit')">
                                     {{ __('Profile') }}
                                 </x-responsive-nav-link>
+                                @if(app(\App\Services\Alerts\Alerts::class)->ready())<x-responsive-nav-link :href="route('notifications.index')">{{ __('Inbox & alerts') }}</x-responsive-nav-link>@endif
 
                                 <!-- Authentication -->
                                 <form method="POST" action="{{ route('logout') }}">
