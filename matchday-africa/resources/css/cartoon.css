@@ -218,6 +218,9 @@ body.md-cartoon .md-live-now { background: var(--c-surface); border-bottom: 5px 
 body.md-cartoon .md-live-now-head h2 { color: var(--c-live); font-family: var(--c-display); font-weight: 400; font-size: 1.5rem; letter-spacing: .06em; }
 body.md-cartoon .md-live-now-head small { color: var(--c-muted); font-family: var(--c-mono); }
 
+body.md-cartoon .md-tz { font-family: var(--c-mono); font-weight: 600; letter-spacing: .12em; }
+body.md-cartoon .md-pulse-match b:has(.md-tz) { line-height: 1.05; padding-block: .3rem; }
+
 /* "Get the app" banner and the /app page. */
 body.md-cartoon .md-install { background: var(--c-surface); color: var(--c-ink); border: 3px solid var(--c-ink); box-shadow: var(--c-shadow); }
 body.md-cartoon .md-install-copy { color: var(--c-muted); }

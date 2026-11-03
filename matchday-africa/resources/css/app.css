@@ -829,3 +829,6 @@
 .md-live-now-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,20rem),1fr));column-gap:1.5rem}
 @keyframes md-live-blink{50%{opacity:.35}}
 @media(prefers-reduced-motion:reduce){.md-live-now-head h2 .md-pulse-dot{animation:none}}
+
+/* Kick-off times in score boxes (components/kickoff-time): the zone in small type under the time */
+.md-tz{display:block;margin-top:.1em;font-size:.5em;line-height:1;letter-spacing:.14em;font-weight:700;opacity:.8}

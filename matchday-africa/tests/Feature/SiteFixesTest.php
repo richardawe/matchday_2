@@ -54,6 +54,8 @@ class SiteFixesTest extends TestCase
 
         $this->assertSame('18:45 WAT', $match->kickoffLabel('H:i'));
         $this->get('/predictions')->assertOk()->assertSee('Wed 4 Nov, 18:45 WAT')->assertDontSee('17:45');
+        // In score boxes the zone sits in small type under the time, so it fits the box.
+        $this->get('/')->assertOk()->assertSee('18:45<small class="md-tz">WAT</small>', false);
         // Structured data keeps the true instant with its offset (17:45+00:00); the page text shows WAT.
         $this->get(route('matches.show', $match))->assertOk()->assertSee('Wed, 4 Nov · 18:45 WAT')->assertSee('2026-11-04T17:45:00+00:00', false)->assertDontSee('· 17:45');
     }

@@ -58,12 +58,12 @@
                         $live => $match->live_label,
                         $match->isFinished() => 'FT',
                         in_array($match->status, ['POSTPONED', 'CANCELLED'], true) => $match->status_display,
-                        default => $match->kickoffLabel('H:i'),
+                        default => null,
                     };
                 @endphp
                 <div class="md-centre-row {{ $live ? 'is-live' : '' }}">
                     <a href="{{ route('matches.show', $match) }}">
-                        <time>{{ $clock }}</time>
+                        <time>@if($clock !== null){{ $clock }}@else<x-kickoff-time :match="$match" />@endif</time>
                         <span class="md-centre-team">{{ $match->homeTeam?->display_name ?? 'Home' }}</span>
                         <b>{{ $match->home_score !== null ? $match->home_score.' – '.$match->away_score : 'v' }}</b>
                         <span class="md-centre-team md-centre-away">{{ $match->awayTeam?->display_name ?? 'Away' }}</span>
