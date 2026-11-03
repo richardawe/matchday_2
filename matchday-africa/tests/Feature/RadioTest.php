@@ -246,6 +246,17 @@ class RadioTest extends TestCase
         app(RadioScript::class)->validate([['fact_keys' => ['news:a'], 'text' => 'Club desk says the club has completed the signing.']], [$fact]);
     }
 
+    public function test_the_writer_is_told_not_to_rank_stories_itself(): void
+    {
+        // 3 Nov 18:00: "The biggest African story today is from Nigeria" failed the fact check.
+        $fact = ['key' => 'news:a', 'kind' => 'news', 'source' => 'BBC Sport', 'rumour' => false, 'text' => 'A striker scores twice.'];
+        $editor = Mockery::mock(OpenRouterService::class);
+        $editor->shouldReceive('editFootballArticle')->once()->withArgs(fn ($prompt) => str_contains($prompt, 'Never rank or characterise a story yourself')
+            && !str_contains($prompt, 'most important African football news'))
+            ->andReturn(json_encode(['segments' => [['fact_keys' => ['news:a'], 'text' => 'A striker scores twice.']]]));
+        (new RadioScript($editor))->write([$fact]);
+    }
+
     public function test_writer_adds_exact_source_credits_from_facts(): void
     {
         $fact = ['key' => 'news:a', 'kind' => 'news', 'source' => 'BBC Sport', 'rumour' => false,
