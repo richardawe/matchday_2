@@ -407,10 +407,16 @@ class ReelService
         return public_path("generated/reels/{$match->id}/{$match->id}.mp4");
     }
 
-    /** The reel look new renders use (config reel.style): v2 or classic. */
+    /**
+     * The reel look new renders use (config reel.style), with a revision: bump the revision when the
+     * art or layout changes enough that made reels should be redrawn (reel:queue picks them up).
+     * r2 (3 Nov 2026): cut-outs from model mattes, sound-effect burst clear of the hero.
+     */
+    public const V2_REVISION = 'v2r2';
+
     public static function style(): string
     {
-        return config('reel.style') === 'v2' ? 'v2' : 'classic';
+        return config('reel.style') === 'v2' ? self::V2_REVISION : 'classic';
     }
 
     /** A ready reel drawn in another look than the current one (reels made before styles were recorded count as classic). */
