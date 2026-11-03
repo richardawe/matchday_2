@@ -85,6 +85,15 @@ class FixtureCardRenderer extends StoryCardRenderer
     }
 
     /**
+     * The card's address, versioned by the look and the result: browsers, the host and link
+     * previews cache the image, so a new look or a final score needs a new URL.
+     */
+    public static function url(FootballMatch $match): string
+    {
+        return route('matches.card', ['match' => $match, 'v' => substr(md5(config('site.style').'|'.$match->status.'|'.$match->home_score.'|'.$match->away_score), 0, 8)]);
+    }
+
+    /**
      * The site-wide look decides the card (SITE_STYLE), not a visitor's preview cookie: the same
      * card goes to Buffer, link previews and the home page.
      */

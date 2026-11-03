@@ -160,7 +160,7 @@ class GrowthPostGenerator
                     ."\n\nPreview, team news and stats. Who wins? Call it 👇";
                 $link = route('matches.show', $match);
                 $text = XText::compose($body, $link, $this->tags($match));
-                $created += $this->plan("preview:{$match->id}", 'preview', $text, route('matches.card', $match), $link, $send, $expires);
+                $created += $this->plan("preview:{$match->id}", 'preview', $text, FixtureCardRenderer::url($match), $link, $send, $expires);
             }
         }
 

@@ -60,7 +60,7 @@ class HomeShowcase
             ->map(function (FootballMatch $m) {
                 $kickoff = Carbon::parse($m->match_date->format('Y-m-d H:i:s'), 'UTC')->setTimezone('Africa/Lagos');
 
-                return ['match' => $m, 'card' => route('matches.card', $m), 'kickoff' => $kickoff,
+                return ['match' => $m, 'card' => \App\Services\FixtureCardRenderer::url($m), 'kickoff' => $kickoff,
                     'title' => $this->club($m->homeTeam).' v '.$this->club($m->awayTeam)];
             });
     }

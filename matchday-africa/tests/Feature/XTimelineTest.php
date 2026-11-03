@@ -51,7 +51,7 @@ class XTimelineTest extends TestCase
         $preview = $posts['preview'];
         $this->assertStringContainsString("Arsenal v Chelsea\nPremier League · Kick-off 15:00 WAT", $preview->message);
         $this->assertStringContainsString('#PremierLeague #MatchdayAfrica', $preview->message);
-        $this->assertSame(route('matches.card', $this->match), $preview->image_url);
+        $this->assertSame(\App\Services\FixtureCardRenderer::url($this->match), $preview->image_url);
         // Three hours before kick-off, in app time; it lapses ten minutes before kick-off.
         $this->assertSame('2026-10-24 12:00', $preview->scheduled_at->format('Y-m-d H:i'));
         $this->assertSame('2026-10-24 14:50', $preview->expires_at->format('Y-m-d H:i'));
@@ -67,7 +67,7 @@ class XTimelineTest extends TestCase
     {
         $this->artisan('twitter:engage');
         $this->fakeBuffer(['post' => ['id' => 'x1']], ['post' => ['id' => 'x2']], ['post' => ['id' => 'x3']]);
-        Http::fake([route('matches.card', $this->match) => Http::response('png', 200, ['Content-Type' => 'image/png'])]);
+        Http::fake([\App\Services\FixtureCardRenderer::url($this->match) => Http::response('png', 200, ['Content-Type' => 'image/png'])]);
 
         // 09:00, morning slot: the fixtures list beats the article; then the slot is used.
         $this->artisan('buffer:publish')->expectsOutput('Buffer: 1 sent, 0 failed');
@@ -87,7 +87,7 @@ class XTimelineTest extends TestCase
         $this->assertSame(['chan-x', 'chan-x', 'chan-x'], array_column($posts, 'channelId'));
         $this->assertSame(['shareNow', 'shareNow', 'shareNow'], array_column($posts, 'mode'));
         $this->assertSame([], $posts[0]['assets']);
-        $this->assertSame(route('matches.card', $this->match), $posts[1]['assets'][0]['image']['url']);
+        $this->assertSame(\App\Services\FixtureCardRenderer::url($this->match), $posts[1]['assets'][0]['image']['url']);
     }
 
     public function test_instagram_gets_the_carded_posts_with_its_post_type(): void
@@ -97,13 +97,13 @@ class XTimelineTest extends TestCase
         $this->assertSame(['preview'], GrowthPost::where('channel', 'instagram')->pluck('type')->all());
 
         $this->fakeBuffer();
-        Http::fake([route('matches.card', $this->match) => Http::response('png', 200, ['Content-Type' => 'image/png'])]);
+        Http::fake([\App\Services\FixtureCardRenderer::url($this->match) => Http::response('png', 200, ['Content-Type' => 'image/png'])]);
         $this->travelTo(now('Africa/Lagos')->setTime(13, 0));
         $this->artisan('buffer:publish')->expectsOutput('Buffer: 2 sent, 0 failed');
 
         $ig = collect($this->bufferPosts())->firstWhere('channelId', 'chan-ig');
         $this->assertSame(['instagram' => ['type' => 'post', 'shouldShareToFeed' => true]], $ig['metadata']);
-        $this->assertSame(route('matches.card', $this->match), $ig['assets'][0]['image']['url']);
+        $this->assertSame(\App\Services\FixtureCardRenderer::url($this->match), $ig['assets'][0]['image']['url']);
     }
 
     public function test_posts_without_a_free_slot_in_time_expire(): void
@@ -189,6 +189,18 @@ class XTimelineTest extends TestCase
 
         [$width, $height] = getimagesize($response->baseResponse->getFile()->getPathname());
         $this->assertSame([1200, 675], [$width, $height]);
+    }
+
+    public function test_the_card_address_changes_with_the_look_and_the_result(): void
+    {
+        $classic = \App\Services\FixtureCardRenderer::url($this->match);
+        config(['site.style' => 'cartoon']);
+        $cartoon = \App\Services\FixtureCardRenderer::url($this->match);
+        $this->match->update(['status' => 'FINISHED', 'home_score' => 1, 'away_score' => 0]);
+
+        $this->assertNotSame($classic, $cartoon);
+        $this->assertNotSame($cartoon, \App\Services\FixtureCardRenderer::url($this->match->fresh()));
+        $this->assertStringContainsString('card.png?v=', $cartoon);
     }
 
     public function test_the_cartoon_look_draws_its_own_fixture_card(): void

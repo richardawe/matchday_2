@@ -31,12 +31,12 @@ class ReelPageController extends Controller
             'description' => "Watch every goal and red card from {$match->homeTeam?->name} v {$match->awayTeam?->name} ({$match->league?->name}) in a 20-second reel, made minutes after full time.",
             'url' => $reel['page'],
             'type' => 'video.other',
-            'image' => route('matches.card', ['match' => $match, 'v' => substr(md5(config('site.style').'|'.$match->status.'|'.$match->home_score.'|'.$match->away_score), 0, 8)]),
+            'image' => \App\Services\FixtureCardRenderer::url($match),
             'image_width' => '1200', 'image_height' => '675',
             'video' => $reel['video'],
             'json_ld' => array_filter(['@context' => 'https://schema.org', '@type' => 'VideoObject', 'name' => "{$reel['title']}: the 20-second reel",
                 'description' => "Every goal and red card from {$match->homeTeam?->name} v {$match->awayTeam?->name} in twenty seconds.",
-                'thumbnailUrl' => [$reel['poster'] ?? route('matches.card', $match)], 'uploadDate' => data_get($match->metadata, 'reel.ready_at') ?? $match->updated_at?->toIso8601String(),
+                'thumbnailUrl' => [$reel['poster'] ?? \App\Services\FixtureCardRenderer::url($match)], 'uploadDate' => data_get($match->metadata, 'reel.ready_at') ?? $match->updated_at?->toIso8601String(),
                 'duration' => 'PT20S', 'contentUrl' => $reel['video'], 'embedUrl' => $reel['page']]),
         ]);
     }
