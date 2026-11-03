@@ -41,4 +41,8 @@ there without a rewrite, and how to switch it on.
   Older admin pages that use stock Tailwind button colours are restyled by class in `cartoon.css`.
 - Reels record the look they were drawn in (`metadata.reel.style`); `reel:queue` (Server operations →
   `reel-queue`) redraws reels from an earlier look in the current one without posting them to social again.
+- Solid cut-outs come from model mattes (`public/war/downloads/rights-safe/masks/<art>.png`, white = statue), made
+  with rembg's BiRefNet (general, lite) on 3 Nov after the brightness flood fill lost dark legs, faces and horses and
+  left smoky blobs. New statue art: make its matte the same way, check it by eye, then run `node scripts/build-armies.mjs`.
+  Bump `ReelService::V2_REVISION` when the art or reel layout changes enough that made reels should be redrawn.
 - Still dark: the live goal and red-card story cards (`StoryCardRenderer`).

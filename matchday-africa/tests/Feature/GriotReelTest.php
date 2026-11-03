@@ -131,8 +131,11 @@ class GriotReelTest extends TestCase
         $day = now('Africa/Lagos')->subDays(5)->toDateString();
         config(['reel.style' => 'v2']);
 
-        $this->match->forceFill(['metadata' => ['reel' => ['status' => 'ready', 'style' => 'v2']]])->save();
+        $this->match->forceFill(['metadata' => ['reel' => ['status' => 'ready', 'style' => \App\Services\ReelService::V2_REVISION]]])->save();
         $this->artisan('reel:queue', ['--from' => $day, '--to' => $day])->expectsOutput('0 reels queued; the scheduler renders one a minute.');
+
+        $this->match->forceFill(['metadata' => ['reel' => ['status' => 'ready', 'style' => 'v2']]])->save(); // an earlier revision of the v2 art
+        $this->artisan('reel:queue', ['--from' => $day, '--to' => $day])->expectsOutput('1 reels queued; the scheduler renders one a minute.');
 
         $this->match->forceFill(['metadata' => ['reel' => ['status' => 'ready']]])->save(); // made before styles were recorded: classic
         $this->artisan('reel:queue', ['--from' => $day, '--to' => $day])->expectsOutput('1 reels queued; the scheduler renders one a minute.');

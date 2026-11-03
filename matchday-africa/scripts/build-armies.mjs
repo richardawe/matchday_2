@@ -3,6 +3,7 @@
 // The 1.9 MB originals stay as the source for server-rendered story cards.
 // Usage: node scripts/build-armies.mjs
 import { mkdir, readFile, readdir, stat } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 
@@ -36,12 +37,23 @@ const SOLID_LEVEL = Number(process.env.SOLID_LEVEL ?? 16);
 const INK = 7; // outline width in pixels at 900 px wide
 // Statues photographed against a lit, smoky backdrop need a higher level or they keep a halo.
 const SOLID_LEVELS = { 'napoleonic-grenadier': 30, 'norse-viking': 22, 'northumbrian-raider': 34, 'numidian-cavalry': 30, 'saxon-fyrd': 20, 'venetian-marine': 20, 'white-rose-yorkist': 30 };
+// Statues whose dark parts touch a dark backdrop (legs, faces, horses) lose them to the flood fill
+// below, and smoky backdrops leave blobs. For those a matte from a background-removal model is
+// committed as masks/<name>.png (white = statue) and used instead of the brightness threshold.
+// Made with rembg (BiRefNet or ISNet) on 3 Nov 2026 and checked by eye; see docs/CARTOON.md.
+const maskDir = path.join(source, 'masks');
 async function solid(input, width, level = SOLID_LEVEL) {
     const { data, info } = await sharp(input).resize({ width }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
     const { width: w, height: h } = info;
     const n = w * h;
     const mask = new Uint8Array(n);
-    for (let p = 0; p < n; p++) mask[p] = Math.max(data[p * 3], data[p * 3 + 1], data[p * 3 + 2]) > level ? 1 : 0;
+    const matte = path.join(maskDir, path.basename(input));
+    if (existsSync(matte)) {
+        const m = await sharp(matte).resize(w, h, { fit: 'fill' }).greyscale().raw().toBuffer();
+        for (let p = 0; p < n; p++) mask[p] = m[p] > 127 ? 1 : 0;
+    } else {
+        for (let p = 0; p < n; p++) mask[p] = Math.max(data[p * 3], data[p * 3 + 1], data[p * 3 + 2]) > level ? 1 : 0;
+    }
     const around = (p, visit) => {
         const x = p % w;
         if (x > 0) visit(p - 1);
