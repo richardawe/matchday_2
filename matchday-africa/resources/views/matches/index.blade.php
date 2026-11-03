@@ -58,7 +58,7 @@
                         $live => $match->live_label,
                         $match->isFinished() => 'FT',
                         in_array($match->status, ['POSTPONED', 'CANCELLED'], true) => $match->status_display,
-                        default => $match->match_date->format('H:i'),
+                        default => $match->kickoffLabel('H:i'),
                     };
                 @endphp
                 <div class="md-centre-row {{ $live ? 'is-live' : '' }}">

@@ -1,4 +1,7 @@
-@extends('layouts.app')
+@extends('layouts.public')
+@section('meta_title', 'Your prediction history | Matchday Africa')
+@section('meta_description', 'Every score you\'ve called on Matchday Africa, with results and points earned.')
+@section('meta_robots', 'noindex, nofollow')
 
 @section('content')
 <section class="md-pred-subhero"><div class="md-wrap"><div><p class="md-eyebrow">YOUR RECORD</p><h1>Every call.<br><em>Every result.</em></h1><p>A complete, chronological record of your submitted predictions and the points awarded after each match is settled.</p></div><a class="md-secondary" href="{{ route('predictions.index') }}">← Predictions home</a></div></section>
@@ -21,7 +24,7 @@
             @php $settled = $prediction->is_correct !== null; @endphp
             <a href="{{ route('matches.show', $prediction->match) }}" class="md-history-row">
                 <span class="{{ $prediction->is_correct === true ? 'won' : ($prediction->is_correct === false ? 'lost' : 'pending') }}">{{ $prediction->is_correct === true ? '✓' : ($prediction->is_correct === false ? '×' : '·') }}</span>
-                <div class="md-history-match"><small>{{ $prediction->match->league?->name ?? 'Football' }} · {{ $prediction->predictionSet?->name ?? 'Challenge' }}</small><strong>{{ $prediction->match->homeTeam?->name ?? 'TBC' }} <i>v</i> {{ $prediction->match->awayTeam?->name ?? 'TBC' }}</strong><p>Played {{ $prediction->match->match_date->format('d M Y · H:i') }} · Submitted {{ ($prediction->submitted_at ?? $prediction->created_at)->format('d M · H:i') }}</p></div>
+                <div class="md-history-match"><small>{{ $prediction->match->league?->name ?? 'Football' }} · {{ $prediction->predictionSet?->name ?? 'Challenge' }}</small><strong>{{ $prediction->match->homeTeam?->name ?? 'TBC' }} <i>v</i> {{ $prediction->match->awayTeam?->name ?? 'TBC' }}</strong><p>Played {{ $prediction->match->kickoffLabel('d M Y · H:i') }} · Submitted {{ ($prediction->submitted_at ?? $prediction->created_at)->format('d M · H:i') }}</p></div>
                 <div class="md-history-call"><small>{{ ucfirst(str_replace('_', ' ', $prediction->prediction_type)) }}</small><strong>{{ $prediction->prediction_value }}</strong>@if($settled)<p>Final score: {{ $prediction->match->home_score ?? '—' }}–{{ $prediction->match->away_score ?? '—' }}</p>@else<p>Awaiting settlement</p>@endif</div>
                 <b>{{ $settled ? ($prediction->points_earned > 0 ? '+'.number_format($prediction->points_earned).' pts' : '0 pts') : 'Pending' }}</b>
             </a>

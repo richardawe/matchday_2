@@ -83,7 +83,7 @@
                                         </span>
                                     @endif
                                     <span class="text-sm text-gray-600">
-                                        {{ $match->match_date ? $match->match_date->format('M j, Y') : 'TBD' }}
+                                        {{ $match->kickoffWat()?->format('M j, Y') ?? 'TBD' }}
                                     </span>
                                 </div>
                                 
@@ -126,7 +126,7 @@
                                         </span>
                                     @endif
                                     <span class="text-sm text-gray-600">
-                                        {{ $match->match_date ? $match->match_date->format('M j, Y H:i') : 'TBD' }}
+                                        {{ $match->kickoffLabel('M j, Y H:i', 'TBD') }}
                                     </span>
                                 </div>
                                 

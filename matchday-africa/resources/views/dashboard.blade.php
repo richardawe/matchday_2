@@ -21,7 +21,7 @@
         @if($nextMatch)
             <a class="md-dash-next" href="{{ route('matches.show', $nextMatch) }}">
                 <span>NEXT ON YOUR RADAR</span>
-                <small>{{ $nextMatch->league?->name ?? 'Football' }} · {{ $nextMatch->match_date->format('D, H:i') }}</small>
+                <small>{{ $nextMatch->league?->name ?? 'Football' }} · {{ $nextMatch->kickoffLabel('D, H:i') }}</small>
                 <div>
                     <strong>{{ $nextMatch->homeTeam?->name ?? 'TBC' }}</strong>
                     <i>V</i>
@@ -60,7 +60,7 @@
                     <a href="{{ route('matches.show', $match) }}" class="md-dash-fixture">
                         <div>
                             <small>{{ $match->league?->name ?? 'Football' }}</small>
-                            <time>{{ $match->match_date->isToday() ? 'TODAY · '.$match->match_date->format('H:i') : $match->match_date->format('D d M · H:i') }}</time>
+                            <time>{{ $match->kickoffWat()?->isToday() ? 'TODAY · '.$match->kickoffLabel('H:i') : $match->kickoffLabel('D d M · H:i') }}</time>
                         </div>
                         <p><strong>{{ $match->homeTeam?->name ?? 'TBC' }}</strong><i>vs</i><strong>{{ $match->awayTeam?->name ?? 'TBC' }}</strong></p>
                         <span>Match room →</span>

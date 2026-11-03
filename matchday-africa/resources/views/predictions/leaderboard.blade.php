@@ -1,4 +1,6 @@
-@extends('layouts.app')
+@extends('layouts.public')
+@section('meta_title', 'Predictions leaderboard: the week\'s top tipsters | Matchday Africa')
+@section('meta_description', 'Who\'s calling it best? The Matchday Africa predictions leaderboard, updated as results land.')
 
 @section('content')
 <section class="md-pred-subhero md-board-hero"><div class="md-wrap"><div><p class="md-eyebrow">ALL-TIME STANDINGS</p><h1>Read the game.<br><em>Own the table.</em></h1><p>Rankings are ordered by points earned, with prediction accuracy used as the tie-breaker.</p></div><a class="md-secondary" href="{{ route('predictions.index') }}">← Predictions home</a></div></section>
