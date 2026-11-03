@@ -28,6 +28,9 @@ const luma = (hex) => {
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
 // The colour a side is drawn in: its first kit colour, or the second when the first is near-black/white.
+// "The Roman Legion": the army's title as it follows the club's name (config armies `title`).
+const title = (side) => side.title ?? `The ${side.army}`;
+
 const hue = (side) => {
     const [a, b] = side.colours;
     const l = luma(a);
@@ -264,7 +267,10 @@ const Title = ({ home, away, competition, beats }) => {
             <div style={{ position: 'absolute', top: 150 * u, left: 52 * u, right: 52 * u, padding: `${18 * u}px ${24 * u}px ${8 * u}px`, background: PAPER, border: `${7 * u}px solid ${INK}`, boxShadow: `${14 * u}px ${14 * u}px 0 ${INK}`, transform: `scale(${settle}) rotate(-1.5deg)`, textAlign: 'center' }}>
                 <div style={{ display: 'flex', gap: 20 * u }}>
                     {[home, away].map((side) => (
-                        <div key={side.club} style={{ flex: 1, font: `${40 * u}px Anton`, color: INK, textTransform: 'uppercase', borderTop: `${12 * u}px solid ${hue(side)}`, paddingTop: 8 * u, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{side.club}</div>
+                        <div key={side.club} style={{ flex: 1, minWidth: 0, borderTop: `${12 * u}px solid ${hue(side)}`, paddingTop: 8 * u }}>
+                            <div style={{ font: `${40 * u}px Anton`, color: INK, textTransform: 'uppercase', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{side.club}</div>
+                            <div style={{ font: `${24 * u}px PlexMono`, color: '#5a5246', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{title(side)}</div>
+                        </div>
                     ))}
                 </div>
                 <div style={{ font: `${300 * u}px/1 Anton`, color: INK }}>
@@ -350,7 +356,7 @@ const Stats = ({ home, away, stats }) => {
                     );
                 })}
             </div>
-            <div style={{ position: 'absolute', left: 52 * u, right: 52 * u, bottom: 120 * u, font: `${70 * u}px/1.05 Anton`, color: INK, textTransform: 'uppercase', textAlign: 'center' }}>{home.army} <span style={{ color: '#d2a052' }}>v</span> {away.army}</div>
+            <div style={{ position: 'absolute', left: 52 * u, right: 52 * u, bottom: 110 * u, font: `${56 * u}px/1.08 Anton`, color: INK, textTransform: 'uppercase', textAlign: 'center' }}>{home.club} – {title(home)}<br /><span style={{ color: '#d2a052' }}>v</span><br />{away.club} – {title(away)}</div>
             <Footer colours={home.colours} />
             <Wipe />
         </AbsoluteFill>
