@@ -6,7 +6,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildTimeline, FPS } from '../reel/src/timeline.js';
+import { FPS, timelineFor } from '../reel/src/timeline.js';
 
 export const RATE = 24000;
 const SPEED = 1.2; // a commentator's pace
@@ -17,7 +17,7 @@ const GAP = 0.2; // breath before the next scene
 // so the full-time call starts there and runs into the final card (2 s alone is too short for it).
 export function lines(props) {
     const say = (value) => (Array.isArray(value) ? value.filter((t) => typeof t === 'string' && t.trim()) : []);
-    const scenes = buildTimeline(props.beats ?? []);
+    const scenes = timelineFor(props);
     const final = scenes.at(-1), numbers = scenes.at(-2);
     return scenes.flatMap((scene) => {
         if (scene.kind === 'final') return [];

@@ -57,6 +57,14 @@ return [
     // Reels go out in these slots (0 = the first) on days without a Premier League match, two a
     // day per account through the week after their round; the other slot keeps news and previews.
     'reel_slots' => [0, 2],
+    // Reels at the final whistle: a reel goes out on every channel as soon as it is made (Buffer's
+    // share-now, no queue), outside the slots above and without using one, up to `per_day` reels per
+    // channel a Lagos day. Reels older than `fresh_hours` (backfills) wait for the slots as before.
+    'reels_now' => [
+        'enabled' => (bool) env('BUFFER_REELS_NOW', false),
+        'per_day' => (int) env('BUFFER_REELS_PER_DAY', 10),
+        'fresh_hours' => 6,
+    ],
     // Reels involving these clubs are more likely to be picked (armies.php keys).
     'big_clubs' => ['arsenal', 'chelsea', 'liverpool', 'manchester city', 'manchester united', 'tottenham hotspur', 'newcastle united'],
 

@@ -15,6 +15,9 @@ if (arena) import('./arena.js').then((m) => m.start(arena));
 const reelsHero = document.getElementById('reels-hero');
 if (reelsHero) import('./home-reels.js').then((m) => m.start(reelsHero));
 
+// "Alert me" and phone alerts, only on pages that offer them.
+if (document.querySelector('[data-alert-toggle], [data-push-panel]')) import('./alerts.js').then((m) => m.start());
+
 const pulse = document.getElementById('matchday-pulse');
 if (pulse) {
     const refreshPulse = async () => {

@@ -3,7 +3,10 @@
 namespace App\Services;
 
 use App\Models\FootballMatch;
+use App\Models\GriotPost;
 use App\Models\MatchMoment;
+use App\Services\Griot\GriotTeller;
+use App\Services\Griot\GriotTimeline;
 use App\Support\Armies;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
@@ -22,6 +25,9 @@ use Throwable;
 class ReelService
 {
     private const MAX_ATTEMPTS = 3;
+
+    /** Minutes after a reel is made during which a changed story makes it again (once). */
+    private const CORRECTION_WINDOW = 30;
 
     public function __construct(private MatchStoryService $stories, private Griot $griot) {}
 
@@ -57,21 +63,37 @@ class ReelService
     {
         $match->loadMissing(['homeTeam', 'awayTeam']);
         $voice = config('reel.voice');
+        $v2 = config('reel.style') === 'v2';
         $club = fn ($team) => trim(preg_replace('/\s+FC$/i', '', (string) $team?->name));
-        $side = function ($team, int $score) use ($club, $urls) {
+        $side = function ($team, int $score) use ($club, $urls, $v2) {
             $army = Armies::for($team);
+            // v2 draws on bright skies: the opaque cut-out with its ink line, plus approved mood poses.
+            $solid = $v2 && $army && is_file((string) $army['solid_path']);
+            $art = $urls ? ($solid ? $army['solid'] : $army['cutout'] ?? null) : ($solid ? $army['solid_path'] : $army['cutout_path'] ?? null);
 
             return [
                 'club' => $club($team), 'army' => $army['army'] ?? $club($team), 'colours' => $army['colours'] ?? ['#d2a052', '#e8e1d3'], 'score' => $score,
-                $urls ? 'art_url' : 'art_path' => $urls ? $army['cutout'] : $army['cutout_path'],
-            ];
+                $urls ? 'art_url' : 'art_path' => $art,
+            ] + ($v2 ? [$urls ? 'pose_urls' : 'pose_paths' => array_map(fn ($pose) => $pose[$urls ? 'url' : 'path'], $army['poses'] ?? [])] : []);
         };
         $chapters = $this->stories->chapters($match);
         $final = $chapters->firstWhere('type', 'full_time');
         $home = $side($match->homeTeam, (int) $match->home_score);
         $away = $side($match->awayTeam, (int) $match->away_score);
 
+        $beats = $chapters->whereNotIn('type', ['full_time'])->map(function (MatchMoment $chapter) use ($voice, $home, $away) {
+            [$headline, $line] = $this->griot->tell($chapter, $voice);
+
+            return ['type' => $chapter->type, 'tag' => $this->griot->tag($chapter), 'side' => $chapter->side,
+                'home_score' => $chapter->home_score, 'away_score' => $chapter->away_score, 'headline' => $headline, 'line' => $line,
+                'say' => $this->say($chapter, $home['club'], $away['club'])];
+        })->values()->all();
+        if ($v2 && ($told = $this->timelineBeats($match, $voice))) {
+            $beats = $told;
+        }
+
         return [
+            'style' => $v2 ? 'v2' : 'classic',
             'format' => 'story',
             'competition' => 'PREMIER LEAGUE',
             // The opening frame shows the final score, so the commentary leads with it too.
@@ -79,13 +101,7 @@ class ReelService
                 'say' => ["Full time: {$home['club']} {$home['score']}, {$away['club']} {$away['score']}.", "{$home['club']} {$home['score']}, {$away['club']} {$away['score']}.", "{$home['club']} against {$away['club']}."]],
             'home' => $home,
             'away' => $away,
-            'beats' => $chapters->whereNotIn('type', ['full_time'])->map(function (MatchMoment $chapter) use ($voice, $home, $away) {
-                [$headline, $line] = $this->griot->tell($chapter, $voice);
-
-                return ['type' => $chapter->type, 'tag' => $this->griot->tag($chapter), 'side' => $chapter->side,
-                    'home_score' => $chapter->home_score, 'away_score' => $chapter->away_score, 'headline' => $headline, 'line' => $line,
-                    'say' => $this->say($chapter, $home['club'], $away['club'])];
-            })->values()->all(),
+            'beats' => $beats,
             'stats' => [
                 ['label' => 'POSSESSION %', 'home' => $match->home_possession, 'away' => $match->away_possession],
                 ['label' => 'SHOTS', 'home' => $match->home_shots, 'away' => $match->away_shots],
@@ -94,6 +110,39 @@ class ReelService
             'final' => ($final ? array_combine(['headline', 'line'], $this->griot->tell($final, $voice)) : ['headline' => 'Full time', 'line' => ''])
                 + ['say' => ["Full time. {$home['club']} {$home['score']}, {$away['club']} {$away['score']}.", 'Full time.']],
         ];
+    }
+
+    /**
+     * The v2 reel's moments from the live Griot timeline (GRIOT_TIMELINE), in match order: goals,
+     * red cards and half-time as the chapters have them, plus the woodwork, big chances, VAR calls,
+     * spells of pressure and injuries the Griot picked. Captions are the ones the timeline showed
+     * (the fact-checked writer's, or the templates). Empty when the timeline is off or has nothing,
+     * so the reel falls back to the chapters.
+     *
+     * @return array<int, array>
+     */
+    private function timelineBeats(FootballMatch $match, string $voice): array
+    {
+        $timeline = app(GriotTimeline::class);
+        if (!$timeline->ready()) {
+            return [];
+        }
+        $teller = app(GriotTeller::class);
+        $posts = GriotPost::where('match_id', $match->id)->where('kind', '!=', 'full_time')->orderBy('seq')->orderBy('id')->get();
+        if (!$posts->contains(fn (GriotPost $post) => $post->kind !== 'kickoff')) {
+            return [];
+        }
+
+        return $posts->map(function (GriotPost $post) use ($match, $teller, $voice) {
+            $post->setRelation('match', $match);
+            [$headline, $line] = $teller->tell($post, $voice, $match);
+            $tag = mb_strtoupper($teller->tag($post)).($post->clock ? ' · '.$post->clock : '');
+
+            return ['type' => $post->kind, 'tag' => $tag, 'side' => $post->side,
+                'home_score' => (int) $post->home_score, 'away_score' => (int) $post->away_score, 'headline' => $headline, 'line' => $line,
+                // Longest first for radio/speak.mjs: the Griot's full line, then the headline alone.
+                'say' => array_values(array_unique(array_filter([$teller->speech($post, 'en'), rtrim($headline, '.!?').'!'])))];
+        })->values()->all();
     }
 
     /**
@@ -120,13 +169,14 @@ class ReelService
         }));
     }
 
-    public function make(FootballMatch $match): string
+    public function make(FootballMatch $match, ?string $renderer = null): string
     {
-        if (config('reel.renderer') !== 'off') {
-            $this->mark($match, ['attempts' => data_get($match->fresh()?->metadata, 'reel.attempts', 0) + 1]);
+        $renderer ??= config('reel.renderer');
+        if ($renderer !== 'off') {
+            $this->mark($match, ['attempts' => data_get($match->fresh()?->metadata, 'reel.attempts', 0) + 1, 'story' => $this->storyKey($match)]);
         }
 
-        return match (config('reel.renderer')) {
+        return match ($renderer) {
             'server' => $this->renderHere($match),
             'github' => $this->dispatchToGithub($match),
             default => 'off',
@@ -222,7 +272,9 @@ class ReelService
         $matches = FootballMatch::where('match_date', '>=', now('UTC')->subDays(2))->whereNotNull('metadata')->get()
             ->filter(fn ($match) => data_get($match->metadata, 'reel.status') === 'dispatched');
         foreach ($matches as $match) {
-            if (is_file($this->publicPath($match))) {
+            // Only a file written after this dispatch: a re-render must not count the old reel.
+            $file = $this->publicPath($match);
+            if (is_file($file) && filemtime($file) >= Carbon::parse(data_get($match->metadata, 'reel.started_at'))->timestamp - 5) {
                 $this->mark($match, ['status' => 'ready', 'ready_at' => now()->toIso8601String()]);
                 $found++;
             } elseif (Carbon::parse(data_get($match->metadata, 'reel.started_at'))->diffInMinutes(now()) > 45) {
@@ -255,6 +307,47 @@ class ReelService
         $this->mark($match, ['status' => 'queued', 'attempts' => 0, 'queued_at' => now()->toIso8601String()]);
 
         return true;
+    }
+
+    /**
+     * What the reel says: the score plus every goal, red card and VAR call with its minute. A reel
+     * whose story changed after it was made (a late correction from the feed) is out of date.
+     */
+    public function storyKey(FootballMatch $match): string
+    {
+        $match = $match->fresh() ?? $match;
+        $moments = MatchMoment::where('match_id', $match->id)->whereIn('type', ['goal', 'red_card'])->orderBy('id')
+            ->get()->map(fn ($m) => "{$m->type}:{$m->side}:{$m->minute}:{$m->player_name}")->all();
+        $calls = app(GriotTimeline::class)->ready()
+            ? GriotPost::where('match_id', $match->id)->whereIn('kind', ['goal', 'red_card', 'var'])->orderBy('seq')->get()
+                ->map(fn ($p) => "{$p->kind}:{$p->side}:{$p->minute}")->all()
+            : [];
+
+        return md5(json_encode([(int) $match->home_score, (int) $match->away_score, $moments, $calls]));
+    }
+
+    /**
+     * Reels made in the last CORRECTION_WINDOW minutes whose story has since changed (the feed
+     * moved a goal, gave it to someone else, or a score was corrected): queued again, once.
+     * Returns how many were queued.
+     */
+    public function requeueCorrected(): int
+    {
+        $queued = 0;
+        $matches = FootballMatch::with(['league', 'homeTeam', 'awayTeam'])->where('match_date', '>=', now('UTC')->subDays(1))
+            ->whereIn('status', ['FINISHED', 'FT'])->get()
+            ->filter(fn ($m) => data_get($m->metadata, 'reel.status') === 'ready' && data_get($m->metadata, 'reel.story')
+                && data_get($m->metadata, 'reel.ready_at') && Carbon::parse(data_get($m->metadata, 'reel.ready_at'))->diffInMinutes(now()) <= self::CORRECTION_WINDOW
+                && (int) data_get($m->metadata, 'reel.corrections', 0) < 1);
+        foreach ($matches as $match) {
+            if ($this->storyKey($match) !== data_get($match->metadata, 'reel.story') && $this->queue($match)) {
+                $this->mark($match, ['corrections' => (int) data_get($match->metadata, 'reel.corrections', 0) + 1]);
+                Log::info('Reel story changed after it was made; rendering again', ['match_id' => $match->id]);
+                $queued++;
+            }
+        }
+
+        return $queued;
     }
 
     /** How strong a reel is: 10, plus goals, a late goal, red cards and the biggest clubs. */

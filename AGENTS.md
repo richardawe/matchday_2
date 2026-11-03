@@ -54,7 +54,9 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Competition ranking (home pulse, match centre) | `config/competitions.php`, `League::competition_rank/region` | n/a | n/a |
 | Griot story chapters (kick-off, goals, red cards, HT, FT) | `app/Services/MatchStoryService.php`, `Griot.php` (captions in en/pcm/sw/za), `app/Models/MatchMoment.php` | `story:sync` 1m (also after each ESPN live pass) | needs `match_moments` migration |
 | Story cards (PNG, GD) | `app/Services/StoryCardRenderer.php`, route `moments.card` | drawn on first request, cached in `storage/app/story-cards` | needs GD with FreeType + WebP |
-| 20-second reel (Remotion) | `reel/`, `app/Services/ReelService.php`, `reel:render` command, `ReelController` | `reel:render` 1m (one reel per run, ~3 min after FT, 3 attempts per match) | `REEL_RENDERER=off\|server\|github` |
+| 20-second reel (Remotion) | `reel/`, `app/Services/ReelService.php`, `reel:render` command, `ReelController` | `reel:render` 1m (one reel per run on the server, every waiting match at once on GitHub, `REEL_DELAY_MINUTES` after FT, 3 attempts per match; re-rendered once if the story changes within 30 min) | `REEL_RENDERER=off\|server\|github`, `REEL_OVERFLOW` |
+| Bright v2 reel (comic panels, army moods, 20-45 s, Griot timeline moments) | `reel/src/ReelV2.jsx`, moods in `reel/src/timeline.js`, `ReelService::timelineBeats()`, solid cut-outs `public/war/army/*-solid.webp` and poses `public/war/army/poses/` from `scripts/build-armies.mjs`, approved poses in `config/armies.php` `poses`; `node reel/preview.mjs` renders one still per scene | as above | `REEL_STYLE=v2` |
+| Match alerts + inbox ("Alert me" on any match, accounts only; kick-off reminder, kick-off, goals, red cards, HT, FT, reel) and messages to users | `app/Services/Alerts/*` (`WebPush` = RFC 8291/8292 with OpenSSL only, `MatchAlerts`, `Alerts`), `AlertController`, `Admin/AnnouncementController` (`/admin/messages`), `public/sw.js`, `public/manifest.webmanifest`, `resources/js/alerts.js`, tables `notifications`, `push_subscriptions`, `match_alerts`, `match_alert_log`, `announcements` | `alerts:scan` 1m | `PUSH_ENABLED` + VAPID keys (`push:keys --write`); inbox needs the migration |
 | Buffer → X, Instagram (live goal and red-card cards; reels go through growth_posts) | `app/Services/BufferPublisher.php`, `BufferClient.php` (ported from ngr.ltd), `buffer:publish`, `config/buffer.php`, table `social_posts` | `buffer:publish` 1m | `BUFFER_API_KEY` + `BUFFER_CHANNEL_*` |
 | Planned social posts (reels, news, fixture previews with a GD fixture card, morning fixtures, night results; X all, Instagram image/video, TikTok reels) | `GrowthPostGenerator.php` (`twitter:engage`), `FixtureCardRenderer.php` (route `matches.card`), table `growth_posts` (per channel), admin `/admin/twitter` | `twitter:engage` 10m plans; `buffer:publish` 1m sends when a channel's slot is free | `BUFFER_AUTO` + `BUFFER_CHANNEL_*` |
 | Reels-first homepage | `resources/views/home-v2.blade.php`, `HomeShowcase.php` (reels, matchweek board), `resources/js/home-reels.js`, shared blocks in `resources/views/partials/home/`; arena at `/war/arena` (`ArenaService.php`) | n/a | `HOME_V2` (preview `/?home=v2`) |
@@ -113,7 +115,10 @@ checks: `shellcheck matchday-africa/deploy-production.sh scripts/ci/deploy-ssh.s
    (writes samples to `storage/app/griot/audition`), listen, and set `GRIOT_VOICE=true`; the deploy installs the radio
    Node runtime when `GRIOT_VOICE` or `GRIOT_WRITER` is on. Picker and writer models come from `griot-ml/` (README there);
    ship each only when it beats the rules/templates on held-out matches.
-7. Rollback any feature by switching its flag off and clearing caches.
+7. Reels at the final whistle and alerts: Server operations → `configure-release` (`reel_style` v2, `reels_now` on,
+   `push` on). It migrates, creates VAPID keys once, sets `REEL_DELAY_MINUTES=1` and `REEL_OVERFLOW=github` when
+   `REEL_GITHUB_TOKEN` is set. Preview the look first with `reel-render` on a past match.
+8. Rollback any feature by switching its flag off and clearing caches.
 
 **Server operations without a shell:** Actions → *Server operations* (`.github/workflows/server-ops.yml`,
 `main` only, production environment, deploy key). `status` (release, migrations, Buffer settings with the key
@@ -122,7 +127,7 @@ the production secret of that name plus channel IDs, `BUFFER_AUTO`, `BUFFER_SLOT
 `matchday-africa/scripts/set-env.php`, which backs `.env` up first, then `config:cache`), `plan-posts` (plan and
 send once), `clear-drafts` (delete unsent X drafts), `reel-check` (recent PL matches with events/chapters/reel state, finds Node 18+, `npm ci` + `node check.mjs`
 in `reel/`), `configure-reel` (`REEL_RENDERER`, `REEL_NODE`, `REEL_GITHUB_TOKEN` from the production secret), `configure-reel-voice` (Kokoro commentary over new reels: `REEL_NARRATION` on/off),
-`reel-render` (rebuild one match's chapters and render its reel now), `configure-espn` (`live`, `shadow` or `off`),
+`reel-render` (rebuild one match's chapters and render its reel now), `configure-release` (`REEL_STYLE`, instant Buffer reels, web push; see go-live step 7), `configure-espn` (`live`, `shadow` or `off`),
 `espn-sync` (fixtures, live and details passes now, unmatched fixtures listed), `reel-queue` (backfill reels between two Lagos dates), `configure-home` (`HOME_V2` on or off), `configure-growth` (`WHATSAPP_CHANNEL_URL`, `none` hides the CTA). From a terminal: `gh workflow run server-ops.yml -f action=status`.
 
 ## 6. Environment variables added in this round
@@ -142,6 +147,10 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `BUFFER_MODE` | shareNow | Or `addToQueue` to use the Buffer schedule |
 | `BUFFER_CHANNEL_X` / `_INSTAGRAM` / `_TIKTOK` | empty | Buffer channel IDs |
 | `BUFFER_AUTO` | false | Queue and send planned posts (otherwise drafts on `/admin/twitter`) |
+| `BUFFER_REELS_NOW` / `BUFFER_REELS_PER_DAY` | false / 10 | Post a fresh reel (made in the last 6 h) on every channel at once, outside the slots and without using one |
+| `REEL_STYLE` | classic | `v2`: bright comic reel told from the Griot timeline (falls back to chapters) |
+| `REEL_OVERFLOW` | off | `github`: with the server renderer, reels finishing together beyond the first go to GitHub |
+| `PUSH_ENABLED` / `PUSH_VAPID_*` | false / empty | Web push for match alerts; `php artisan push:keys --write` creates the keys (changing them makes every browser subscribe again) |
 | `BUFFER_SLOTS` / `BUFFER_PREVIEWS_PER_DAY` | 08:00,13:00,19:00 / 3 | Lagos times; each account posts at most once per slot (live cards and reels included), so three a day. Fixture previews planned a day |
 | `WHATSAPP_CHANNEL_URL` | empty | WhatsApp channel invite link for the homepage/match CTA |
 | `BUFFER_MONTHLY_REQUESTS` / `_SOFT_LIMIT` / `_HARD_LIMIT` | 3000 / 2500 / 2900 | Buffer API budget, counted in `buffer_usage`; posting stops at the hard limit |
@@ -152,6 +161,19 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `GRIOT_PICKER_MODEL` | storage/app/griot/picker.json | Learned moment picker; missing file = strict rules |
 
 ## 7. Open items and known issues
+### Reel v2, instant reels and match alerts (3 Nov 2026)
+- Owner's choices (3 Nov): keep the statue style with bright comic framing; try drawn mood treatments first (no new
+  art yet); new pose art (victory, dejected, defeated per army) will be generated without crests, sponsors or maker
+  logos. The City, Arsenal and United poses the owner shared carry crests and must not be used. Each pose file
+  goes in `public/war/downloads/rights-safe/poses/<art>-<mood>.png`, is checked by a person, then listed in
+  `config/armies.php` `poses` (approval date in a comment) and built with `node scripts/build-armies.mjs`.
+- Solid cut-outs flood-fill from the edges; statues shot against lit, smoky backdrops need a per-statue level
+  (`SOLID_LEVELS` in `build-armies.mjs`). Venetian Marine still loses part of its cloak; new art on plain black fixes it.
+- v2 renders ~83 s for a 32 s reel on 4 cores, about 8-9 MB (CRF 30). A turning sunburst tripled the size: keep backgrounds still.
+- Owner's choices for alerts (3 Nov): in-app inbox + web push only (no email/WhatsApp yet); "Alert me" on any match;
+  accounts required (guests are told so). Users don't message each other. Email of alerts is not built.
+- iPhones get web push only after "Add to Home Screen" (manifest added); the inbox explains this.
+
 ### Live Griot timeline (31 Oct 2026)
 - Built on a branch, off by default. ESPN commentary (already in the summary the details pass fetches) is stored as
   standard plays; the provider's text is kept for reading details only and is never published or sent to the teacher.

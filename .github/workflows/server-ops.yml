@@ -10,7 +10,7 @@ on:
       action:
         description: What to run
         type: choice
-        options: [status, buffer-channels, configure-buffer, plan-posts, clear-drafts, reel-check, configure-reel, reel-render, configure-espn, espn-sync, reel-queue, configure-home, configure-growth, radio-check, configure-radio, configure-radio-model, configure-radio-voice, configure-griot, configure-reel-voice, radio-run, radio-refresh, radio-status, radio-voice, radio-publish, radio-retry]
+        options: [status, buffer-channels, configure-buffer, plan-posts, clear-drafts, reel-check, configure-reel, reel-render, configure-espn, espn-sync, reel-queue, configure-home, configure-growth, radio-check, configure-radio, configure-radio-model, configure-radio-voice, configure-griot, configure-reel-voice, configure-release, radio-run, radio-refresh, radio-status, radio-voice, radio-publish, radio-retry]
         default: status
       channel_x:
         description: "configure-buffer: Buffer channel ID for X (blank = leave as is)"
@@ -87,6 +87,21 @@ on:
         type: choice
         options: [unchanged, "on", "off"]
         default: unchanged
+      reel_style:
+        description: "configure-release: reel look (v2 = bright comic reel told from the Griot timeline)"
+        type: choice
+        options: [unchanged, classic, v2]
+        default: unchanged
+      reels_now:
+        description: "configure-release: post reels to Buffer at the final whistle, outside the daily slots (also 1-minute render delay, GitHub overflow when a token is set)"
+        type: choice
+        options: [unchanged, "on", "off"]
+        default: unchanged
+      push:
+        description: "configure-release: web push match alerts (creates VAPID keys the first time)"
+        type: choice
+        options: [unchanged, "on", "off"]
+        default: unchanged
       reel_voice:
         description: "configure-reel-voice: Kokoro commentary over new reels"
         type: choice
@@ -146,4 +161,7 @@ jobs:
           INPUT_RADIO_VOICE: ${{ inputs.radio_voice }}
           INPUT_GRIOT_TIMELINE: ${{ inputs.griot_timeline }}
           INPUT_GRIOT_VOICE: ${{ inputs.griot_voice }}
+          INPUT_REEL_STYLE: ${{ inputs.reel_style }}
+          INPUT_REELS_NOW: ${{ inputs.reels_now }}
+          INPUT_PUSH: ${{ inputs.push }}
         run: bash scripts/ci/deploy-ssh.sh "$ACTION"

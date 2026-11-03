@@ -5,7 +5,7 @@ set -Eeuo pipefail
 
 mode=${1:-}
 case "$mode" in
-    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-growth|radio-check|configure-radio|configure-radio-model|configure-radio-voice|configure-griot|configure-reel-voice|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-growth|radio-check|configure-radio|configure-radio-model|configure-radio-voice|configure-griot|configure-reel-voice|configure-release|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
     *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-growth"; exit 2 ;;
 esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
@@ -250,6 +250,31 @@ elif [[ "$mode" == configure-reel-voice ]]; then
     # Kokoro commentary over new reels (REEL_NARRATION); uses the radio runtime already on the server.
     case "${INPUT_REEL_VOICE:-off}" in on) narration=true ;; off) narration=false ;; *) echo "Invalid reel voice setting."; exit 1 ;; esac
     ssh "${ssh_options[@]}" "$target" "cd $root && printf '%s' '{\"REEL_NARRATION\":\"$narration\"}' | php scripts/set-env.php && php artisan config:cache --no-ansi && echo 'Reel commentary: $narration'"
+elif [[ "$mode" == configure-release ]]; then
+    # REEL_STYLE, instant reels (BUFFER_REELS_NOW, REEL_DELAY_MINUTES, REEL_OVERFLOW) and web push
+    # (PUSH_ENABLED; VAPID keys are created on the server the first time and never printed).
+    settings=""
+    overflow=""
+    keys=""
+    case "${INPUT_REEL_STYLE:-unchanged}" in classic|v2) settings="\"REEL_STYLE\":\"$INPUT_REEL_STYLE\"" ;; unchanged) ;; *) echo "Invalid reel style."; exit 1 ;; esac
+    case "${INPUT_REELS_NOW:-unchanged}" in
+        on) settings="$settings${settings:+,}\"BUFFER_REELS_NOW\":\"true\",\"REEL_DELAY_MINUTES\":\"1\""; overflow=1 ;;
+        off) settings="$settings${settings:+,}\"BUFFER_REELS_NOW\":\"false\",\"REEL_DELAY_MINUTES\":\"3\",\"REEL_OVERFLOW\":\"off\"" ;;
+        unchanged) ;; *) echo "Invalid reels_now setting."; exit 1 ;;
+    esac
+    case "${INPUT_PUSH:-unchanged}" in
+        on) settings="$settings${settings:+,}\"PUSH_ENABLED\":\"true\""; keys=1 ;;
+        off) settings="$settings${settings:+,}\"PUSH_ENABLED\":\"false\"" ;;
+        unchanged) ;; *) echo "Invalid push setting."; exit 1 ;;
+    esac
+    [[ -n "$settings" ]] || { echo "Nothing to change."; exit 0; }
+    remote="cd $root && php artisan migrate --force --no-ansi"
+    [[ -n "$keys" ]] && remote="$remote && php artisan push:keys --write --no-ansi"
+    remote="$remote && printf '%s' '{$settings}' | php scripts/set-env.php"
+    # Overflow to GitHub only when the server can dispatch there (REEL_GITHUB_TOKEN already set).
+    [[ -n "$overflow" ]] && remote="$remote && if grep -q '^REEL_GITHUB_TOKEN=.' .env; then printf '%s' '{\"REEL_OVERFLOW\":\"github\"}' | php scripts/set-env.php; else echo 'No REEL_GITHUB_TOKEN: busy matchdays render one reel at a time here.'; fi"
+    remote="$remote && php artisan config:cache --no-ansi && grep -E '^(REEL_STYLE|REEL_RENDERER|REEL_DELAY_MINUTES|REEL_OVERFLOW|BUFFER_REELS_NOW|BUFFER_AUTO|PUSH_ENABLED|GRIOT_TIMELINE)=' .env; grep -q '^PUSH_VAPID_PUBLIC_KEY=.' .env && echo 'VAPID keys: set' || echo 'VAPID keys: not set'"
+    ssh "${ssh_options[@]}" "$target" "$remote"
 elif [[ "$mode" == radio-refresh ]]; then
     ssh "${ssh_options[@]}" "$target" "cd $root && php artisan radio:edition --fresh --no-ansi && php artisan radio:work --no-ansi && php scripts/radio-ops.php status"
 elif [[ "$mode" == radio-run ]]; then

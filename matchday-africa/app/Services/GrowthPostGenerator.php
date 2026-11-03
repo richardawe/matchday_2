@@ -38,6 +38,12 @@ class GrowthPostGenerator
      * and go out through the following week (BufferPublisher::publishTimeline picks them), until
      * the next round starts.
      */
+    /** Plans posts for reels that just became ready (buffer:publish calls this each minute when reels go out at once). */
+    public function planReels(): int
+    {
+        return $this->reels();
+    }
+
     private function reels(): int
     {
         $created = 0;
@@ -46,13 +52,16 @@ class GrowthPostGenerator
             ->each(function (FootballMatch $match) use (&$created) {
                 $final = $this->stories->chapters($match)->firstWhere('type', 'full_time');
                 $verdict = $final ? implode(' ', $this->griot->tell($final)) : '';
+                $length = config('reel.style') === 'v2' ? 'told by the Griot' : 'in 20 seconds';
                 $body = $this->name($match->homeTeam)." {$match->home_score}–{$match->away_score} ".$this->name($match->awayTeam)
-                    .": the whole match in 20 seconds 🎬\n\n{$verdict}\n\nFull story, stats and predictions on Matchday Africa 👇";
+                    .": the whole match {$length} 🎬\n\n{$verdict}\n\nFull story, stats and predictions on Matchday Africa 👇";
                 $link = route('matches.show', $match);
                 if (!$video = app(ReelService::class)->url($match)) {
                     return; // Marked ready but the file is missing: a reel post without its video says nothing.
                 }
-                $created += $this->plan("reel:{$match->id}", 'reel', XText::compose($body, $link, $this->tags($match)), null, $link, now(), $this->nextRound($match), $video);
+                // Due from the moment the reel was made: only a fresh reel goes out at once (buffer.reels_now).
+                $readyAt = Carbon::parse(data_get($match->metadata, 'reel.ready_at'));
+                $created += $this->plan("reel:{$match->id}", 'reel', XText::compose($body, $link, $this->tags($match)), null, $link, $readyAt->isFuture() ? now() : $readyAt, $this->nextRound($match), $video);
             });
 
         return $created;

@@ -14,10 +14,10 @@ import { writeSoundtrack } from './audio.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-export async function renderReel(props, out, { composition = 'Reel', log = console.log, poster = null } = {}) {
-    const started = Date.now();
+// Copies fonts, art, poses and the soundtrack into a fresh public folder; returns [stage, inputProps].
+export async function stageReel(props) {
     const stage = await mkdtemp(path.join(os.tmpdir(), 'matchday-reel-'));
-    try {
+    {
         await mkdir(path.join(stage, 'fonts'));
         for (const font of ['Anton-Regular.ttf', 'IBMPlexSans.ttf', 'IBMPlexMono-SemiBold.ttf']) {
             await copyFile(path.join(here, '../resources/fonts', font), path.join(stage, 'fonts', font));
@@ -30,6 +30,18 @@ export async function renderReel(props, out, { composition = 'Reel', log = conso
             else if (url) await writeFile(path.join(stage, `${side}.webp`), Buffer.from(await (await fetch(url)).arrayBuffer()));
             delete inputProps[side].art_path;
             delete inputProps[side].art_url;
+            // Approved mood poses (style v2): { victory: path-or-url, dejected: …, defeated: … }.
+            const poses = { ...(inputProps[side].pose_paths ?? {}), ...(inputProps[side].pose_urls ?? {}) };
+            inputProps[side].poses = {};
+            for (const [mood, source] of Object.entries(poses)) {
+                if (!source) continue;
+                const name = `${side}-${mood}.webp`;
+                if (/^https?:/.test(source)) await writeFile(path.join(stage, name), Buffer.from(await (await fetch(source)).arrayBuffer()));
+                else await copyFile(source, path.join(stage, name));
+                inputProps[side].poses[mood] = name;
+            }
+            delete inputProps[side].pose_paths;
+            delete inputProps[side].pose_urls;
         }
         // Commentary lines from radio/speak.mjs, when the site spoke them (REEL_NARRATION).
         const voices = [];
@@ -38,9 +50,16 @@ export async function renderReel(props, out, { composition = 'Reel', log = conso
             voices.push({ at, samples: new Float32Array(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)) });
         }
         delete inputProps.narration;
-        await writeSoundtrack(inputProps.beats, path.join(stage, 'soundtrack.wav'), voices);
+        await writeSoundtrack(inputProps, path.join(stage, 'soundtrack.wav'), voices);
         inputProps.audio = 'soundtrack.wav';
+        return [stage, inputProps];
+    }
+}
 
+export async function renderReel(props, out, { composition = 'Reel', log = console.log, poster = null } = {}) {
+    const started = Date.now();
+    const [stage, inputProps] = await stageReel(props);
+    try {
         const serveUrl = await bundle({ entryPoint: path.join(here, 'src/index.jsx'), publicDir: stage });
         // REEL_BROWSER points at an existing Chrome/Chromium if the host can't use Remotion's download.
         const browserExecutable = process.env.REEL_BROWSER || null;
@@ -48,7 +67,7 @@ export async function renderReel(props, out, { composition = 'Reel', log = conso
         let last = -1;
         await renderMedia({
             composition: comp, serveUrl, inputProps, outputLocation: out, browserExecutable,
-            codec: 'h264', crf: 28, audioCodec: 'aac', // about 3–4 MB: small enough to share on WhatsApp
+            codec: 'h264', crf: inputProps.style === 'v2' ? 30 : 28, audioCodec: 'aac', // a few MB: small enough to share on WhatsApp
             concurrency: process.env.REEL_CONCURRENCY ? Number(process.env.REEL_CONCURRENCY) : null,
             onProgress: ({ progress }) => {
                 const pct = Math.floor(progress * 10) * 10;
