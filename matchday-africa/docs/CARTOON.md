@@ -33,3 +33,12 @@ there without a rewrite, and how to switch it on.
 - New army art: `php artisan armies:colours` (sky colours) then `node scripts/build-armies.mjs` (solid cut-outs
   and mood thumbnails).
 - Fixed on the way (both looks): the match page's reel strip and the stories grid made phones scroll sideways.
+- The generator also maps the classic serif (Georgia) to Anton and the classic parchment backgrounds to the
+  cartoon paper, so new classic rules pick up the look without hand-written overrides.
+- Brand (3 Nov): the logo is one rule everywhere (`.matchday-wordmark` sticker with the ink `.matchday-monogram`
+  tile and a sun Anton "MD", the same as the favicon). The share image (`public/images/social-default.png`), the
+  fixture cards (`FixtureCardRenderer::drawCartoon`) and the error pages (`resources/views/errors/`) follow it.
+  Older admin pages that use stock Tailwind button colours are restyled by class in `cartoon.css`.
+- Reels record the look they were drawn in (`metadata.reel.style`); `reel:queue` (Server operations →
+  `reel-queue`) redraws reels from an earlier look in the current one without posting them to social again.
+- Still dark: the live goal and red-card story cards (`StoryCardRenderer`).

@@ -92,6 +92,13 @@ class SiteStyleTest extends TestCase
         $this->assertFalse(ArmyMoods::image(Team::create(['name' => 'Arsenal FC']), 'victory')['logo']);
     }
 
+    public function test_missing_pages_get_the_branded_error_page(): void
+    {
+        $this->get('/no-such-page')->assertNotFound()->assertSee('Off the pitch.')->assertSee('matchday-monogram', false)->assertDontSee('md-cartoon', false);
+        config(['site.style' => 'cartoon']);
+        $this->get('/no-such-page')->assertNotFound()->assertSee('md-cartoon', false)->assertSee("couldn't find that page", false);
+    }
+
     public function test_every_army_has_its_mood_thumbnails(): void
     {
         foreach (config('armies.clubs') as $club) {

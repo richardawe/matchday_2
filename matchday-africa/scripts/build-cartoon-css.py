@@ -21,6 +21,9 @@ OUT = ROOT / 'resources/css/cartoon-auto.css'
 DARK_VARS = ('--md-ink', '--md-panel', '--md-panel-soft')
 
 
+BEIGE = ('#e8e1d3', '#e9e1d2', '#f5efe4', '#f4ecdd', '#f6f0e5', '#d8cdbc', '#d1c7b7', '#c8bdad')
+
+
 def lum(r, g, b):
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
@@ -124,7 +127,14 @@ def walk(css, wrappers=()):
             # An !important original only yields to an !important override.
             imp = '!important' if '!important' in value else ''
             pseudo = re.search(r'::?(before|after)\b', prelude)
-            if prop in ('background', 'background-color', 'background-image') and is_dark_bg(value):
+            if prop in ('font', 'font-family') and 'georgia' in value.lower():
+                # The classic serif becomes the cartoon display face.
+                out.append('font-family:var(--c-display)' + imp)
+                out.append('font-weight:400' + imp)
+            elif prop in ('background', 'background-color') and any(h in value.lower() for h in BEIGE):
+                # The classic parchment panels become the cartoon paper.
+                out.append(('background:none' if pseudo else 'background:var(--c-paper)') + imp)
+            elif prop in ('background', 'background-color', 'background-image') and is_dark_bg(value):
                 out.append(('background:none' if pseudo else 'background:var(--c-surface)') + imp)
             elif prop == 'color' and is_light_text(value):
                 out.append('color:var(--c-ink)' + imp)

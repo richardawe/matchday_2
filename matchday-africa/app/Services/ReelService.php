@@ -203,7 +203,7 @@ class ReelService
         $process = new Process([config('reel.node'), base_path('reel/render.mjs'), '--props', $propsFile, '--out', $out, '--poster', $poster], base_path('reel'), null, null, config('reel.timeout'));
         try {
             $process->mustRun();
-            $this->mark($match, ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String()]);
+            $this->mark($match, ['status' => 'ready', 'source' => 'server', 'ready_at' => now()->toIso8601String(), 'style' => self::style()]);
 
             return 'ready';
         } catch (Throwable $e) {
@@ -275,7 +275,7 @@ class ReelService
             // Only a file written after this dispatch: a re-render must not count the old reel.
             $file = $this->publicPath($match);
             if (is_file($file) && filemtime($file) >= Carbon::parse(data_get($match->metadata, 'reel.started_at'))->timestamp - 5) {
-                $this->mark($match, ['status' => 'ready', 'ready_at' => now()->toIso8601String()]);
+                $this->mark($match, ['status' => 'ready', 'ready_at' => now()->toIso8601String(), 'style' => self::style()]);
                 $found++;
             } elseif (Carbon::parse(data_get($match->metadata, 'reel.started_at'))->diffInMinutes(now()) > 45) {
                 $this->mark($match, ['status' => 'failed', 'error' => 'GitHub render did not arrive within 45 minutes']);
@@ -404,6 +404,18 @@ class ReelService
     private function publicPath(FootballMatch $match): string
     {
         return public_path("generated/reels/{$match->id}/{$match->id}.mp4");
+    }
+
+    /** The reel look new renders use (config reel.style): v2 or classic. */
+    public static function style(): string
+    {
+        return config('reel.style') === 'v2' ? 'v2' : 'classic';
+    }
+
+    /** A ready reel drawn in another look than the current one (reels made before styles were recorded count as classic). */
+    public static function outdated(FootballMatch $match): bool
+    {
+        return data_get($match->metadata, 'reel.status') === 'ready' && data_get($match->metadata, 'reel.style', 'classic') !== self::style();
     }
 
     private function mark(FootballMatch $match, array $reel): void
