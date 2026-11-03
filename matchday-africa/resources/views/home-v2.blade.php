@@ -6,12 +6,34 @@
 @php($featured = $reels['featured'])
 <section class="md-reels" id="reels-hero" aria-labelledby="reels-title">
     <div class="md-wrap md-reels-grid">
-        <div class="md-reels-player">
-            @if($featured)
-                <video id="reels-video" muted playsinline loop preload="none" poster="{{ $featured['poster'] }}" src="{{ $featured['video'] }}" aria-label="{{ $featured['title'] }}: the 20-second reel"></video>
-                <button type="button" class="md-reels-sound" data-reels-sound aria-pressed="false">Sound on</button>
-            @elseif($board->isNotEmpty())
-                <img class="md-reels-fallback" src="{{ $board->first()['card'] }}" alt="{{ $board->first()['title'] }}, kick-off {{ $board->first()['kickoff']->format('H:i') }} WAT">
+        @php($slides = $featured ? collect([$featured])->concat($reels['rail']) : collect())
+        @php($cards = !$featured ? $board->take(6) : collect())
+        <div class="md-reels-player {{ $featured ? '' : 'is-cards' }}" data-reels-player>
+            @if($featured || $cards->isNotEmpty())
+                {{-- Swipe between reels (or, before any reels, this week's fixture cards). The reel on screen plays muted by itself. --}}
+                <div class="md-reels-track" data-reels-track tabindex="0" role="region" aria-roledescription="carousel" aria-label="{{ $featured ? 'Reels: swipe for the next match' : 'This week\'s fixtures: swipe for more' }}">
+                    @foreach($featured ? $slides : $cards as $i => $slide)
+                        @if($featured)
+                            <figure class="md-reels-slide" data-reel-slide data-reel-title="{{ $slide['title'] }}" data-reel-link="{{ $slide['link'] }}" data-reel-share="{{ \App\Support\ShareLink::tagged($slide['page'], 'whatsapp', 'reel') }}" aria-label="{{ $i + 1 }} of {{ $slides->count() }}">
+                                <video muted playsinline loop preload="{{ $i === 0 ? 'metadata' : 'none' }}" @if($slide['poster']) poster="{{ $slide['poster'] }}" @endif src="{{ $slide['video'] }}" aria-label="{{ $slide['title'] }}: the match reel"></video>
+                            </figure>
+                        @else
+                            <a class="md-reels-slide" data-reel-slide href="{{ route('matches.show', $slide['match']) }}" aria-label="{{ $slide['title'] }}, kick-off {{ $slide['kickoff']->format('D H:i') }} WAT ({{ $i + 1 }} of {{ $cards->count() }})">
+                                <img class="md-reels-fallback" src="{{ $slide['card'] }}" alt="" @if($i) loading="lazy" @endif width="1200" height="675">
+                            </a>
+                        @endif
+                    @endforeach
+                </div>
+                @if($featured)
+                    <button type="button" class="md-reels-sound" data-reels-sound aria-pressed="false">Sound on</button>
+                    <button type="button" class="md-reels-tap" data-reels-tap hidden><span aria-hidden="true">▶</span> Tap to play</button>
+                @endif
+                @if(($featured ? $slides : $cards)->count() > 1)
+                    <button type="button" class="md-reels-nav is-prev" data-reels-prev aria-label="Previous">‹</button>
+                    <button type="button" class="md-reels-nav is-next" data-reels-next aria-label="Next">›</button>
+                    <div class="md-reels-dots" aria-hidden="true">@foreach($featured ? $slides : $cards as $slide)<i @class(['is-on' => $loop->first])></i>@endforeach</div>
+                    <span class="md-reels-hint" data-reels-hint aria-hidden="true">Swipe ⇆</span>
+                @endif
             @endif
         </div>
         <div class="md-reels-copy">
@@ -30,7 +52,7 @@
             @if($reels['rail']->isNotEmpty())
                 <div class="md-reels-rail" role="list" aria-label="More reels">
                     @foreach($reels['rail'] as $reel)
-                        <button type="button" role="listitem" class="md-reels-thumb" data-reel-video="{{ $reel['video'] }}" data-reel-poster="{{ $reel['poster'] }}" data-reel-title="{{ $reel['title'] }}" data-reel-link="{{ $reel['link'] }}" data-reel-share="{{ \App\Support\ShareLink::tagged($reel['page'], 'whatsapp', 'reel') }}">
+                        <button type="button" role="listitem" class="md-reels-thumb" data-reel-goto="{{ $loop->iteration }}">
                             @if($reel['poster'])<img src="{{ $reel['poster'] }}" alt="" loading="lazy" width="108" height="192">@endif
                             <span>{{ $reel['title'] }}</span>
                         </button>

@@ -76,6 +76,17 @@ class HomeV2Test extends TestCase
 
         $this->get('/?home=v2')->assertOk()
             ->assertSee('This round\'s reels appear here.', false)
-            ->assertSee('md-reels-fallback', false);
+            ->assertSee('md-reels-fallback', false)
+            ->assertSee('md-reels-player is-cards', false);
+    }
+
+    public function test_every_reel_is_a_slide_in_the_swipeable_strip(): void
+    {
+        $html = $this->get('/?home=v2')->assertOk()->assertSee('data-reels-track', false)->getContent();
+
+        $this->assertSame(substr_count($html, 'data-reel-slide'), substr_count($html, '<video '), 'one video per slide');
+        $this->assertGreaterThan(1, substr_count($html, 'data-reel-slide'));
+        $this->assertStringContainsString('playsinline', $html);
+        $this->assertStringContainsString('data-reel-goto="1"', $html);
     }
 }
