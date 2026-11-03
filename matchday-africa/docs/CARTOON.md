@@ -21,7 +21,8 @@ there without a rewrite, and how to switch it on.
 
 1. Deploy (the look stays classic).
 2. Preview on the live site: open `https://matchday.africa/?style=cartoon`, then browse normally.
-3. For everyone: `SITE_STYLE=cartoon` in `.env`, then `php artisan config:cache`. Back: `SITE_STYLE=classic`.
+3. For everyone: Actions → Server operations → `configure-release` with `reel_style: cartoon` (sets `SITE_STYLE=cartoon`
+   and the v2 reels). Back: the same with `classic`. By hand: `SITE_STYLE` in `.env`, then `php artisan config:cache`.
 
 ## Working on it
 

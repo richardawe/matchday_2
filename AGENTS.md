@@ -116,7 +116,7 @@ checks: `shellcheck matchday-africa/deploy-production.sh scripts/ci/deploy-ssh.s
    (writes samples to `storage/app/griot/audition`), listen, and set `GRIOT_VOICE=true`; the deploy installs the radio
    Node runtime when `GRIOT_VOICE` or `GRIOT_WRITER` is on. Picker and writer models come from `griot-ml/` (README there);
    ship each only when it beats the rules/templates on held-out matches.
-7. Reels at the final whistle and alerts: Server operations → `configure-release` (`reel_style` v2, `reels_now` on,
+7. Cartoon look, reels at the final whistle and alerts: Server operations → `configure-release` (`reel_style` cartoon, `reels_now` on,
    `push` on). It migrates, creates VAPID keys once, sets `REEL_DELAY_MINUTES=1` and `REEL_OVERFLOW=github` when
    `REEL_GITHUB_TOKEN` is set. Preview the look first with `reel-render` on a past match.
 8. Rollback any feature by switching its flag off and clearing caches.
@@ -128,7 +128,7 @@ the production secret of that name plus channel IDs, `BUFFER_AUTO`, `BUFFER_SLOT
 `matchday-africa/scripts/set-env.php`, which backs `.env` up first, then `config:cache`), `plan-posts` (plan and
 send once), `clear-drafts` (delete unsent X drafts), `reel-check` (recent PL matches with events/chapters/reel state, finds Node 18+, `npm ci` + `node check.mjs`
 in `reel/`), `configure-reel` (`REEL_RENDERER`, `REEL_NODE`, `REEL_GITHUB_TOKEN` from the production secret), `configure-reel-voice` (Kokoro commentary over new reels: `REEL_NARRATION` on/off),
-`reel-render` (rebuild one match's chapters and render its reel now), `configure-release` (`REEL_STYLE`, instant Buffer reels, web push; see go-live step 7), `configure-espn` (`live`, `shadow` or `off`),
+`reel-render` (rebuild one match's chapters and render its reel now), `configure-release` (the look: `cartoon` sets `SITE_STYLE=cartoon` and `REEL_STYLE=v2`; instant Buffer reels; web push; see go-live step 7), `configure-espn` (`live`, `shadow` or `off`),
 `espn-sync` (fixtures, live and details passes now, unmatched fixtures listed), `reel-queue` (backfill reels between two Lagos dates), `configure-home` (`HOME_V2` on or off), `configure-growth` (`WHATSAPP_CHANNEL_URL`, `none` hides the CTA). From a terminal: `gh workflow run server-ops.yml -f action=status`.
 
 ## 6. Environment variables added in this round
