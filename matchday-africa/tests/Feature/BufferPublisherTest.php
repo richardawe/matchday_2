@@ -44,7 +44,8 @@ class BufferPublisherTest extends TestCase
         $this->fakeBuffer();
 
         $this->artisan('buffer:publish')->expectsOutput('Buffer: 2 sent, 0 failed')->assertSuccessful();
-        $this->artisan('buffer:publish')->expectsOutput('Buffer: 0 sent, 0 failed');
+        $this->artisan("buffer:publish");
+        $this->assertSame(0, \App\Models\GrowthPost::where("content_key", "like", "reel:%:redraw%")->where("status", "sent")->count(), "not before its slot");
 
         $posts = collect($this->bufferPosts())->keyBy('channelId');
         $this->assertCount(2, $posts);
@@ -93,6 +94,41 @@ class BufferPublisherTest extends TestCase
         File::delete(storage_path("app/reels/{$this->match->id}.mp4"));
     }
 
+    public function test_redrawn_reels_of_the_latest_round_go_out_again_one_per_slot(): void
+    {
+        config(['buffer.x.auto' => true, 'reel.style' => 'v2', 'buffer.reels_now.enabled' => true]);
+        $this->fakeBuffer();
+        $this->match->update(['status' => 'FINISHED', 'metadata' => ['reel' => ['status' => 'ready', 'ready_at' => now()->toIso8601String()]]]);
+        // Its first post went out long ago; the redraw must not be blocked by it, nor repeat it.
+        foreach (['x' => 'reel:%d', 'instagram' => 'reel:%d@instagram', 'tiktok' => 'reel:%d@tiktok'] as $channel => $key) {
+            \App\Models\GrowthPost::create(['content_key' => sprintf($key, $this->match->id), 'channel' => $channel, 'type' => 'reel', 'message' => 'old', 'status' => 'sent', 'scheduled_at' => now()->subDay(), 'published_at' => now()->subDay()]);
+        }
+        $day = now('Africa/Lagos')->toDateString();
+        $this->artisan('reel:queue', ['--from' => $day, '--to' => $day])->expectsOutputToContain('posted to social again');
+        $this->assertTrue(data_get($this->match->fresh()->metadata, 'reel.repost'));
+
+        // Redrawn in the new look (the scheduler's render, done by hand here).
+        $this->match->update(['metadata' => array_merge($this->match->fresh()->metadata, ['reel' => ['status' => 'ready', 'style' => 'v2', 'repost' => true, 'ready_at' => now()->toIso8601String()]])]);
+        File::ensureDirectoryExists(storage_path('app/reels'));
+        File::put(storage_path("app/reels/{$this->match->id}.mp4"), 'mp4');
+        Http::fake(['*' => Http::response('m', 206, ['Content-Type' => 'video/mp4'])]);
+
+        $this->artisan('twitter:engage');
+        $redraws = \App\Models\GrowthPost::where('content_key', 'like', 'reel:%:redraw%')->get();
+        $this->assertCount(3, $redraws);
+        // 19:00 Lagos on the 19th: the next free slot is 09:00 the next morning.
+        $this->assertSame('2026-10-20 09:00', $redraws->first()->scheduled_at->setTimezone('Africa/Lagos')->format('Y-m-d H:i'));
+        $this->assertStringContainsString('New look!', $redraws->firstWhere('channel', 'x')->message);
+        $this->artisan("buffer:publish");
+        $this->assertSame(0, \App\Models\GrowthPost::where("content_key", "like", "reel:%:redraw%")->where("status", "sent")->count(), "not before its slot");
+
+        $this->travelTo(\Carbon\Carbon::parse('2026-10-20 09:01', 'Africa/Lagos'));
+        $this->artisan('buffer:publish')->expectsOutput('Buffer: 3 sent, 0 failed');
+        $this->artisan('twitter:engage');
+        $this->assertCount(3, \App\Models\GrowthPost::where('content_key', 'like', 'reel:%:redraw%')->get(), 'planned once');
+        File::delete(storage_path("app/reels/{$this->match->id}.mp4"));
+    }
+
     public function test_reels_wait_out_matchdays_and_the_afternoon_slot(): void
     {
         config(['buffer.x.auto' => true]);
@@ -105,10 +141,12 @@ class BufferPublisherTest extends TestCase
         Http::fake([url('/generated/reels').'/*' => Http::response('m', 206, ['Content-Type' => 'video/mp4'])]);
 
         // 19:31 on the matchday itself: held back.
-        $this->artisan('buffer:publish')->expectsOutput('Buffer: 0 sent, 0 failed');
+        $this->artisan("buffer:publish");
+        $this->assertSame(0, \App\Models\GrowthPost::where("content_key", "like", "reel:%:redraw%")->where("status", "sent")->count(), "not before its slot");
         // Next day at 13:30, the afternoon slot belongs to news and previews.
         $this->travelTo(now('Africa/Lagos')->addDay()->setTime(13, 30));
-        $this->artisan('buffer:publish')->expectsOutput('Buffer: 0 sent, 0 failed');
+        $this->artisan("buffer:publish");
+        $this->assertSame(0, \App\Models\GrowthPost::where("content_key", "like", "reel:%:redraw%")->where("status", "sent")->count(), "not before its slot");
         // 19:00 is a reel slot.
         $this->travelTo(now('Africa/Lagos')->setTime(19, 5));
         $this->artisan('buffer:publish')->expectsOutput('Buffer: 3 sent, 0 failed');
@@ -179,7 +217,8 @@ class BufferPublisherTest extends TestCase
         $this->fakeBuffer();
         $this->match->update(['match_date' => now('UTC')->subDays(2)]);
 
-        $this->artisan('buffer:publish')->expectsOutput('Buffer: 0 sent, 0 failed');
+        $this->artisan("buffer:publish");
+        $this->assertSame(0, \App\Models\GrowthPost::where("content_key", "like", "reel:%:redraw%")->where("status", "sent")->count(), "not before its slot");
         $this->assertSame([], $this->bufferPosts());
     }
 
@@ -227,7 +266,8 @@ class BufferPublisherTest extends TestCase
         Http::fake(['api.buffer.com/*' => fn () => throw new \Illuminate\Http\Client\ConnectionException('cURL error 28: Operation timed out after 45001 milliseconds')]);
 
         $this->artisan('buffer:publish')->expectsOutput('Buffer: 0 sent, 1 failed');
-        $this->artisan('buffer:publish')->expectsOutput('Buffer: 0 sent, 0 failed');
+        $this->artisan("buffer:publish");
+        $this->assertSame(0, \App\Models\GrowthPost::where("content_key", "like", "reel:%:redraw%")->where("status", "sent")->count(), "not before its slot");
 
         $post = \App\Models\GrowthPost::first();
         $this->assertSame(['failed', 1], [$post->status, $post->attempts]);
@@ -239,7 +279,8 @@ class BufferPublisherTest extends TestCase
         $this->fakeBuffer();
         DB::table('buffer_usage')->insert(['month' => now('UTC')->format('Ym'), 'requests' => 2900]);
 
-        $this->artisan('buffer:publish')->expectsOutput('Buffer: 0 sent, 0 failed');
+        $this->artisan("buffer:publish");
+        $this->assertSame(0, \App\Models\GrowthPost::where("content_key", "like", "reel:%:redraw%")->where("status", "sent")->count(), "not before its slot");
         $this->assertSame([], $this->bufferPosts());
     }
 

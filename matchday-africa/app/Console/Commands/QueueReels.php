@@ -15,13 +15,20 @@ class QueueReels extends Command {
         $from=Carbon::parse($this->option('from'),$tz)->startOfDay()->setTimezone('UTC');
         $to=Carbon::parse($this->option('to'),$tz)->endOfDay()->setTimezone('UTC');
         $queued=0; $skipped=[];
-        foreach(FootballMatch::with(['league','homeTeam','awayTeam'])->whereBetween('match_date',[$from->format('Y-m-d H:i:s'),$to->format('Y-m-d H:i:s')])->orderBy('match_date')->get() as $m){
+        $matches=FootballMatch::with(['league','homeTeam','awayTeam'])->whereBetween('match_date',[$from->format('Y-m-d H:i:s'),$to->format('Y-m-d H:i:s')])->orderBy('match_date')->get();
+        // Redrawn reels from the latest round (the four days up to its last redrawn match) go out on
+        // social again to show the new look; older rounds are only redrawn on the site.
+        $latest=$matches->filter(fn($m)=>ReelService::outdated($m))->max('match_date');
+        foreach($matches as $m){
             // Reels drawn in an earlier look are redrawn in the current one; their social posts are not sent again.
             if(!$this->option('force') && data_get($m->metadata,'reel.status')==='ready' && !ReelService::outdated($m)){ $skipped[]="#{$m->id} already has a reel"; continue; }
-            $reels->queue($m) ? $queued++ : ($m->league?->short_code==='PL' ? $skipped[]="#{$m->id} {$m->homeTeam?->name} v {$m->awayTeam?->name}: not finished or no art" : null);
+            $repost=ReelService::outdated($m) && $latest && $m->match_date->gte($latest->copy()->subDays(4));
+            $reels->queue($m,$repost) ? $queued++ : ($m->league?->short_code==='PL' ? $skipped[]="#{$m->id} {$m->homeTeam?->name} v {$m->awayTeam?->name}: not finished or no art" : null);
         }
         foreach($skipped as $line) $this->line("  skipped {$line}");
         $this->info("{$queued} reels queued; the scheduler renders one a minute.");
+        $reposts=$matches->filter(fn($m)=>data_get($m->fresh()->metadata,'reel.repost')&&data_get($m->fresh()->metadata,'reel.status')==='queued')->count();
+        if($reposts) $this->line("  {$reposts} from the latest round will be posted to social again once redrawn (4 a day: 09:00, 12:00, 15:00, 18:00 Lagos).");
         return self::SUCCESS;
     }
 }
