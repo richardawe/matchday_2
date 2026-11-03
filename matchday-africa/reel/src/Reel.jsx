@@ -1,6 +1,7 @@
 import React from 'react';
 import { AbsoluteFill, Audio, Img, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { buildTimeline, keyMoment } from './timeline.js';
+import { ReelV2 } from './ReelV2.jsx';
 
 // Same look as the story cards: black, team-coloured light, crest-free armies,
 // Anton headlines, IBM Plex captions and a Kente-style band in team colours.
@@ -236,6 +237,7 @@ const Final = ({ home, away, final, duration }) => {
 };
 
 export const Reel = (props) => {
+    if (props.style === 'v2') return <ReelV2 {...props} />;
     const scenes = buildTimeline(props.beats);
     return (
         <AbsoluteFill style={{ background: INK }}>

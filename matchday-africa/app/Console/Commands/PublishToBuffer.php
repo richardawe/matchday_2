@@ -23,7 +23,11 @@ class PublishToBuffer extends Command {
         // One sender at a time (the scheduler and a manual run): two would both see a slot as free.
         $lock=Cache::lock('buffer:publish',600);
         if(!$lock->get()){ $this->warn('Another buffer:publish is running; nothing sent.'); return self::SUCCESS; }
-        try { [$sent,$failed]=$buffer->publishPending(); } finally { $lock->release(); }
+        try {
+            // Reels at the final whistle: plan a reel's posts the minute it is ready, not at the next 10-minute plan.
+            if(config('buffer.reels_now.enabled')&&config('buffer.x.auto')) app(\App\Services\GrowthPostGenerator::class)->planReels();
+            [$sent,$failed]=$buffer->publishPending();
+        } finally { $lock->release(); }
         $this->info("Buffer: {$sent} sent, {$failed} failed");
         return $failed?self::FAILURE:self::SUCCESS;
     }

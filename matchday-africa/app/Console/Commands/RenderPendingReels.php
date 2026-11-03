@@ -13,9 +13,20 @@ class RenderPendingReels extends Command {
         if(!Schema::hasTable('match_moments')){ $this->warn('match_moments table missing; run migrations.'); return self::SUCCESS; }
         if($id=$this->argument('match')){ $this->info($reels->make(FootballMatch::findOrFail($id))); return self::SUCCESS; }
         if($found=$reels->collectUploads()) $this->info("{$found} reels arrived from GitHub");
-        // One at a time: a server render takes a few minutes of CPU.
-        $match=$reels->pending()->first();
-        if(!$match){ $this->info('No reels waiting.'); return self::SUCCESS; }
+        if($again=$reels->requeueCorrected()) $this->info("{$again} reels queued again after a correction");
+        $pending=$reels->pending()->values();
+        if($pending->isEmpty()){ $this->info('No reels waiting.'); return self::SUCCESS; }
+        // GitHub renders run side by side: send every waiting match at once.
+        if(config('reel.renderer')==='github'){
+            foreach($pending as $match) $this->info("Match {$match->id}: ".$reels->make($match));
+            return self::SUCCESS;
+        }
+        // This server renders one at a time (a few minutes of CPU each). When matches finish
+        // together, the others go to GitHub first so they don't queue behind this one.
+        if(config('reel.overflow')==='github' && config('reel.github.token')){
+            foreach($pending->slice(1) as $match) $this->info("Match {$match->id}: ".$reels->make($match, 'github'));
+        }
+        $match=$pending->first();
         $this->info("Match {$match->id}: ".$reels->make($match));
         return self::SUCCESS;
     }

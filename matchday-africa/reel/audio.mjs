@@ -4,12 +4,15 @@
 // Optional commentary (radio/speak.mjs: 24 kHz mono lines with start times) is laid on top, with
 // the crowd and drums dipped while the commentator speaks.
 import { writeFile } from 'node:fs/promises';
-import { buildTimeline, FPS, TOTAL } from './src/timeline.js';
+import { FPS, timelineFor, totalFrames } from './src/timeline.js';
 
 const RATE = 44100;
 
-export async function writeSoundtrack(beats, file, voices = []) {
-    const length = Math.ceil((TOTAL / FPS) * RATE);
+// `props` is the reel's props (either style); a bare beats array is the classic 20-second reel.
+export async function writeSoundtrack(props, file, voices = []) {
+    if (Array.isArray(props)) props = { beats: props };
+    const seconds = totalFrames(props) / FPS;
+    const length = Math.ceil(seconds * RATE);
     const mix = new Float32Array(length);
     let seed = 7;
     const noise = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
@@ -27,6 +30,10 @@ export async function writeSoundtrack(beats, file, voices = []) {
         });
     };
     const thud = (at, gain = 0.9) => add(at, 0.9, (t) => gain * Math.sin(2 * Math.PI * (55 + 40 * Math.exp(-t * 12)) * t) * Math.exp(-t * 4));
+    // The woodwork: a short metallic ring with a few inharmonic partials.
+    const clang = (at, gain = 0.35) => add(at, 1.1, (t) => gain * Math.exp(-t * 5) * (Math.sin(2 * Math.PI * 523 * t) + 0.6 * Math.sin(2 * Math.PI * 1307 * t) + 0.3 * Math.sin(2 * Math.PI * 2213 * t)));
+    // A crowd's groan for a chance gone: noise that swells and falls away.
+    const groan = (at, gain = 0.16) => add(at, 1.4, (t) => gain * noise() * Math.sin(Math.PI * Math.min(1, t / 1.4)));
     const horn = (at, seconds) => add(at, seconds, (t) => {
         const env = Math.min(1, t / 0.25) * Math.min(1, (seconds - t) / 0.4);
         const f = 110;
@@ -38,13 +45,13 @@ export async function writeSoundtrack(beats, file, voices = []) {
     for (let i = 0; i < length; i++) {
         const t = i / RATE;
         low += 0.02 * (noise() - low);
-        const swell = 0.05 + 0.05 * (t / (TOTAL / FPS)) + 0.015 * Math.sin(t * 1.7);
+        const swell = 0.05 + 0.05 * (t / seconds) + 0.015 * Math.sin(t * 1.7);
         mix[i] += low * swell * 6;
     }
 
     horn(0, 1.9);
     talkingDrum(0.05, 180, 110, 0.6);
-    for (const scene of buildTimeline(beats)) {
+    for (const scene of timelineFor(props)) {
         const at = scene.from / FPS;
         if (scene.kind === 'beat' && scene.beat.type === 'goal') {
             talkingDrum(at);
@@ -52,6 +59,12 @@ export async function writeSoundtrack(beats, file, voices = []) {
             add(at, 1.6, (t) => noise() * 0.18 * Math.exp(-t * 1.6) * Math.min(1, t / 0.08)); // crowd roar
         } else if (scene.kind === 'beat' && scene.beat.type === 'red_card') {
             thud(at);
+        } else if (scene.kind === 'beat' && scene.beat.type === 'woodwork') {
+            clang(at + 0.1);
+            groan(at + 0.25);
+        } else if (scene.kind === 'beat' && (scene.beat.type === 'big_chance' || scene.beat.type === 'var')) {
+            groan(at + 0.05);
+            talkingDrum(at, 150, 100, 0.4);
         } else if (scene.kind === 'beat') {
             talkingDrum(at, 170, 120, 0.45);
         } else if (scene.kind === 'final') {

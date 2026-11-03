@@ -73,6 +73,9 @@ class BufferPublisher
         GrowthPost::where('status', 'sending')->where('updated_at', '<', now()->subMinutes(10))->update(['status' => 'queued']);
 
         foreach (array_filter(config('buffer.channels')) as $channel => $channelId) {
+            if (config('buffer.reels_now.enabled')) {
+                $done = $this->publishReelsNow($channel, $channelId, $done);
+            }
             if (!$this->slotOpen($channel) || !BufferUsage::allows(true)) {
                 continue;
             }
@@ -84,29 +87,65 @@ class BufferPublisher
             // The claim above bypassed the model; without this, putting it back to queued is a no-op.
             $post->forceFill(['status' => 'sending'])->syncOriginal();
 
-            if ($post->type === 'reel' && ($match = FootballMatch::find((int) Str::after($post->content_key, 'reel:'))) && ($url = app(ReelService::class)->url($match))) {
-                // Reels queued before they moved to static files still name the PHP route, which Buffer can't read.
-                $post->video_url = $url;
-            }
-            $image = $post->image_url && $this->reachable($post->image_url, 'image/') ? $post->image_url : null;
-            $video = $post->video_url && $this->reachable($post->video_url, 'video/') ? $post->video_url : null;
-            $missing = ($post->video_url && !$video) ? $post->video_url : (($post->image_url && !$image && $channel !== 'x') ? $post->image_url : null);
-            $result = $missing
-                ? ['error' => "The media did not load ({$missing}); Buffer fetches it from there."]
-                : $this->buffer->createPost($channelId, $channel, $post->message, image: $image, video: $video);
-            $attempts = $post->attempts + 1;
+            $done = $this->sendPlanned($post, $channel, $channelId, $done);
+        }
 
-            if ($result['ok'] ?? false) {
-                $post->update(['status' => 'sent', 'provider_post_id' => $result['id'], 'published_at' => now(), 'attempts' => $attempts,
-                    'last_error' => $post->image_url && !$image ? 'Sent without its image: the image URL did not load.' : null]);
-                $done[0]++;
-            } else {
-                $timedOut = $result['timed_out'] ?? false;
-                $post->update(['status' => $timedOut || $attempts >= self::MAX_ATTEMPTS ? 'failed' : 'queued', 'attempts' => $attempts,
-                    'last_error' => ($timedOut ? 'Buffer did not answer in time; it may still have posted it. Check Buffer before retrying. ' : '')
-                        .mb_substr($result['error'] ?? 'Unknown Buffer response', 0, 900)]);
-                $done[1]++;
+        return $done;
+    }
+
+    /** Sends one claimed planned post through Buffer and records the outcome. Returns [sent, failed]. */
+    private function sendPlanned(GrowthPost $post, string $channel, string $channelId, array $done): array
+    {
+        if ($post->type === 'reel' && ($match = FootballMatch::find((int) Str::after($post->content_key, 'reel:'))) && ($url = app(ReelService::class)->url($match))) {
+            // Reels queued before they moved to static files still name the PHP route, which Buffer can't read.
+            $post->video_url = $url;
+        }
+        $image = $post->image_url && $this->reachable($post->image_url, 'image/') ? $post->image_url : null;
+        $video = $post->video_url && $this->reachable($post->video_url, 'video/') ? $post->video_url : null;
+        $missing = ($post->video_url && !$video) ? $post->video_url : (($post->image_url && !$image && $channel !== 'x') ? $post->image_url : null);
+        $result = $missing
+            ? ['error' => "The media did not load ({$missing}); Buffer fetches it from there."]
+            : $this->buffer->createPost($channelId, $channel, $post->message, image: $image, video: $video);
+        $attempts = $post->attempts + 1;
+
+        if ($result['ok'] ?? false) {
+            $post->update(['status' => 'sent', 'provider_post_id' => $result['id'], 'published_at' => now(), 'attempts' => $attempts,
+                'last_error' => $post->image_url && !$image ? 'Sent without its image: the image URL did not load.' : null]);
+            $done[0]++;
+        } else {
+            $timedOut = $result['timed_out'] ?? false;
+            $post->update(['status' => $timedOut || $attempts >= self::MAX_ATTEMPTS ? 'failed' : 'queued', 'attempts' => $attempts,
+                'last_error' => ($timedOut ? 'Buffer did not answer in time; it may still have posted it. Check Buffer before retrying. ' : '')
+                    .mb_substr($result['error'] ?? 'Unknown Buffer response', 0, 900)]);
+            $done[1]++;
+        }
+
+        return $done;
+    }
+
+    /**
+     * Reels at the final whistle (config buffer.reels_now): every fresh reel waiting on a channel
+     * goes out now, outside the slots, up to the daily cap. Returns [sent, failed].
+     */
+    private function publishReelsNow(string $channel, string $channelId, array $done): array
+    {
+        $rule = config('buffer.reels_now');
+        $today = now(config('buffer.x.timezone'))->startOfDay()->setTimezone(config('app.timezone'));
+        $sent = GrowthPost::where(['channel' => $channel, 'type' => 'reel', 'status' => 'sent'])->where('published_at', '>=', $today)->count();
+        $fresh = GrowthPost::where(['channel' => $channel, 'type' => 'reel', 'status' => 'queued'])
+            ->where('scheduled_at', '<=', now())->where('scheduled_at', '>=', now()->subHours($rule['fresh_hours']))
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))->orderBy('scheduled_at')->get();
+        foreach ($fresh as $post) {
+            if ($sent >= $rule['per_day'] || !BufferUsage::allows(true)) {
+                break;
             }
+            if (!GrowthPost::whereKey($post->id)->where('status', 'queued')->update(['status' => 'sending'])) {
+                continue;
+            }
+            $post->forceFill(['status' => 'sending'])->syncOriginal();
+            $before = $done[0];
+            $done = $this->sendPlanned($post, $channel, $channelId, $done);
+            $sent += $done[0] - $before;
         }
 
         return $done;
@@ -180,7 +219,9 @@ class BufferPublisher
         }
         $since = $start->setTimezone(config('app.timezone'));
 
-        return !GrowthPost::where(['channel' => $channel, 'status' => 'sent'])->where('published_at', '>=', $since)->exists()
+        return !GrowthPost::where(['channel' => $channel, 'status' => 'sent'])->where('published_at', '>=', $since)
+            // Reels sent at the final whistle don't use a slot (config buffer.reels_now).
+            ->when(config('buffer.reels_now.enabled'), fn ($q) => $q->where('type', '!=', 'reel'))->exists()
             && !(Schema::hasTable('social_posts') && DB::table('social_posts')->where(['channel' => $channel, 'status' => 'sent'])->where('updated_at', '>=', $since)->exists());
     }
 

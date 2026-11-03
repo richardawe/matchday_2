@@ -27,8 +27,30 @@ class Armies
             'cutout_path' => $art ? resource_path("armies/{$art}.webp") : null,
             'cutout' => $art ? asset(config('armies.optimised')."/{$art}-cutout-960.webp") : null,
             'image' => $art ? asset(config('armies.optimised')."/{$art}-960.webp") : null,
+            // Opaque cut-out for bright backgrounds (reel style v2).
+            'solid_path' => $art ? public_path(config('armies.optimised')."/{$art}-solid.webp") : null,
+            'solid' => $art ? asset(config('armies.optimised')."/{$art}-solid.webp") : null,
+            'poses' => $art ? self::poses($art) : [],
             'srcset' => $art ? collect(config('armies.widths'))->map(fn ($w) => asset(config('armies.optimised')."/{$art}-{$w}.webp")." {$w}w")->join(', ') : null,
         ];
+    }
+
+    /**
+     * Approved mood poses whose files exist: ['victory' => ['path' => …, 'url' => …], …].
+     *
+     * @return array<string, array{path: string, url: string}>
+     */
+    public static function poses(string $art): array
+    {
+        $poses = [];
+        foreach (config("armies.poses.{$art}", []) as $mood) {
+            $file = config('armies.optimised')."/poses/{$art}-{$mood}.webp";
+            if (in_array($mood, ['victory', 'dejected', 'defeated'], true) && is_file(public_path($file))) {
+                $poses[$mood] = ['path' => public_path($file), 'url' => asset($file)];
+            }
+        }
+
+        return $poses;
     }
 
     /** Light colour for glows: the kit's first colour, or its second when the first is near-black. */

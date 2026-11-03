@@ -45,6 +45,14 @@ return [
         'wolverhampton wanderers' => ['army' => 'Wolf Warband', 'art' => 'wolf-warband', 'colours' => ['#FDB913', '#231F20']],
     ],
 
+    // Mood poses for the v2 reel, by art name: which of victory, dejected and defeated have been
+    // generated, checked crest-, sponsor- and maker-logo-free by a person, and approved. Files live
+    // in war/downloads/rights-safe/poses/<art>-<mood>.png and are cut out by scripts/build-armies.mjs.
+    // A mood not listed here is drawn from the warrior statue instead.
+    // Example: 'zulu-impi' => ['victory', 'dejected', 'defeated'], // approved by …, date
+    'poses' => [
+    ],
+
     // Names providers use that differ from the keys above.
     'aliases' => [
         'bournemouth' => 'afc bournemouth',

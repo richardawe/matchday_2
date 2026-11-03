@@ -1,7 +1,7 @@
 import React from 'react';
 import { Composition, registerRoot } from 'remotion';
 import { Reel } from './Reel.jsx';
-import { FPS, TOTAL } from './timeline.js';
+import { FPS, TOTAL, totalFrames } from './timeline.js';
 import sample from './sample.json';
 
 const SIZES = { story: [1080, 1920], square: [1080, 1080] };
@@ -18,7 +18,8 @@ const Root = () => (
             defaultProps={sample}
             calculateMetadata={({ props }) => {
                 const [width, height] = SIZES[props.format] ?? SIZES.story;
-                return { width, height };
+                // The classic reel is 20 seconds; v2 runs as long as its story (20–45 s).
+                return { width, height, durationInFrames: totalFrames(props) };
             }}
         />
         {/* Two-second clip used by check.mjs to prove the server can render. */}
