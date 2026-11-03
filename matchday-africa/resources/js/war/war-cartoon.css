@@ -212,3 +212,13 @@ body.war-cartoon .fieldAvatar.side1 img, body.war-cartoon .onlinePlayer.p1 img {
     body.war-cartoon .fieldAvatar, body.war-cartoon .onlinePlayer { width: 36px; height: 52px; }
     body.war-cartoon .fieldAvatar.defender, body.war-cartoon .onlinePlayer.back { width: 32px; height: 46px; }
 }
+
+/* Smaller warriors, so the two teams have room on the pitch. */
+body.war-cartoon .fieldAvatar, body.war-cartoon .onlinePlayer { width: 52px; height: 78px; }
+body.war-cartoon .fieldAvatar.defender, body.war-cartoon .onlinePlayer.back { width: 44px; height: 66px; }
+@media (max-width: 760px) {
+    body.war-cartoon .fieldAvatar, body.war-cartoon .onlinePlayer { width: 28px; height: 40px; }
+    body.war-cartoon .fieldAvatar.defender, body.war-cartoon .onlinePlayer.back { width: 25px; height: 36px; }
+    body.war-cartoon .fieldAvatar b, body.war-cartoon .onlinePlayer b { width: 15px; height: 15px; font-size: .4rem; top: -6px; left: -8px; }
+    body.war-cartoon .fieldAvatar::before, body.war-cartoon .onlinePlayer::before { height: 7px; bottom: -3px; }
+}
