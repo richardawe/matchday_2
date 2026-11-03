@@ -139,3 +139,76 @@ body.war-cartoon .gameStart > p:not(.eyebrow), body.war-cartoon .modeCards span,
 body.war-cartoon .modeCards { gap: 16px; padding: 0 4px 8px; }
 body.war-cartoon .modeCards i { color: var(--c-live); font-style: normal; }
 body.war-cartoon .modeCards b { font-family: var(--c-display); font-weight: 400; font-size: 1.6rem; text-transform: uppercase; }
+
+/* The pitch: comic grass stripes, chalk lines, ink frame. */
+body.war-cartoon .onlineField, body.war-cartoon .formationField { background: repeating-linear-gradient(90deg, #4cae4f 0 10%, #43a047 10% 20%); border: 4px solid var(--c-ink); box-shadow: 8px 8px 0 var(--c-ink); }
+body.war-cartoon .fieldLines { opacity: .7; }
+body.war-cartoon .fieldLines:before, body.war-cartoon .fieldLines i, body.war-cartoon .fieldLines b { border-color: #fff; border-width: 3px; }
+body.war-cartoon .commanderBg { opacity: .16; filter: none; }
+body.war-cartoon .goalMouth { background: repeating-linear-gradient(45deg, #ffffff66 0 4px, transparent 4px 8px); border: 3px solid #fff; color: #fff; font-family: var(--c-mono); text-shadow: 0 0 3px var(--c-ink); }
+body.war-cartoon .matchBall b { border: 3px solid var(--c-ink); box-shadow: 3px 3px 0 var(--c-ink); }
+body.war-cartoon .matchBall span { background: var(--c-ink); color: var(--c-sun); font-family: var(--c-mono); }
+
+/* The players: full-body statues instead of circles, standing on their shadow, running as they
+   glide to their new spot and breathing between moves. Anchored at the feet. */
+body.war-cartoon .onlinePlayer, body.war-cartoon .fieldAvatar { width: 66px; height: 100px; border: 0; border-radius: 0; overflow: visible; background: none; box-shadow: none; transform: translate(-50%, -80%); }
+body.war-cartoon .fieldAvatar.defender, body.war-cartoon .onlinePlayer.back { width: 56px; height: 86px; box-shadow: none; }
+body.war-cartoon .fieldAvatar.attacker { box-shadow: none; }
+body.war-cartoon .onlinePlayer::before, body.war-cartoon .fieldAvatar::before { content: ""; position: absolute; left: 12%; right: 12%; bottom: -5px; height: 12px; border-radius: 50%; background: rgba(0, 0, 0, .32); }
+body.war-cartoon .fieldAvatar.onBall::before { background: radial-gradient(closest-side, var(--c-sun), rgba(255, 210, 63, .2)); box-shadow: 0 0 0 2px var(--c-ink); }
+body.war-cartoon .fieldBody { position: relative; transform-origin: 50% 100%; animation: warRun .7s ease-out, warIdle 2.4s ease-in-out .7s infinite; }
+body.war-cartoon .onlinePlayer img, body.war-cartoon .fieldAvatar img { width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; }
+body.war-cartoon .fieldAvatar.side0 img, body.war-cartoon .onlinePlayer.p0 img { transform: scaleX(-1); }
+body.war-cartoon .fieldAvatar.side1 img, body.war-cartoon .onlinePlayer.p1 img { transform: none; }
+body.war-cartoon .onlinePlayer b, body.war-cartoon .fieldAvatar b { left: -4px; right: auto; top: -6px; bottom: auto; width: 24px; height: 24px; border-radius: 0; background: var(--club, var(--c-sun)); border: 2px solid var(--c-ink); color: #fff; font: .6rem var(--c-display); text-shadow: 1px 1px 0 var(--c-ink); }
+body.war-cartoon .fieldBody.attack { animation: warRun .7s ease-out, unitCharge .65s; }
+body.war-cartoon .fieldBody.defend { animation: warRun .7s ease-out, unitBrace .65s; }
+body.war-cartoon .fieldBody.counter { animation: unitCounter .65s, warIdle 2.4s ease-in-out .7s infinite; }
+body.war-cartoon .fieldBody.celebrate { animation: warJump .75s ease-out, warIdle 2.4s ease-in-out .75s infinite; }
+@keyframes warRun { 0%, 40%, 80%, 100% { translate: 0 0; rotate: 0deg; } 20% { translate: 0 -9%; rotate: -7deg; } 60% { translate: 0 -9%; rotate: 7deg; } }
+@keyframes warIdle { 50% { translate: 0 -3%; } }
+@keyframes warJump { 40% { translate: 0 -28%; scale: 1.1; } 70% { translate: 0 0; scale: 1; } }
+@media (max-width: 760px) {
+    body.war-cartoon .fieldAvatar, body.war-cartoon .onlinePlayer { width: 46px; height: 72px; }
+    body.war-cartoon .fieldAvatar.defender { width: 40px; height: 62px; }
+    body.war-cartoon .fieldAvatar b { width: 19px; height: 19px; font-size: .5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    body.war-cartoon .fieldBody, body.war-cartoon .fieldBody.attack, body.war-cartoon .fieldBody.defend, body.war-cartoon .fieldBody.counter, body.war-cartoon .fieldBody.celebrate { animation: none; }
+    .fieldAvatar { transition: none; }
+}
+
+/* Figures without their stone plinths: the body's frame cuts the bottom fifth of the statue. */
+body.war-cartoon .fieldBody { overflow: hidden; height: 100%; }
+body.war-cartoon .onlinePlayer img, body.war-cartoon .fieldAvatar img { height: 122%; object-position: 50% 0%; }
+@media (max-width: 760px) {
+    body.war-cartoon .fieldAvatar, body.war-cartoon .onlinePlayer { width: 40px; height: 60px; }
+    body.war-cartoon .fieldAvatar.defender, body.war-cartoon .onlinePlayer.back { width: 34px; height: 52px; }
+    body.war-cartoon .fieldAvatar b, body.war-cartoon .onlinePlayer b { width: 17px; height: 17px; font-size: .45rem; top: -4px; left: -6px; }
+}
+
+/* Ball label, scoreboard and orders in the comic type. */
+body.war-cartoon .matchBall span, body.war-cartoon .matchBall.owner0 span, body.war-cartoon .matchBall.owner1 span { color: var(--c-sun); font-size: .62rem; padding: 3px 6px; }
+body.war-cartoon .matchClock, body.war-cartoon .gameTop b, body.war-cartoon .turnBanner b { font-family: var(--c-display) !important; font-weight: 400; letter-spacing: .02em; }
+body.war-cartoon .footballControls button b, body.war-cartoon .footballControls h3 { font-family: var(--c-display) !important; font-weight: 400; text-transform: uppercase; letter-spacing: .03em; }
+body.war-cartoon .footballControls button i { color: var(--c-live); font-style: normal; }
+body.war-cartoon .footballControls button small { color: var(--c-ink); }
+body.war-cartoon .footballControls button:disabled { background: #e9e1cc; color: #6b6457; box-shadow: none; }
+body.war-cartoon .turnBanner > i { background: var(--c-ink); color: var(--c-sun); border-radius: 0; font-family: var(--c-display); font-style: normal; }
+
+/* Taller crop (the statues stand on deep plinths); a brace without the circle's glow ring. */
+body.war-cartoon .onlinePlayer img, body.war-cartoon .fieldAvatar img { height: 138%; }
+body.war-cartoon .fieldBody.defend { animation: warRun .7s ease-out, warBrace .65s; }
+@keyframes warBrace { 50% { scale: .86; filter: brightness(1.15); } }
+body.war-cartoon .commanderBg { opacity: .08; }
+
+/* Size each statue by its height and cut only the bottom (the plinth); swords and shields may
+   reach past the sides. */
+body.war-cartoon .fieldBody { overflow: visible; clip-path: inset(-60% -90% 0 -90%); }
+body.war-cartoon .onlinePlayer img, body.war-cartoon .fieldAvatar img { position: absolute; left: 50%; top: 0; width: auto; max-width: none; height: 132%; transform: translateX(-50%); }
+body.war-cartoon .fieldAvatar.side0 img, body.war-cartoon .onlinePlayer.p0 img { transform: translateX(-50%) scaleX(-1); }
+body.war-cartoon .fieldAvatar.side1 img, body.war-cartoon .onlinePlayer.p1 img { transform: translateX(-50%); }
+@media (max-width: 760px) {
+    body.war-cartoon .fieldAvatar, body.war-cartoon .onlinePlayer { width: 36px; height: 52px; }
+    body.war-cartoon .fieldAvatar.defender, body.war-cartoon .onlinePlayer.back { width: 32px; height: 46px; }
+}
