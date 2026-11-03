@@ -1,0 +1,141 @@
+/*
+ * Matchday War in the cartoon look (body.war-cartoon: SITE_STYLE=cartoon or ?style=cartoon).
+ * The face-off opens the page under the two clubs' skies, the game sits in a comic frame, the
+ * armies are trading cards and the Myth Grammar is a grid of panels. Crest-free statues come from
+ * art.ts. war-cartoon-auto.css (generated: python3 scripts/build-cartoon-css.py) flips the dark
+ * surfaces war.css and game.css hard-code; these rules win over it.
+ */
+@import './war-cartoon-auto.css';
+
+/* The reel's fonts (OFL), cut to Latin and Latin Extended and served with the site as WOFF2:
+   resources/fonts/web, made with pyftsubset. No third-party font request. */
+@font-face { font-family: Anton; src: url('../../fonts/web/Anton-Regular.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'IBM Plex Sans'; src: url('../../fonts/web/IBMPlexSans.woff2') format('woff2'); font-weight: 100 700; font-display: swap; }
+@font-face { font-family: 'IBM Plex Mono'; src: url('../../fonts/web/IBMPlexMono-SemiBold.woff2') format('woff2'); font-weight: 500 600; font-display: swap; }
+
+body.war-cartoon {
+    --c-ink: #0b0b0b;
+    --c-paper: #fff8e7;
+    --c-surface: #ffffff;
+    --c-sun: #ffd23f;
+    --c-live: #ff4b3e;
+    --c-sky: #4fb3ff;
+    --c-red: #b3261e;
+    --c-display: Anton, Impact, 'Arial Narrow', sans-serif;
+    --c-body: 'IBM Plex Sans', Arial, sans-serif;
+    --c-mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --ink: var(--c-paper);
+    --paper: var(--c-ink);
+    --gold: var(--c-red);
+    background: var(--c-paper) radial-gradient(rgba(11, 11, 11, .07) 22%, transparent 24%) 0 0 / 22px 22px;
+    color: var(--c-ink);
+    font-family: var(--c-body);
+}
+body.war-cartoon h1, body.war-cartoon h2, body.war-cartoon h3 { font-family: var(--c-display) !important; font-weight: 400; text-transform: uppercase; letter-spacing: .01em; line-height: 1; color: var(--c-ink); }
+body.war-cartoon p { font-family: var(--c-body); }
+body.war-cartoon :focus-visible { outline: 3px solid var(--c-ink); outline-offset: 3px; box-shadow: 0 0 0 6px var(--c-sun); }
+body.war-cartoon .eyebrow { display: inline-block; padding: .3rem .6rem; background: var(--c-ink); color: var(--c-sun); font-family: var(--c-mono); letter-spacing: .14em; transform: rotate(-1deg); }
+
+/* Top bar: ink with a sun rule, the brand as a tilted sticker. */
+body.war-cartoon nav { position: sticky; top: 0; background: var(--c-ink); border-bottom: 5px solid var(--c-sun); color: var(--c-paper); }
+body.war-cartoon nav a, body.war-cartoon nav b, body.war-cartoon nav summary { color: var(--c-paper); font-family: var(--c-display); font-size: .95rem; letter-spacing: .06em; }
+body.war-cartoon nav .brand { padding: .2rem .6rem; background: var(--c-sun); color: var(--c-ink); border: 3px solid var(--c-paper); transform: rotate(-2deg); }
+body.war-cartoon nav .brand span { border: 0; background: var(--c-ink); color: var(--c-sun); font-family: var(--c-display); }
+body.war-cartoon nav .backHome { border: 3px solid var(--c-paper); padding: .35rem .7rem; }
+body.war-cartoon .mobileMenu > div { background: var(--c-paper); border: 3px solid var(--c-ink); }
+body.war-cartoon .mobileMenu > div a { color: var(--c-ink); }
+
+/* The face-off: each army under its club's sky, a VS burst between them. */
+body.war-cartoon .matchweek { padding: 40px 4vw 70px; background: transparent; }
+body.war-cartoon .warTitle { display: inline-block; margin: 0 0 .6rem; padding: .3rem .9rem; font-size: clamp(2.6rem, 9vw, 5.5rem) !important; background: var(--c-sun); border: 5px solid var(--c-ink); box-shadow: 8px 8px 0 var(--c-ink); transform: rotate(-2deg); }
+body.war-cartoon .heading h2 { font-size: clamp(2rem, 6vw, 3.4rem); }
+body.war-cartoon .heading span { color: var(--c-ink); font-family: var(--c-mono); font-weight: 600; }
+body.war-cartoon .arena { background: var(--c-ink); border: 5px solid var(--c-ink); box-shadow: 12px 12px 0 var(--c-ink); }
+body.war-cartoon .arena:after { background: none; }
+body.war-cartoon .fighter { overflow: hidden; }
+body.war-cartoon .fighter.left { background: repeating-conic-gradient(from -8deg at 50% 85%, rgba(255,255,255,.24) 0deg 7deg, transparent 7deg 15deg), radial-gradient(120% 90% at 50% 85%, color-mix(in srgb, var(--home) 60%, #fff), var(--home) 50%, color-mix(in srgb, var(--home) 55%, #000)); clip-path: polygon(0 0, 100% 0, 86% 100%, 0 100%); }
+body.war-cartoon .fighter.right { background: repeating-conic-gradient(from -8deg at 50% 85%, rgba(255,255,255,.24) 0deg 7deg, transparent 7deg 15deg), radial-gradient(120% 90% at 50% 85%, color-mix(in srgb, var(--away) 60%, #fff), var(--away) 50%, color-mix(in srgb, var(--away) 55%, #000)); clip-path: polygon(14% 0, 100% 0, 100% 100%, 0 100%); }
+body.war-cartoon .fighter.left { left: 0; width: 54%; }
+body.war-cartoon .fighter.right { right: 0; width: 54%; }
+body.war-cartoon .fighter img { filter: none; height: 92%; margin-top: 8%; }
+body.war-cartoon .fighter > div { padding: .6rem .8rem; background: var(--c-paper); border: 3px solid var(--c-ink); box-shadow: 5px 5px 0 var(--c-ink); }
+body.war-cartoon .fighter small { color: var(--c-ink); font-family: var(--c-mono); }
+body.war-cartoon .fighter h3 { font-size: 1.5rem !important; margin: .2rem 0 0; }
+body.war-cartoon .versus b { width: 110px; height: 90px; border: 0; border-radius: 0; background: var(--c-sun); color: var(--c-ink); font: 2.4rem var(--c-display); clip-path: polygon(50% 0, 61% 22%, 86% 8%, 80% 34%, 100% 42%, 80% 56%, 94% 82%, 66% 74%, 56% 100%, 44% 76%, 18% 92%, 24% 64%, 0 52%, 20% 40%, 8% 14%, 36% 24%); filter: drop-shadow(4px 4px 0 var(--c-ink)); }
+body.war-cartoon .versus span { color: var(--c-paper); background: var(--c-ink); padding: .3rem; font-family: var(--c-mono); }
+body.war-cartoon .warCalls { max-width: 1250px; margin: 0 auto 22px; display: flex; flex-wrap: wrap; gap: 14px; }
+body.war-cartoon .warCall { display: inline-flex; align-items: center; min-height: 52px; padding: 0 22px; background: var(--c-live); color: #fff; border: 3px solid var(--c-ink); box-shadow: 5px 5px 0 var(--c-ink); font: 1.25rem var(--c-display); letter-spacing: .04em; text-transform: uppercase; }
+body.war-cartoon .warCall.alt { background: var(--c-sun); color: var(--c-ink); }
+body.war-cartoon .warCall:active { transform: translate(4px, 4px); box-shadow: 1px 1px 0 var(--c-ink); }
+body.war-cartoon .fixtureRail { gap: 10px; padding: 6px 2px 10px; }
+body.war-cartoon .fixtureRail button { background: var(--c-surface); color: var(--c-ink); border: 3px solid var(--c-ink); box-shadow: 4px 4px 0 var(--c-ink); }
+body.war-cartoon .fixtureRail button.active { background: var(--c-sun); color: var(--c-ink); }
+body.war-cartoon .fixtureRail b { font-family: var(--c-display); }
+body.war-cartoon .fixtureRail span { font-family: var(--c-mono); font-weight: 600; }
+
+/* The game: a comic frame on a sky-blue band. */
+body.war-cartoon .gameSection { background: var(--c-sky); border-block: 5px solid var(--c-ink); }
+body.war-cartoon .gameSection button { border-radius: 0; }
+body.war-cartoon .gameShell, body.war-cartoon .gameStart, body.war-cartoon .selectScreen, body.war-cartoon .onlineLobby, body.war-cartoon .waitingRoom { border: 4px solid var(--c-ink); box-shadow: 10px 10px 0 var(--c-ink); background: var(--c-paper); }
+body.war-cartoon .modeCards button, body.war-cartoon .roster button, body.war-cartoon .onlineChoices button { background: var(--c-surface); color: var(--c-ink); border: 3px solid var(--c-ink); box-shadow: 5px 5px 0 var(--c-ink); }
+body.war-cartoon .modeCards button:hover, body.war-cartoon .roster button.selected, body.war-cartoon .roster button.chosen { background: var(--c-sun); }
+body.war-cartoon .modeCards b, body.war-cartoon .modeCards strong { font-family: var(--c-display); font-weight: 400; letter-spacing: .03em; }
+body.war-cartoon .gameSettingsButton, body.war-cartoon .backButton { background: var(--c-paper); color: var(--c-ink); border: 3px solid var(--c-ink); font-family: var(--c-display); }
+body.war-cartoon .scoreboard, body.war-cartoon .battleHud, body.war-cartoon .turnBanner, body.war-cartoon .commentaryBox, body.war-cartoon .warLog { background: var(--c-paper); color: var(--c-ink); border: 3px solid var(--c-ink); }
+body.war-cartoon .scoreboard b, body.war-cartoon .matchClock { font-family: var(--c-display); }
+body.war-cartoon .footballControls button, body.war-cartoon .orders button, body.war-cartoon .onlineControls button { background: var(--c-sun); color: var(--c-ink); border: 3px solid var(--c-ink); box-shadow: 4px 4px 0 var(--c-ink); font-family: var(--c-display); letter-spacing: .04em; }
+body.war-cartoon .goalFlash { background: var(--c-sun); color: var(--c-ink); font-family: var(--c-display); }
+body.war-cartoon .victoryActions a, body.war-cartoon .victoryActions button { background: var(--c-live); color: #fff; border: 3px solid var(--c-ink); box-shadow: 4px 4px 0 var(--c-ink); }
+
+/* The armies: trading cards. */
+body.war-cartoon .deckSection { background: transparent; padding-block: 70px; }
+body.war-cartoon .deck article { background: var(--c-surface); border: 5px solid var(--c-ink); box-shadow: 12px 12px 0 var(--c-ink); }
+body.war-cartoon .deck article:after { background: none; }
+body.war-cartoon .deck article > img { height: 78%; background: repeating-conic-gradient(from -8deg at 50% 85%, rgba(255,255,255,.24) 0deg 7deg, transparent 7deg 15deg), radial-gradient(120% 90% at 50% 85%, color-mix(in srgb, var(--accent) 60%, #fff), var(--accent) 50%, color-mix(in srgb, var(--accent) 55%, #000)); border-bottom: 5px solid var(--c-ink); }
+body.war-cartoon .cardText { left: 0; right: 0; bottom: 0; padding: 14px 18px; background: var(--c-paper); height: 22%; display: flex; flex-direction: column; justify-content: center; }
+body.war-cartoon .cardText small { color: var(--c-ink); font-family: var(--c-mono); }
+body.war-cartoon .cardText h2 { font-size: clamp(1.4rem, 4vw, 2.4rem) !important; margin: .2rem 0; }
+body.war-cartoon .cardText p { align-self: flex-start; padding: .15rem .5rem; background: var(--c-sun); border: 2px solid var(--c-ink); font-family: var(--c-mono); font-weight: 600; }
+body.war-cartoon .arrow { background: var(--c-sun); color: var(--c-ink); border: 3px solid var(--c-ink); box-shadow: 4px 4px 0 var(--c-ink); }
+body.war-cartoon .dots button { width: 12px; height: 12px; border: 2px solid var(--c-ink); background: var(--c-surface); border-radius: 0; }
+body.war-cartoon .dots button.active { background: var(--c-live); transform: none; }
+body.war-cartoon .hint, body.war-cartoon .wallpaperJump { color: var(--c-ink); font-family: var(--c-mono); font-weight: 600; }
+
+/* The Myth Grammar: a grid of comic panels. */
+body.war-cartoon .grammar { background: var(--c-sun); border-block: 5px solid var(--c-ink); color: var(--c-ink); }
+body.war-cartoon .grammar h2 { font-size: clamp(2.6rem, 7vw, 4.6rem) !important; }
+body.war-cartoon .grammarIntro > p:last-child { color: var(--c-ink); font-family: var(--c-body); }
+body.war-cartoon .rules { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 16px; }
+body.war-cartoon .rules article { display: flex; flex-direction: column; gap: .4rem; padding: 14px; background: var(--c-paper); border: 3px solid var(--c-ink); box-shadow: 5px 5px 0 var(--c-ink); }
+body.war-cartoon .rules b { align-self: flex-start; padding: 0 .45rem; background: var(--c-ink); color: var(--c-sun); font: 1rem var(--c-mono); }
+body.war-cartoon .rules h3 { font-size: 1.35rem !important; }
+body.war-cartoon .rules p { color: var(--c-ink); }
+
+/* The campaign film, further down, in an ink frame. */
+body.war-cartoon .trailer { background: transparent; }
+body.war-cartoon .trailer video { border: 5px solid var(--c-ink); box-shadow: 10px 10px 0 var(--c-ink); background: var(--c-ink); }
+body.war-cartoon .trailer > div > p:not(.eyebrow) { color: var(--c-ink); font-family: var(--c-body); }
+
+/* Sign-up and footer. */
+body.war-cartoon .audienceCapture { background: var(--c-ink); color: var(--c-paper); border-top: 5px solid var(--c-sun); }
+body.war-cartoon .audienceCapture h2, body.war-cartoon .audienceCapture p { color: var(--c-paper); }
+body.war-cartoon .audienceCapture input { background: #fff; color: var(--c-ink); border: 3px solid var(--c-paper); }
+body.war-cartoon .audienceCapture button { background: var(--c-sun); color: var(--c-ink); border: 3px solid var(--c-paper); font-family: var(--c-display); }
+body.war-cartoon footer { background: var(--c-ink); color: var(--c-paper); }
+body.war-cartoon footer a, body.war-cartoon footer p { color: var(--c-paper); }
+
+@media (max-width: 760px) {
+    body.war-cartoon .fighter.left, body.war-cartoon .fighter.right { width: 58%; }
+    body.war-cartoon .fighter h3 { font-size: 1.1rem !important; }
+    body.war-cartoon .fighter > div { bottom: 12px; }
+    body.war-cartoon .fighter.left > div { left: 10px; }
+    body.war-cartoon .fighter.right > div { right: 10px; }
+    body.war-cartoon .rules article { padding: 12px; }
+}
+
+/* The game's start screen: room inside the frame, ink text, no gold. */
+body.war-cartoon .gameStart { padding: 34px 18px 24px; }
+body.war-cartoon .gameStart > p:not(.eyebrow), body.war-cartoon .modeCards span, body.war-cartoon .selectScreen p { color: var(--c-ink); }
+body.war-cartoon .modeCards { gap: 16px; padding: 0 4px 8px; }
+body.war-cartoon .modeCards i { color: var(--c-live); font-style: normal; }
+body.war-cartoon .modeCards b { font-family: var(--c-display); font-weight: 400; font-size: 1.6rem; text-transform: uppercase; }

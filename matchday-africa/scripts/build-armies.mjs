@@ -2,7 +2,7 @@
 // public/war/downloads/rights-safe/<art>.png -> public/war/army/<art>-<width>.webp
 // The 1.9 MB originals stay as the source for server-rendered story cards.
 // Usage: node scripts/build-armies.mjs
-import { mkdir, readdir, stat } from 'node:fs/promises';
+import { mkdir, readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
 
@@ -116,6 +116,42 @@ for (const file of (await readdir(source)).filter((f) => f.endsWith('.png')).sor
     const flat = path.join(target, `${name}-solid.webp`);
     await (await solid(path.join(source, file), 900, SOLID_LEVELS[name])).webp({ quality: 82, alphaQuality: 90, effort: 6 }).toFile(flat);
     await report(flat);
+}
+
+// Mood thumbnails for the cartoon site (timeline, live cards, tables): war/army/moods/<art>-<mood>.webp,
+// 320 px squares, head to waist, on the club's sky (warrior, victory) or a gloomy one (dejected,
+// defeated). The same treatments as the reel. Sky colours: resources/armies/colours.json (php artisan armies:colours).
+const moodDir = path.join(target, 'moods');
+await mkdir(moodDir, { recursive: true });
+const clubColours = JSON.parse(await readFile(path.join(root, 'resources/armies/colours.json'), 'utf8'));
+const sky = (colour, mood) => {
+    const gloomy = mood === 'dejected' || mood === 'defeated';
+    const base = mood === 'defeated' ? '#7a7066' : mood === 'dejected' ? '#5a7aa5' : colour;
+    const rays = gloomy ? '' : Array.from({ length: 18 }, (_, i) => {
+        const a = (i * 20) * Math.PI / 180, b = (i * 20 + 9) * Math.PI / 180;
+        return `<polygon points="160,200 ${160 + 400 * Math.cos(a)},${200 + 400 * Math.sin(a)} ${160 + 400 * Math.cos(b)},${200 + 400 * Math.sin(b)}" fill="#fff" fill-opacity="${mood === 'victory' ? 0.3 : 0.15}"/>`;
+    }).join('');
+    const rain = mood === 'dejected' ? Array.from({ length: 22 }, (_, i) => `<line x1="${(i * 53) % 320}" y1="${(i * 97) % 300}" x2="${(i * 53) % 320 + 8}" y2="${(i * 97) % 300 + 40}" stroke="#dbe7ff" stroke-opacity=".55" stroke-width="3"/>`).join('') : '';
+    const glow = mood === 'victory' ? '<circle cx="160" cy="150" r="120" fill="#ffd23f" fill-opacity=".55"/>' : '';
+    return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320"><defs><radialGradient id="g" cx="50%" cy="60%" r="75%"><stop offset="0" stop-color="${base}"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></radialGradient></defs><rect width="100%" height="100%" fill="${base}"/><rect width="100%" height="100%" fill="url(#g)"/>${rays}${glow}${rain}</svg>`);
+};
+for (const [art, colour] of Object.entries(clubColours)) {
+    const file = path.join(target, `${art}-solid.webp`);
+    if (!(await stat(file).catch(() => null))) continue;
+    for (const mood of ['warrior', 'victory', 'dejected', 'defeated']) {
+        let statue = sharp(file);
+        const meta = await statue.metadata();
+        statue = statue.extract({ left: 0, top: 0, width: meta.width, height: Math.round(meta.height * 0.62) }).resize({ height: 330 });
+        if (mood === 'victory') statue = statue.modulate({ brightness: 1.12, saturation: 1.5 });
+        if (mood === 'dejected') statue = statue.modulate({ brightness: 0.88, saturation: 0.35 });
+        if (mood === 'defeated') statue = statue.modulate({ brightness: 0.72, saturation: 0 }).rotate(12, { background: { r: 0, g: 0, b: 0, alpha: 0 } });
+        const top = mood === 'defeated' ? 40 : mood === 'dejected' ? 24 : 4;
+        const fitted = await sharp(await statue.png().toBuffer()).resize({ width: 300, height: 320 - top, fit: 'inside' }).png().toBuffer();
+        const fm = await sharp(fitted).metadata();
+        const out = path.join(moodDir, `${art}-${mood}.webp`);
+        await sharp(sky(colour, mood)).composite([{ input: fitted, left: Math.round((320 - fm.width) / 2), top }]).webp({ quality: 80 }).toFile(out);
+    }
+    console.log(`war/army/moods/${art}-*.webp`);
 }
 
 // Mood poses for reel style v2: rights-safe/poses/<art>-<victory|dejected|defeated>.png, each a

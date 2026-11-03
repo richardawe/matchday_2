@@ -3,17 +3,19 @@
     $home = $arena['home'];
     $away = $arena['away'];
     $club = fn ($team) => trim(preg_replace('/\s+FC$/i', '', (string) $team?->name));
+    // The cartoon look stands the armies on bright skies: the opaque cut-outs with their ink line.
+    $art = fn ($side) => \App\Support\SiteStyle::cartoon() && !empty($side['solid']) && is_file((string) $side['solid_path']) ? $side['solid'] : $side['cutout'];
 @endphp
 <section id="arena" class="md-arena" data-state="{{ $arena['state'] }}" data-kickoff="{{ $arena['kickoff'] }}" data-match="{{ $match->id }}"
     data-home-colour="{{ $home['glow'] }}" data-away-colour="{{ $away['glow'] }}"
-    data-home-art="{{ $home['cutout'] }}" data-away-art="{{ $away['cutout'] }}"
+    data-home-art="{{ $art($home) }}" data-away-art="{{ $art($away) }}"
     style="--home: {{ $home['colours'][0] }}; --away: {{ $away['colours'][0] }}; --home-glow: {{ $home['glow'] }}; --away-glow: {{ $away['glow'] }}">
     <div class="md-arena-stage" aria-hidden="true">
         <div class="md-arena-glow md-arena-glow-home"></div>
         <div class="md-arena-glow md-arena-glow-away"></div>
         <div class="md-arena-floor"></div>
-        @if($home['cutout'])<img class="md-arena-army md-arena-home" src="{{ $home['cutout'] }}" alt="" fetchpriority="high">@endif
-        @if($away['cutout'])<img class="md-arena-army md-arena-away" src="{{ $away['cutout'] }}" alt="" fetchpriority="high">@endif
+        @if($home['cutout'])<img class="md-arena-army md-arena-home" src="{{ $art($home) }}" alt="" fetchpriority="high">@endif
+        @if($away['cutout'])<img class="md-arena-army md-arena-away" src="{{ $art($away) }}" alt="" fetchpriority="high">@endif
         <canvas class="md-arena-dust"></canvas>
     </div>
     <div class="md-arena-hud md-wrap">

@@ -1,0 +1,314 @@
+/*
+ * The cartoon look (SITE_STYLE=cartoon, or ?style=cartoon to preview): the same ink, colours and
+ * shapes as the v2 reels. Everything is scoped under .md-cartoon (on <body>), and this file only
+ * loads when that look is on. cartoon-auto.css flips the dark surfaces app.css hard-codes
+ * (generated: python3 scripts/build-cartoon-css.py); the component styles below win over it.
+ *
+ * Kit: paper ground with halftone dots, ink outlines (3-4 px) with hard offset shadows, square
+ * corners, Anton shouts, IBM Plex Sans to read, Plex Mono for minutes and tags. Sun yellow for
+ * calls to action, live red, sky blue for the predictions band, club colours for each army's sky.
+ */
+@import './cartoon-auto.css';
+
+/* The reel's fonts (OFL), cut to Latin and Latin Extended and served with the site as WOFF2:
+   resources/fonts/web, made with pyftsubset. No third-party font request. */
+@font-face { font-family: Anton; src: url('../fonts/web/Anton-Regular.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'IBM Plex Sans'; src: url('../fonts/web/IBMPlexSans.woff2') format('woff2'); font-weight: 100 700; font-display: swap; }
+@font-face { font-family: 'IBM Plex Mono'; src: url('../fonts/web/IBMPlexMono-SemiBold.woff2') format('woff2'); font-weight: 500 600; font-display: swap; }
+
+body.md-cartoon {
+    --c-ink: #0b0b0b;
+    --c-paper: #fff8e7;
+    --c-surface: #ffffff;
+    --c-sun: #ffd23f;
+    --c-live: #ff4b3e;
+    --c-sky: #4fb3ff;
+    --c-muted: #4a443b;
+    --c-red: #b3261e;
+    --c-shadow: 6px 6px 0 var(--c-ink);
+    --c-shadow-lg: 10px 10px 0 var(--c-ink);
+    --c-display: Anton, Impact, 'Arial Narrow', sans-serif;
+    --c-body: 'IBM Plex Sans', Arial, Helvetica, sans-serif;
+    --c-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+
+    /* The classic tokens, flipped: the page is paper and the text is ink. */
+    --md-ink: var(--c-paper);
+    --md-panel: var(--c-surface);
+    --md-panel-soft: var(--c-paper);
+    --md-line: var(--c-ink);
+    --md-paper: var(--c-ink);
+    --md-muted: var(--c-muted);
+    --md-gold: var(--c-red);
+    --md-gold-bright: var(--c-red);
+    --md-blood: var(--c-live);
+
+    background: var(--c-paper) radial-gradient(rgba(11, 11, 11, .07) 22%, transparent 24%) 0 0 / 22px 22px;
+    color: var(--c-ink);
+    font-family: var(--c-body);
+}
+
+body.md-cartoon ::selection { background: var(--c-sun); color: var(--c-ink); }
+body.md-cartoon :focus-visible { outline: 3px solid var(--c-ink); outline-offset: 3px; box-shadow: 0 0 0 6px var(--c-sun); }
+body.md-cartoon .matchday-canvas { background: transparent; }
+
+/* Type: shouts in Anton, reading in Plex. */
+body.md-cartoon h1,
+body.md-cartoon h2,
+body.md-cartoon h3 {
+    font-family: var(--c-display);
+    font-weight: 400;
+    letter-spacing: .01em;
+    text-transform: uppercase;
+    line-height: 1;
+    color: var(--c-ink);
+}
+body.md-cartoon h1 em, body.md-cartoon h1 i, body.md-cartoon h2 em, body.md-cartoon h2 i { font-style: normal; color: var(--c-red); -webkit-text-stroke: 0; }
+body.md-cartoon p, body.md-cartoon li { color: inherit; }
+body.md-cartoon .md-lead { color: var(--c-muted); }
+body.md-cartoon small, body.md-cartoon .text-gray-500, body.md-cartoon .text-gray-400, body.md-cartoon .text-gray-300, body.md-cartoon .text-gray-600 { color: var(--c-muted) !important; }
+body.md-cartoon .text-white { color: var(--c-ink) !important; }
+
+/* Eyebrows become ink tags with sun lettering, tilted a degree. */
+body.md-cartoon .md-eyebrow {
+    display: inline-block;
+    padding: .3rem .6rem;
+    background: var(--c-ink);
+    color: var(--c-sun);
+    font-family: var(--c-mono);
+    font-weight: 600;
+    letter-spacing: .14em;
+    transform: rotate(-1deg);
+}
+
+/* Buttons: sun or white with an ink outline and a hard shadow that drops away when pressed. */
+body.md-cartoon .md-primary,
+body.md-cartoon .md-secondary,
+body.md-cartoon .md-alert-button {
+    border: 3px solid var(--c-ink);
+    box-shadow: 5px 5px 0 var(--c-ink);
+    font-family: var(--c-display);
+    font-weight: 400;
+    font-size: 1rem;
+    letter-spacing: .05em;
+    transition: transform .08s ease, box-shadow .08s ease;
+}
+body.md-cartoon .md-primary { background: var(--c-sun); color: var(--c-ink) !important; }
+body.md-cartoon .md-secondary { background: var(--c-surface); color: var(--c-ink) !important; }
+body.md-cartoon .md-alert-button.is-on { background: var(--c-ink); color: var(--c-sun) !important; box-shadow: 5px 5px 0 var(--c-live); }
+body.md-cartoon .md-primary:active,
+body.md-cartoon .md-secondary:active,
+body.md-cartoon .md-alert-button:active { transform: translate(4px, 4px); box-shadow: 1px 1px 0 var(--c-ink); }
+body.md-cartoon .md-link, body.md-cartoon main a:not([class]) { color: var(--c-ink); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+
+/* Panels and cards: every card is a comic panel. */
+body.md-cartoon .md-panel,
+body.md-cartoon .md-feature-card,
+body.md-cartoon .md-product,
+body.md-cartoon [class*="md-"][class*="-card"]:not([class*="-cards"]):not(.md-card-grid),
+body.md-cartoon .md-pulse-column,
+body.md-cartoon .md-notice {
+    background: var(--c-surface);
+    color: var(--c-ink);
+    border: 3px solid var(--c-ink);
+    border-radius: 0;
+    box-shadow: var(--c-shadow);
+}
+body.md-cartoon .md-notice { background: var(--c-sun); }
+body.md-cartoon .md-panel input:not([type=checkbox]):not([type=radio]),
+body.md-cartoon .md-panel select,
+body.md-cartoon .md-panel textarea,
+body.md-cartoon input[type=text], body.md-cartoon input[type=email], body.md-cartoon input[type=password], body.md-cartoon input[type=search], body.md-cartoon input[type=number], body.md-cartoon input[type=url], body.md-cartoon textarea, body.md-cartoon select {
+    background: var(--c-surface);
+    color: var(--c-ink);
+    border: 3px solid var(--c-ink);
+    border-radius: 0;
+}
+
+/* Section headings on the homepage and lists. */
+body.md-cartoon .md-home-heading { border-bottom: 0; }
+body.md-cartoon .md-home-heading h2 { font-size: clamp(2rem, 6vw, 3.4rem); }
+body.md-cartoon .md-home-heading a { color: var(--c-ink); font-weight: 700; text-decoration: underline; text-decoration-thickness: 2px; }
+
+/* Header: an ink bar with a sun underline and the wordmark as a tilted sticker. */
+body.md-cartoon .matchday-nav { background: var(--c-ink) !important; border-bottom: 5px solid var(--c-sun) !important; }
+body.md-cartoon .matchday-nav a, body.md-cartoon .matchday-nav button { color: var(--c-paper); }
+body.md-cartoon .matchday-nav .matchday-wordmark { color: var(--c-ink); background: var(--c-sun); border: 3px solid var(--c-paper); padding: .25rem .6rem; transform: rotate(-2deg); font-family: var(--c-display); letter-spacing: .03em; }
+body.md-cartoon .matchday-wordmark small { color: var(--c-ink); font-family: var(--c-mono); }
+body.md-cartoon .matchday-monogram { background: var(--c-ink); color: var(--c-sun); border: 0; }
+body.md-cartoon .matchday-nav [class*="inline-flex"][class*="border-b-2"] { font-family: var(--c-display); font-size: 1.05rem; letter-spacing: .05em; color: var(--c-paper); border-bottom-width: 0; }
+body.md-cartoon .matchday-nav [class*="border-indigo-400"] { background: var(--c-sun); color: var(--c-ink) !important; padding-inline: .6rem; }
+body.md-cartoon .matchday-nav .bg-white, body.md-cartoon .matchday-nav [class*="bg-white"] { background: var(--c-surface) !important; }
+body.md-cartoon .matchday-nav [x-show] a, body.md-cartoon .matchday-nav [x-show] button { color: var(--c-ink); }
+/* The public nav's phone menu (its second block); the admin bar has one block only. */
+body.md-cartoon .matchday-nav > div:last-child:not(:first-child) { background: var(--c-paper); }
+body.md-cartoon .matchday-nav > div:last-child:not(:first-child) a { color: var(--c-ink); font-family: var(--c-display); letter-spacing: .04em; }
+body.md-cartoon .matchday-nav svg { color: var(--c-paper); }
+body.md-cartoon .md-bell { background: var(--c-paper); border: 3px solid var(--c-sun); border-radius: 50%; color: var(--c-ink); }
+body.md-cartoon .md-bell svg { color: var(--c-ink); }
+body.md-cartoon .md-bell-count { border: 2px solid var(--c-ink); background: var(--c-live); }
+
+/* Footer: ink band, sun rule. */
+body.md-cartoon .matchday-footer { background: var(--c-ink) !important; color: var(--c-paper) !important; border-top: 5px solid var(--c-sun); }
+body.md-cartoon .matchday-footer *, body.md-cartoon .matchday-footer .text-black { color: var(--c-paper) !important; }
+body.md-cartoon .matchday-footer .matchday-wordmark { color: var(--c-ink) !important; background: var(--c-sun); padding: .25rem .6rem; display: inline-flex; }
+body.md-cartoon .matchday-footer .matchday-wordmark * { color: var(--c-ink) !important; }
+body.md-cartoon .matchday-footer input { color: var(--c-ink) !important; }
+body.md-cartoon .matchday-footer button, body.md-cartoon .matchday-footer [type=submit] { background: var(--c-sun) !important; color: var(--c-ink) !important; border: 3px solid var(--c-paper); font-family: var(--c-display); }
+
+/* Bands: some sections sit on colour instead of paper, like the mockups. */
+body.md-cartoon .md-board { background: var(--c-sky); border-block: 5px solid var(--c-ink); }
+body.md-cartoon .md-play { background: transparent; }
+body.md-cartoon .md-pulse, body.md-cartoon .md-home-stories, body.md-cartoon .md-phase { background: transparent; }
+
+/* Live and status chips. */
+body.md-cartoon .md-pulse-dot, body.md-cartoon .md-live-dot { background: var(--c-live); box-shadow: 0 0 0 2px var(--c-ink); }
+body.md-cartoon .md-room-label { color: var(--c-ink); font-family: var(--c-mono); }
+
+/* Match room: the score in a tilted speech box over club colour. */
+body.md-cartoon .md-room-head { background: repeating-conic-gradient(from -8deg at 50% 100%, rgba(255,255,255,.22) 0deg 7deg, transparent 7deg 15deg), var(--c-sun); border-bottom: 5px solid var(--c-ink); }
+body.md-cartoon .md-scoreboard { background: var(--c-surface); border: 4px solid var(--c-ink); box-shadow: var(--c-shadow-lg); transform: rotate(-1deg); padding: 1rem; }
+body.md-cartoon .md-scoreboard b { font-family: var(--c-display); font-weight: 400; color: var(--c-ink); }
+body.md-cartoon .md-scoreboard b span { background: var(--c-sun); border: 3px solid var(--c-ink); padding: 0 .4rem; }
+body.md-cartoon .md-scoreboard strong { font-family: var(--c-display); font-weight: 400; text-transform: uppercase; color: var(--c-ink); }
+body.md-cartoon .md-war-avatar { border: 3px solid var(--c-ink); background: var(--c-surface); border-radius: 0; box-shadow: 4px 4px 0 var(--c-ink); }
+
+/* The Griot's timeline: each post a comic panel; the army's mood image sits beside it. */
+body.md-cartoon .md-tl { background: transparent; }
+body.md-cartoon .md-tl-post { background: var(--c-surface); border: 3px solid var(--c-ink); box-shadow: var(--c-shadow); margin-bottom: 1rem; padding: .9rem; }
+body.md-cartoon .md-tl-post.is-goal { box-shadow: 6px 6px 0 var(--c-live); }
+body.md-cartoon .md-tl-post.is-woodwork, body.md-cartoon .md-tl-post.is-big_chance, body.md-cartoon .md-tl-post.is-var, body.md-cartoon .md-tl-post.is-red_card { background: #e3ecf7; }
+body.md-cartoon .md-tl-tag { display: inline-block; padding: .1rem .5rem; background: var(--c-sun); border: 2px solid var(--c-ink); color: var(--c-ink); font-family: var(--c-mono); }
+body.md-cartoon .md-tl-clock { color: var(--c-ink); font-family: var(--c-display); font-size: 1.2rem; }
+body.md-cartoon .md-tl-post h3 { font-size: 1.4rem; }
+body.md-cartoon .md-tl-mood { width: 76px; height: 76px; flex: none; border: 3px solid var(--c-ink); object-fit: cover; }
+body.md-cartoon .md-tl-panel { background: var(--c-surface); border: 3px solid var(--c-ink); box-shadow: var(--c-shadow); }
+body.md-cartoon .md-tl-pitch { fill: #3f9b4f; }
+
+/* Army mood thumbnails anywhere (pulse cards, tables, inbox). */
+.md-mood { display: block; width: 56px; height: 56px; object-fit: cover; border: 3px solid var(--c-ink, #0b0b0b); background: var(--c-surface, #fff); }
+body:not(.md-cartoon) .md-mood { display: none; }
+
+/* Tables (standings, leaderboards, admin). */
+body.md-cartoon table { border-collapse: collapse; }
+body.md-cartoon .md-table, body.md-cartoon main table { background: var(--c-surface); border: 3px solid var(--c-ink); box-shadow: var(--c-shadow); }
+body.md-cartoon main th { background: var(--c-sun); color: var(--c-ink); font-family: var(--c-mono); border-bottom: 3px solid var(--c-ink); }
+body.md-cartoon main td { border-color: var(--c-ink); }
+
+/* Inbox and alerts. */
+body.md-cartoon .md-inbox-item { background: var(--c-surface); border: 3px solid var(--c-ink); margin-bottom: .6rem; color: var(--c-ink); }
+body.md-cartoon .md-inbox-item.is-unread { background: #fff3c4; border-left-width: 8px; }
+body.md-cartoon .md-inbox-item strong { color: var(--c-ink); }
+body.md-cartoon .md-inbox-follow li { background: var(--c-surface); border: 3px solid var(--c-ink); color: var(--c-ink); }
+body.md-cartoon .md-alert-note, body.md-cartoon .md-alert-toast { background: var(--c-sun); color: var(--c-ink); border: 3px solid var(--c-ink); box-shadow: var(--c-shadow); }
+body.md-cartoon .md-alert-note a, body.md-cartoon .md-link { color: var(--c-ink); }
+
+/* Images get an ink frame. */
+body.md-cartoon main article img:not(.md-mood):not([class*="avatar"]) { border: 3px solid var(--c-ink); }
+
+/* Tailwind-built pages (auth, predictions, profile): white panels become comic panels. */
+body.md-cartoon main .bg-white, body.md-cartoon .matchday-guest .bg-white { border: 3px solid var(--c-ink); border-radius: 0 !important; box-shadow: var(--c-shadow) !important; }
+body.md-cartoon [class*="bg-gray-9"], body.md-cartoon [class*="bg-gray-8"], body.md-cartoon [class*="bg-black"] { background: var(--c-surface) !important; color: var(--c-ink) !important; }
+body.md-cartoon [class*="rounded"] { border-radius: 0 !important; }
+body.md-cartoon button[type=submit]:not([class*="md-"]), body.md-cartoon .matchday-guest button:not([class*="md-"]) { background: var(--c-live); color: #fff; border: 3px solid var(--c-ink); box-shadow: 5px 5px 0 var(--c-ink); font-family: var(--c-display); letter-spacing: .05em; text-transform: uppercase; }
+
+/* The kente band stays, outlined. */
+body.md-cartoon [class*="kente"] { border-block: 3px solid var(--c-ink); }
+
+/* Admin: the same ink, calmer. Thinner lines, white panels, smaller shadows, no bursts. */
+body.md-cartoon.matchday-admin { background: #f6f2e8; --c-shadow: 4px 4px 0 var(--c-ink); }
+body.md-cartoon.matchday-admin h1, body.md-cartoon.matchday-admin h2 { text-transform: none; }
+body.md-cartoon.matchday-admin .md-panel, body.md-cartoon.matchday-admin main .bg-white, body.md-cartoon.matchday-admin [class*="md-"][class*="-card"] { border-width: 2px; }
+body.md-cartoon.matchday-admin nav { background: var(--c-ink) !important; }
+body.md-cartoon.matchday-admin nav a { color: var(--c-paper) !important; }
+body.md-cartoon.matchday-admin nav .bg-gray-900, body.md-cartoon.matchday-admin nav [aria-current] { background: var(--c-sun) !important; color: var(--c-ink) !important; }
+body.md-cartoon.matchday-admin nav [x-show] { background: var(--c-surface) !important; border: 2px solid var(--c-ink); }
+body.md-cartoon.matchday-admin nav [x-show] a { color: var(--c-ink) !important; }
+body.md-cartoon.matchday-admin .md-eyebrow { transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    body.md-cartoon .md-primary, body.md-cartoon .md-secondary { transition: none; }
+}
+
+/* Homepage reels hero: a red comic sky, the player framed in ink. */
+body.md-cartoon .md-reels { background: repeating-conic-gradient(from -8deg at 28% 70%, rgba(255,255,255,.22) 0deg 7deg, transparent 7deg 15deg), radial-gradient(120% 90% at 28% 70%, #ff6f66 0%, #ef0107 45%, #8a0004 100%); border-bottom: 5px solid var(--c-ink); }
+body.md-cartoon .md-reels::after { height: 14px; border-top: 3px solid var(--c-ink); }
+body.md-cartoon .md-reels-player { background: var(--c-ink); border: 5px solid var(--c-ink); box-shadow: var(--c-shadow-lg); }
+body.md-cartoon .md-reels-sound { background: var(--c-sun); color: var(--c-ink); border: 3px solid var(--c-ink); font-family: var(--c-display); }
+body.md-cartoon .md-reels-copy { padding: 1.2rem 1.3rem; background: var(--c-paper); border: 4px solid var(--c-ink); box-shadow: 10px 10px 0 var(--c-ink); transform: rotate(-1deg); }
+body.md-cartoon .md-reels-copy h1 { font-family: var(--c-display); font-weight: 400; letter-spacing: .01em; max-width: none; }
+body.md-cartoon .md-reels-copy h1 em { color: var(--c-red); }
+body.md-cartoon .md-reels-now, body.md-cartoon .md-reels-now span { color: var(--c-ink); }
+body.md-cartoon .md-reels-thumb { color: var(--c-ink); }
+body.md-cartoon .md-reels-thumb img { border: 3px solid var(--c-ink); box-shadow: 4px 4px 0 var(--c-ink); background: var(--c-ink); }
+
+/* Footer sign-up: a sun panel inside the ink footer. */
+body.md-cartoon .md-footer-signup { background: var(--c-sun) !important; border: 4px solid var(--c-paper); box-shadow: 8px 8px 0 var(--c-live); }
+body.md-cartoon .matchday-footer .md-footer-signup, body.md-cartoon .matchday-footer .md-footer-signup * { color: var(--c-ink) !important; }
+body.md-cartoon .matchday-footer .md-footer-signup button, body.md-cartoon .matchday-footer .md-footer-signup [type=submit] { background: var(--c-ink) !important; color: var(--c-sun) !important; border-color: var(--c-ink); }
+
+/* Form fields everywhere (filters, dates, auth). */
+body.md-cartoon input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=submit]):not([type=button]),
+body.md-cartoon select, body.md-cartoon textarea {
+    background: var(--c-surface) !important;
+    color: var(--c-ink) !important;
+    border: 3px solid var(--c-ink) !important;
+    border-radius: 0 !important;
+}
+body.md-cartoon input::placeholder, body.md-cartoon textarea::placeholder { color: #6b6457; }
+body.md-cartoon label { color: var(--c-ink); }
+
+/* Sign-in and sign-up (guest layout): a paper card on a sun page. */
+body.md-cartoon.matchday-guest { background: var(--c-sun) radial-gradient(rgba(11, 11, 11, .09) 22%, transparent 24%) 0 0 / 18px 18px; }
+body.md-cartoon .matchday-auth-card { background: var(--c-paper) !important; border: 4px solid var(--c-ink); box-shadow: 10px 10px 0 var(--c-ink) !important; }
+body.md-cartoon .matchday-auth-card h1, body.md-cartoon .matchday-auth-card .text-gray-700, body.md-cartoon .matchday-auth-card p, body.md-cartoon .matchday-auth-card span { color: var(--c-ink) !important; }
+body.md-cartoon .matchday-auth-card .bg-gray-50, body.md-cartoon .matchday-auth-card [class*="justify-center"] { background: var(--c-surface) !important; }
+body.md-cartoon .matchday-auth-card a { color: var(--c-ink) !important; text-decoration: underline; }
+body.md-cartoon .matchday-auth-card button:not([type=submit]) { background: var(--c-surface) !important; color: var(--c-ink) !important; border: 3px solid var(--c-ink) !important; }
+
+/* Mood thumbnails in the Today cards and the timeline. */
+body.md-cartoon .md-pulse-match { color: var(--c-ink) !important; border-top: 2px solid var(--c-ink); }
+body.md-cartoon .md-pulse-match div { grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto; }
+body.md-cartoon .md-pulse-match .md-mood { width: 44px; height: 44px; border-width: 2px; }
+body.md-cartoon .md-pulse-match b { font-family: var(--c-display); font-weight: 400; font-size: 1.3rem; color: var(--c-ink); background: var(--c-sun); border: 2px solid var(--c-ink); padding: 0 .35rem; }
+body.md-cartoon .md-pulse-match small { color: var(--c-muted); font-family: var(--c-mono); }
+body.md-cartoon .md-tl-post { grid-template-columns: 2.6rem auto minmax(0, 1fr); align-items: start; }
+body.md-cartoon .md-tl-post p { color: var(--c-ink); }
+body.md-cartoon .md-tl-post.is-goal { background: var(--c-surface); border-color: var(--c-ink); }
+body.md-cartoon .md-tl-moods { display: flex; flex-direction: column; gap: .4rem; }
+@media (max-width: 420px) { body.md-cartoon .md-tl-mood { width: 60px; height: 60px; } }
+
+/* Reading text: Plex everywhere, never the classic serif. */
+body.md-cartoon main p, body.md-cartoon main li, body.md-cartoon main blockquote, body.md-cartoon main td, body.md-cartoon .md-pulse-match span { font-family: var(--c-body); }
+body.md-cartoon main h1, body.md-cartoon main h2, body.md-cartoon main h3, body.md-cartoon main h4 { font-family: var(--c-display); font-weight: 400; }
+
+/* Narrow phones: smaller moods so club names keep their room. */
+@media (max-width: 420px) {
+    body.md-cartoon .md-pulse-match .md-mood { width: 34px; height: 34px; }
+    body.md-cartoon .md-pulse-match div { gap: .4rem; font-size: .9rem; }
+}
+body.md-cartoon main table .md-mood { width: 34px; height: 34px; border-width: 2px; flex: none; }
+
+/* Sign-in pages: the sun page reaches the edges; the main button is the live red. */
+body.md-cartoon.matchday-guest > div, body.md-cartoon.matchday-guest .min-h-screen { background: transparent !important; }
+body.md-cartoon .matchday-auth-card button[type=submit], body.md-cartoon .matchday-auth-card [type=submit] { background: var(--c-live) !important; color: #fff !important; border: 3px solid var(--c-ink) !important; box-shadow: 5px 5px 0 var(--c-ink); font-family: var(--c-display); letter-spacing: .05em; }
+
+/* The arena: each army under its club's sky, the score and title in a speech box. */
+body.md-cartoon .md-arena { background: linear-gradient(100deg, var(--home) 0 50%, var(--away) 50% 100%); border-bottom: 5px solid var(--c-ink); }
+body.md-cartoon .md-arena-stage { background: repeating-conic-gradient(from -8deg at 50% 90%, rgba(255,255,255,.2) 0deg 7deg, transparent 7deg 15deg); }
+body.md-cartoon .md-arena-glow, body.md-cartoon .md-arena-floor { display: none; }
+body.md-cartoon .md-arena-army { filter: none !important; }
+body.md-cartoon .md-arena-hud { position: relative; z-index: 2; }
+body.md-cartoon .md-arena-hud > * { position: relative; }
+body.md-cartoon .md-arena-label, body.md-cartoon .md-arena-clubs { display: inline-block; padding: .25rem .6rem; background: var(--c-ink); color: var(--c-sun) !important; font-family: var(--c-mono); }
+body.md-cartoon .md-arena-drums { display: inline-flex; align-items: center; gap: .4rem; padding: .3rem .7rem; background: var(--c-paper); border: 4px solid var(--c-ink); box-shadow: 6px 6px 0 var(--c-ink); }
+body.md-cartoon .md-arena-drum, body.md-cartoon .md-arena-countdown { font-family: var(--c-display); color: var(--c-ink); background: var(--c-sun); border: 3px solid var(--c-ink); padding: 0 .4rem; }
+body.md-cartoon .md-arena-hud h1 { display: inline-block; margin-top: .6rem; padding: .4rem .7rem; background: var(--c-paper); border: 4px solid var(--c-ink); box-shadow: 8px 8px 0 var(--c-ink); transform: rotate(-1deg); }
+body.md-cartoon .md-arena-hud h1 em { color: var(--c-red); }
+
+/* Admin top bar: ink, like the public header (beats the generic dark-surface rule). */
+body.md-cartoon.matchday-admin nav.matchday-admin-nav { background: var(--c-ink) !important; border-bottom: 4px solid var(--c-sun) !important; }
+body.md-cartoon.matchday-admin nav.matchday-admin-nav a, body.md-cartoon.matchday-admin nav.matchday-admin-nav button { color: var(--c-paper) !important; }
+body.md-cartoon.matchday-admin nav.matchday-admin-nav .matchday-wordmark, body.md-cartoon.matchday-admin nav.matchday-admin-nav .matchday-wordmark * { color: var(--c-ink) !important; }
+body.md-cartoon.matchday-admin nav.matchday-admin-nav [x-show] { background: var(--c-surface) !important; }
+body.md-cartoon.matchday-admin nav.matchday-admin-nav [x-show] a { color: var(--c-ink) !important; }
+body.md-cartoon.matchday-admin nav.matchday-admin-nav a.bg-gray-900, body.md-cartoon.matchday-admin nav.matchday-admin-nav a[aria-current] { color: var(--c-ink) !important; background: var(--c-sun) !important; }

@@ -14,6 +14,7 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @if(\App\Support\SiteStyle::cartoon())@vite('resources/css/cartoon.css')@endif
         @include('partials.clarity')
         
         <!-- Microsoft Clarity -->
@@ -25,7 +26,7 @@
             })(window, document, "clarity", "script", "uc9uvne19w");
         </script>
     </head>
-    <body class="font-sans antialiased matchday-shell">
+    <body class="font-sans antialiased matchday-shell {{ \App\Support\SiteStyle::bodyClass() }}">
         <div class="min-h-screen matchday-canvas">
             @include('layouts.navigation')
 
