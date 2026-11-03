@@ -22,7 +22,7 @@
         <p class="md-arena-label">@if($arena['state'] === 'live')<span class="md-pulse-dot"></span>@endif<span>PREMIER LEAGUE · <b data-arena-label>{{ Str::upper($arena['label']) }}</b></span></p>
         <div class="md-arena-drums" aria-label="Score">
             @if($arena['state'] === 'upcoming')
-                <span class="md-arena-countdown" data-arena-countdown>{{ $match->match_date->format('D H:i') }}</span>
+                <span class="md-arena-countdown" data-arena-countdown>{{ $match->kickoffLabel('D H:i') }}</span>
             @else
                 <span class="md-arena-drum" data-arena-home>{{ $match->home_score ?? 0 }}</span><i>:</i><span class="md-arena-drum" data-arena-away>{{ $match->away_score ?? 0 }}</span>
             @endif

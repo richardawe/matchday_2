@@ -30,12 +30,14 @@ class PredictionsGuestTest extends TestCase
             ->assertDontSee(route('logout'), false)
             ->assertSee(route('login'), false)
             ->assertSee(route('register'), false)
-            ->assertSee('>Login<', false)
-            ->assertSee('>Register<', false);
+            ->assertSeeText('Login')
+            ->assertSeeText('Register')
+            // The site's own nav, not the old app menu.
+            ->assertDontSee('EPL Odds');
 
         $this->get(route('predictions.leaderboard'))->assertOk()
             ->assertDontSee('guest@example.com', false)
-            ->assertSee('>Login<', false);
+            ->assertSeeText('Login');
 
         $user = User::factory()->create(['name' => 'Ada Lovelace', 'email' => 'ada-menu@example.com']);
         $this->actingAs($user)->get(route('predictions.index'))->assertOk()

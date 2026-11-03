@@ -30,6 +30,9 @@ if (pulse) {
             if (!response.ok) return;
             const data = await response.json();
             pulse.innerHTML = data.html;
+            // Live scores lead the homepage while a match is on (partials/home/live-now).
+            const liveNow = document.getElementById('home-live');
+            if (liveNow && data.live !== undefined) liveNow.outerHTML = data.live;
             if (data.arena) document.getElementById('arena')?.dispatchEvent(new CustomEvent('arena:update', {detail: data.arena}));
             window.setTimeout(refreshPulse, data.has_live ? 30000 : 120000);
         } catch (_) { window.setTimeout(refreshPulse, 120000); }

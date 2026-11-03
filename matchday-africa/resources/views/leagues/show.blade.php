@@ -95,7 +95,7 @@
                                         <span class="text-sm">{{ $match->awayTeam ? $match->awayTeam->name : 'Away Team' }}</span>
                                     </div>
                                     <div class="text-sm text-gray-600">
-                                        {{ $match->match_date->format('M d, H:i') }}
+                                        {{ $match->kickoffLabel('M d, H:i') }}
                                     </div>
                                 </div>
                             </a>
@@ -126,7 +126,7 @@
                                         <span class="text-sm">{{ $match->awayTeam ? $match->awayTeam->name : 'Away Team' }}</span>
                                     </div>
                                     <div class="text-sm text-gray-600">
-                                        {{ $match->match_date->format('M d') }}
+                                        {{ $match->kickoffWat()?->format('M d') }}
                                     </div>
                                 </div>
                             </div>

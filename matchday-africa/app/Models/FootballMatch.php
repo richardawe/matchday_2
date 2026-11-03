@@ -301,6 +301,26 @@ class FootballMatch extends Model
     }
 
     /**
+     * Kick-off in West Africa Time. match_date holds UTC wall-clock values (the sync writes them
+     * that way while APP_TIMEZONE is Africa/Lagos), so it is read as UTC and converted. Use this,
+     * not match_date->format(), for anything a fan reads.
+     */
+    public function kickoffWat(): ?Carbon
+    {
+        return $this->match_date
+            ? Carbon::parse($this->match_date->format('Y-m-d H:i:s'), 'UTC')->setTimezone('Africa/Lagos')
+            : null;
+    }
+
+    /** Kick-off formatted in WAT with the zone label, e.g. "Tue 4 Nov · 18:45 WAT". */
+    public function kickoffLabel(string $format = 'D j M · H:i', string $missing = 'TBC'): string
+    {
+        $kickoff = $this->kickoffWat();
+
+        return $kickoff ? $kickoff->format($format).' WAT' : $missing;
+    }
+
+    /**
      * Check if match is finished
      */
     public function isFinished(): bool

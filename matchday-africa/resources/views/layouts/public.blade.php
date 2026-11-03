@@ -27,13 +27,14 @@
                         <div class="flex">
                             <!-- Logo -->
                             <div class="shrink-0 flex items-center">
+                                <x-app-back />
                                 <a href="{{ route('home') }}" class="matchday-wordmark flex items-center">
                                     <span class="matchday-monogram">MD</span><span>MATCHDAY<small>AFRICA</small></span>
                                 </a>
                             </div>
 
                             <!-- Navigation Links -->
-                            <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                            <div class="hidden whitespace-nowrap space-x-6 xl:-my-px xl:ms-8 2xl:ms-10 xl:flex">
                                 <x-nav-link :href="route('home')" :active="request()->routeIs('home')">
                                     {{ __('Home') }}
                                 </x-nav-link>
@@ -53,7 +54,7 @@
                                     {{ __('Teams') }}
                                 </x-nav-link>
                                 <x-nav-link :href="route('blogs.index')" :active="request()->routeIs('blogs.*')">
-                                    {{ __('📰 Articles') }}
+                                    {{ __('Articles') }}
                                 </x-nav-link>
                                 <x-nav-link :href="route('shop.index')" :active="request()->routeIs('shop.*')">{{ __('Shop') }}</x-nav-link>
                                 <x-nav-link :href="route('premium.index')" :active="request()->routeIs('premium.*')">{{ __('Premium') }}</x-nav-link>
@@ -61,8 +62,8 @@
                         </div>
 
                         <!-- Authentication Links -->
-                        <div class="hidden sm:flex sm:items-center sm:ms-6">
-                            <div class="hidden xl:block me-3"><x-social-follow size="sm" /></div>
+                        <div class="hidden xl:flex xl:items-center xl:ms-4 shrink-0">
+                            <div class="hidden 2xl:block me-3"><x-social-follow size="sm" /></div>
                             @auth
                                 <x-inbox-bell />
                                 <!-- User is logged in -->
@@ -104,7 +105,7 @@
                                 </x-dropdown>
                             @else
                                 <!-- User is not logged in -->
-                                <div class="space-x-4">
+                                <div class="md-nav-auth flex flex-nowrap items-center gap-3 shrink-0 whitespace-nowrap">
                                     <a href="{{ route('login') }}" class="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
                                         {{ __('Login') }}
                                     </a>
@@ -116,7 +117,7 @@
                         </div>
 
                         <!-- Hamburger -->
-                        <div class="-me-2 flex items-center sm:hidden">
+                        <div class="-me-2 flex items-center xl:hidden">
                             @auth<x-inbox-bell />@endauth
                             <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
                                 <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
@@ -129,7 +130,7 @@
                 </div>
 
                 <!-- Responsive Navigation Menu -->
-                <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
+                <div :class="{'block': open, 'hidden': ! open}" class="hidden xl:hidden">
                     <div class="pt-2 pb-3 space-y-1">
                         <x-responsive-nav-link :href="route('home')" :active="request()->routeIs('home')">
                             {{ __('Home') }}
@@ -150,7 +151,7 @@
                         </x-responsive-nav-link>
                         @if(\App\Models\RadioBulletin::available())<x-responsive-nav-link :href="route('radio.index')" :active="request()->routeIs('radio.*')">Listen</x-responsive-nav-link>@endif
                         <x-responsive-nav-link :href="route('blogs.index')" :active="request()->routeIs('blogs.*')">
-                            {{ __('📰 Articles') }}
+                            {{ __('Articles') }}
                         </x-responsive-nav-link>
                         <x-responsive-nav-link :href="route('shop.index')" :active="request()->routeIs('shop.*')">{{ __('Shop') }}</x-responsive-nav-link>
                         <x-responsive-nav-link :href="route('premium.index')" :active="request()->routeIs('premium.*')">{{ __('Premium') }}</x-responsive-nav-link>

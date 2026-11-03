@@ -20,7 +20,7 @@ class HomeController extends Controller
     public function pulse(): JsonResponse
     {
         $now=now();$pulse=$this->pulseMatches($now);$arena=app(\App\Services\ArenaService::class)->headline($now);
-        return response()->json(['html'=>view('partials.home-pulse',$pulse)->render(),'has_live'=>$pulse['liveMatches']->isNotEmpty(),'updated_at'=>$now->toIso8601String(),
+        return response()->json(['html'=>view('partials.home-pulse',$pulse)->render(),'live'=>view('partials.home.live-now',['liveMatches'=>$pulse['liveMatches']])->render(),'has_live'=>$pulse['liveMatches']->isNotEmpty(),'updated_at'=>$now->toIso8601String(),
             'arena'=>$arena?['match_id'=>$arena['match']->id,'home'=>$arena['match']->home_score,'away'=>$arena['match']->away_score,'label'=>$arena['label'],'state'=>$arena['state']]:null]);
     }
 

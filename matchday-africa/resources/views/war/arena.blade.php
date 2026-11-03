@@ -1,4 +1,7 @@
 @extends('layouts.public')
+@section('meta_title', 'The Arena: this week\'s Premier League armies in 3D | Matchday Africa')
+@section('meta_description', 'Watch this week\'s Premier League fixtures as armies on the field in the Matchday War arena, then pick your side and challenge a friend.')
+@section('meta_image', asset('images/war-share.jpg').'?v=20261103')
 
 {{-- The 3D arena, moved here from the homepage when the reels-first homepage is on. --}}
 @section('content')
