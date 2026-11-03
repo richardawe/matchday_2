@@ -267,9 +267,17 @@ body.md-cartoon .matchday-auth-card button:not([type=submit]) { background: var(
 
 /* Mood thumbnails in the Today cards and the timeline. */
 body.md-cartoon .md-pulse-match { color: var(--c-ink) !important; border-top: 2px solid var(--c-ink); }
-body.md-cartoon .md-pulse-match div { grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto; }
+/* Each part keeps its column whether or not the clubs have army pictures (only Premier League
+   clubs do), so the score box never lands in a name column or on top of a name. */
+body.md-cartoon .md-pulse-match div { grid-template-columns: auto minmax(0, 1fr) 4.4rem minmax(0, 1fr) auto; column-gap: 0; }
+body.md-cartoon .md-pulse-match div > .md-mood:first-child { grid-column: 1; margin-right: .6rem; }
+body.md-cartoon .md-pulse-match div > span:first-of-type { grid-column: 2; text-align: right; padding-right: .6rem; }
+body.md-cartoon .md-pulse-match div > b { grid-column: 3; }
+body.md-cartoon .md-pulse-match div > span:last-of-type { grid-column: 4; text-align: left; padding-left: .6rem; }
+body.md-cartoon .md-pulse-match div > .md-mood:last-child { grid-column: 5; margin-left: .6rem; }
+body.md-cartoon .md-pulse-match div > span { min-width: 0; overflow-wrap: anywhere; hyphens: auto; line-height: 1.25; }
 body.md-cartoon .md-pulse-match .md-mood { width: 44px; height: 44px; border-width: 2px; }
-body.md-cartoon .md-pulse-match b { font-family: var(--c-display); font-weight: 400; font-size: 1.3rem; color: var(--c-ink); background: var(--c-sun); border: 2px solid var(--c-ink); padding: 0 .35rem; }
+body.md-cartoon .md-pulse-match b { justify-self: stretch; text-align: center; white-space: nowrap; font-family: var(--c-display); font-weight: 400; font-size: 1.3rem; line-height: 1.5; color: var(--c-ink); background: var(--c-sun); border: 2px solid var(--c-ink); padding: 0 .2rem; }
 body.md-cartoon .md-pulse-match small { color: var(--c-muted); font-family: var(--c-mono); }
 body.md-cartoon .md-tl-post { grid-template-columns: 2.6rem auto minmax(0, 1fr); align-items: start; }
 body.md-cartoon .md-tl-post p { color: var(--c-ink); }
@@ -284,7 +292,12 @@ body.md-cartoon main h1, body.md-cartoon main h2, body.md-cartoon main h3, body.
 /* Narrow phones: smaller moods so club names keep their room. */
 @media (max-width: 420px) {
     body.md-cartoon .md-pulse-match .md-mood { width: 34px; height: 34px; }
-    body.md-cartoon .md-pulse-match div { gap: .4rem; font-size: .9rem; }
+    body.md-cartoon .md-pulse-match div { grid-template-columns: auto minmax(0, 1fr) 3.8rem minmax(0, 1fr) auto; font-size: .9rem; }
+    body.md-cartoon .md-pulse-match b { font-size: 1.15rem; }
+    body.md-cartoon .md-pulse-match div > span:first-of-type { padding-right: .45rem; }
+    body.md-cartoon .md-pulse-match div > span:last-of-type { padding-left: .45rem; }
+    body.md-cartoon .md-pulse-match div > .md-mood:first-child { margin-right: .4rem; }
+    body.md-cartoon .md-pulse-match div > .md-mood:last-child { margin-left: .4rem; }
 }
 body.md-cartoon main table .md-mood { width: 34px; height: 34px; border-width: 2px; flex: none; }
 

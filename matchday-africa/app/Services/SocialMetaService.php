@@ -69,7 +69,7 @@ class SocialMetaService
             'description' => self::DESCRIPTION,
             'url' => url()->current(),
             'type' => 'website',
-            'image' => route('images.social-default', ['v' => '20260823']),
+            'image' => route('images.social-default', ['v' => '20261103']),
             'image_width' => '1200', 'image_height' => '630',
             'robots' => 'index, follow',
             'json_ld' => request()->routeIs('home') ? $this->siteJsonLd() : null,
@@ -179,7 +179,7 @@ class SocialMetaService
             'description' => "{$name}".($league ? " ({$league})" : '').': upcoming fixtures, results, live scores, squad and form. Predict their next match free on Matchday Africa.',
             'url' => route('teams.show', $team),
             'type' => 'website',
-            'image' => route('images.social-default', ['v' => '20260823']),
+            'image' => route('images.social-default', ['v' => '20261103']),
             'image_width' => '1200', 'image_height' => '630',
             'robots' => 'index, follow',
             'json_ld' => array_filter(['@context' => 'https://schema.org', '@type' => 'SportsTeam', 'name' => $team->name, 'sport' => 'Soccer',
@@ -191,7 +191,7 @@ class SocialMetaService
     private function blog(Blog $blog): array
     {
         $description = $blog->excerpt ?: Str::limit(strip_tags((string) $blog->content), 160);
-        $image = $blog->imageUrl() ?? route('images.social-default', ['v' => '20260823']);
+        $image = $blog->imageUrl() ?? route('images.social-default', ['v' => '20261103']);
 
         return [
             'title' => $blog->title.' | '.self::SITE,
@@ -223,7 +223,7 @@ class SocialMetaService
             'description' => "Make your calls for {$set->name}. Free football predictions: score points, climb the weekly table and beat your friends' league.",
             'url' => route('predictions.show', $set),
             'type' => 'website',
-            'image' => route('images.social-default', ['v' => '20260823']),
+            'image' => route('images.social-default', ['v' => '20261103']),
             'image_width' => '1200', 'image_height' => '630',
             'robots' => 'noindex, follow',
         ];

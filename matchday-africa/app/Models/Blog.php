@@ -118,7 +118,7 @@ class Blog extends Model
     /** Always a working image: the article's own, else the site's social card. */
     public function getFeaturedImageUrlAttribute()
     {
-        return $this->imageUrl() ?? route('images.social-default', ['v' => '20260823']);
+        return $this->imageUrl() ?? route('images.social-default', ['v' => '20261103']);
     }
 
     /**
