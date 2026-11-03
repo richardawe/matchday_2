@@ -38,6 +38,7 @@ use App\Http\Controllers\SponsorController;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/api/matchday-pulse', [HomeController::class, 'pulse'])->name('home.pulse');
 
+Route::view('/app', 'app-install')->name('app.install');
 Route::view('/terms', 'terms')->name('terms');
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/cookies', 'legal.cookies')->name('cookies');
