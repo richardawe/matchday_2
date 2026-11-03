@@ -18,7 +18,7 @@ class BlogImageFallbackTest extends TestCase
         $this->get(route('blogs.show', $blog))->assertOk()
             ->assertDontSee('default-blog-image.jpg', false)
             ->assertDontSee('md-article-image', false);
-        $this->get(route('blogs.index'))->assertOk()->assertSee(route('images.social-default', ['v' => '20260823']), false);
+        $this->get(route('blogs.index'))->assertOk()->assertSee(route('images.social-default', ['v' => '20261103']), false);
     }
 
     public function test_an_article_whose_file_is_missing_shows_no_logo_in_place_of_the_picture(): void

@@ -95,6 +95,48 @@ class RadioScript
         return $segments;
     }
 
+    private const NUMBER_WORDS = [
+        'zero' => 0, 'one' => 1, 'two' => 2, 'three' => 3, 'four' => 4, 'five' => 5, 'six' => 6, 'seven' => 7,
+        'eight' => 8, 'nine' => 9, 'ten' => 10, 'eleven' => 11, 'twelve' => 12, 'thirteen' => 13, 'fourteen' => 14,
+        'fifteen' => 15, 'sixteen' => 16, 'seventeen' => 17, 'eighteen' => 18, 'nineteen' => 19, 'twenty' => 20,
+        'thirty' => 30, 'forty' => 40, 'fifty' => 50, 'sixty' => 60, 'seventy' => 70, 'eighty' => 80, 'ninety' => 90,
+        'hundred' => 100, 'thousand' => 1000, 'first' => 1, 'second' => 2, 'third' => 3, 'fourth' => 4, 'fifth' => 5,
+        'sixth' => 6, 'seventh' => 7, 'eighth' => 8, 'ninth' => 9, 'tenth' => 10, 'dozen' => 12,
+    ];
+
+    /**
+     * The numbers a script may say given its sources: their digits, their numbers written as words
+     * ("two from nine" -> 2, 9; "twenty-five" -> 25), since the writer is told to say numbers as
+     * digits, and the 12-hour form of kick-off times (18:45 -> 6).
+     *
+     * @return array<int, string>
+     */
+    public static function numbersIn(string $material): array
+    {
+        preg_match_all('/\d+/', $material, $digits);
+        $numbers = $digits[0];
+        preg_match_all('/\b([a-z]+)(?:-([a-z]+))?\b/i', Str::lower($material), $words, PREG_SET_ORDER);
+        foreach ($words as $word) {
+            $first = self::NUMBER_WORDS[$word[1]] ?? null;
+            $second = isset($word[2]) ? (self::NUMBER_WORDS[$word[2]] ?? null) : null;
+            if ($first !== null) {
+                $numbers[] = (string) $first;
+            }
+            if ($second !== null) {
+                $numbers[] = (string) $second;
+                if ($first !== null && $first >= 20 && $second < 10) {
+                    $numbers[] = (string) ($first + $second);
+                }
+            }
+        }
+        preg_match_all('/\b(\d{1,2}):\d{2}\b/', $material, $times);
+        foreach ($times[1] as $hour) {
+            $numbers[] = (string) (((int) $hour % 12) ?: 12);
+        }
+
+        return array_values(array_unique($numbers));
+    }
+
     public function validate(array $segments, array $facts): void
     {
         if (! $segments || count($segments) > 16) {
@@ -124,8 +166,7 @@ class RadioScript
             $support = $lookup->only($keys);
             $material = $support->pluck('text')->implode(' ');
             preg_match_all('/\d+/', $text, $spoken);
-            preg_match_all('/\d+/', $material, $allowed);
-            if (array_diff($spoken[0], $allowed[0])) {
+            if (array_diff($spoken[0], self::numbersIn($material))) {
                 throw new RuntimeException('Script contains a number absent from its sources.');
             }
             foreach ($support->where('kind', 'news') as $fact) {

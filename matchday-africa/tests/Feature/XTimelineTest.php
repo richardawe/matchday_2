@@ -191,6 +191,18 @@ class XTimelineTest extends TestCase
         $this->assertSame([1200, 675], [$width, $height]);
     }
 
+    public function test_the_cartoon_look_draws_its_own_fixture_card(): void
+    {
+        $classic = $this->get(route('matches.card', $this->match))->baseResponse->getFile()->getPathname();
+        config(['site.style' => 'cartoon']);
+        $cartoon = $this->get(route('matches.card', $this->match))->assertOk()->baseResponse->getFile()->getPathname();
+
+        $this->assertNotSame($classic, $cartoon);
+        $this->assertSame([1200, 675], array_slice(getimagesize($cartoon), 0, 2));
+        $corner = imagecolorsforindex($img = imagecreatefrompng($cartoon), imagecolorat($img, 5, 5));
+        $this->assertGreaterThan(200, $corner['red'], 'sunny background, not the dark classic card');
+    }
+
     public function test_text_fits_x_weighting(): void
     {
         $link = 'https://matchday.africa/matches/1234567890?with=a-very-long-query-string';

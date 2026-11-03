@@ -13,7 +13,8 @@ use Illuminate\Support\Collection;
  * result. The same rules as the v2 reel (reel/src/timeline.js): a goal is victory for the scorers and
  * dejection for the others; the woodwork, a big chance, a red card, a goal ruled out or an injury
  * is dejection for that side; level is warrior; full time is victory and defeat.
- * Everything returns null in the classic look or for a club without an army.
+ * A club without an army gets its badge instead ('logo' => true). Everything returns null in
+ * the classic look, or for a club with neither.
  */
 class ArmyMoods
 {
@@ -25,18 +26,19 @@ class ArmyMoods
         if (!SiteStyle::cartoon() || !in_array($mood, self::MOODS, true)) {
             return null;
         }
-        $army = Armies::for($team);
-        if (!$army || !$army['art']) {
-            return null;
-        }
-        $file = config('armies.optimised')."/moods/{$army['art']}-{$mood}.webp";
-        if (!is_file(public_path($file))) {
-            return null;
-        }
         $club = trim(preg_replace('/\s+(FC|AFC)$/i', '', $team instanceof Team ? $team->name : (string) $team));
+        $army = Armies::for($team);
+        $file = $army && $army['art'] ? config('armies.optimised')."/moods/{$army['art']}-{$mood}.webp" : null;
+        if (!$file || !is_file(public_path($file))) {
+            // A club outside our gallery shows its own badge (web pages only; never in cards,
+            // reels or social posts, which stay crest-free).
+            $logo = $team instanceof Team ? trim((string) $team->logo_url) : '';
+
+            return $logo !== '' && $club !== '' ? ['url' => $logo, 'alt' => "{$club} badge", 'logo' => true] : null;
+        }
         $words = ['warrior' => 'ready for battle', 'victory' => 'in victory', 'dejected' => 'dejected', 'defeated' => 'defeated'];
 
-        return ['url' => asset($file), 'alt' => "{$club}'s {$army['army']}, {$words[$mood]}"];
+        return ['url' => asset($file), 'alt' => "{$club}'s {$army['army']}, {$words[$mood]}", 'logo' => false];
     }
 
     /**
