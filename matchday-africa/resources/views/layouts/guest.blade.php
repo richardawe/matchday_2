@@ -286,6 +286,7 @@
     </head>
     <body class="font-sans antialiased matchday-shell matchday-guest {{ \App\Support\SiteStyle::bodyClass() }}">
         <div class="matchday-auth-stage min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
+            <x-app-back class="md-app-back-floating" />
             <div class="matchday-auth-brand mb-6">
                 <a href="/" class="matchday-wordmark">
                     <span class="matchday-monogram">MD</span><span>MATCHDAY<small>AFRICA</small></span>

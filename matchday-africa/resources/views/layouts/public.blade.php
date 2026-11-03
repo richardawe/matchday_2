@@ -27,6 +27,7 @@
                         <div class="flex">
                             <!-- Logo -->
                             <div class="shrink-0 flex items-center">
+                                <x-app-back />
                                 <a href="{{ route('home') }}" class="matchday-wordmark flex items-center">
                                     <span class="matchday-monogram">MD</span><span>MATCHDAY<small>AFRICA</small></span>
                                 </a>

@@ -2,7 +2,8 @@
 
 {{-- The reels-first homepage (config/home.php): reels hero, today strip, matchweek board, news, play, leagues. --}}
 @section('content')
-@include('partials.home.radio')
+@include('partials.home.radio-bar')
+@include('partials.home.live-now')
 @php($featured = $reels['featured'])
 <section class="md-reels" id="reels-hero" aria-labelledby="reels-title">
     <div class="md-wrap md-reels-grid">

@@ -792,3 +792,40 @@
 .md-app-steps b{color:var(--md-gold-bright)}
 .md-app-auth{display:flex;gap:.6rem;flex-wrap:wrap}
 @media(max-width:640px){.md-app-steps{grid-template-columns:1fr}.md-app-cta{align-items:flex-start}.md-app-cta img{width:3.5rem;height:3.5rem}}
+
+/* Installed app: back button (components/app-back), shown only when opened from the home screen */
+.md-app-back{display:none;align-items:center;gap:.15rem;margin-right:.6rem;padding:.4rem .5rem .4rem .2rem;min-height:44px;color:var(--md-paper);font-size:.85rem;font-weight:700}
+.md-app-back-floating{position:absolute;z-index:20;top:max(.75rem,env(safe-area-inset-top));left:.75rem}
+.is-standalone .matchday-auth-stage{padding-top:4.5rem}@media (display-mode: standalone){.matchday-auth-stage{padding-top:4.5rem}}
+@media (display-mode: standalone){.md-app-back{display:inline-flex}}
+.is-standalone .md-app-back{display:inline-flex}
+@media(max-width:400px){.md-app-back span{display:none}}
+
+/* Homepage: Matchday Radio as a slim bar (partials/home/radio-bar) */
+.md-radio-bar{background:#0b100c;border-bottom:1px solid var(--md-line);color:var(--md-paper)}
+.md-radio-bar-inner{display:flex;align-items:center;flex-wrap:wrap;gap:.4rem .9rem;padding-block:.55rem}
+.md-radio-bar-tag{display:inline-flex;align-items:center;gap:.4rem;color:var(--md-gold-bright);font-size:.65rem;font-weight:900;letter-spacing:.18em}
+.md-radio-bar-tag i{width:.45rem;height:.45rem;border-radius:50%;background:var(--md-gold-bright)}
+.md-radio-bar-title{display:flex;align-items:baseline;gap:.6rem;flex:1;min-width:0;color:var(--md-paper)}
+.md-radio-bar-title b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.9rem}
+.md-radio-bar-title small{flex:none;color:#aeb8aa;font-size:.72rem}
+.md-radio-bar audio[hidden],.md-radio-bar [hidden]{display:none}
+.md-radio-bar audio{height:36px;max-width:16rem}
+.md-radio-bar-play{display:inline-flex;align-items:center;gap:.45rem;min-height:40px;padding:.4rem .9rem;background:var(--md-gold-bright);color:#10150f;font-size:.8rem;font-weight:800;border:0;cursor:pointer;white-space:nowrap}
+.md-radio-bar-controls{display:flex;align-items:center;gap:.4rem}.md-radio-bar-share{display:inline-grid;place-items:center;width:40px;height:40px;background:transparent;border:1px solid #4a5445;color:var(--md-paper);cursor:pointer}
+.md-radio-bar-progress{display:flex;align-items:center;gap:.6rem;flex-basis:100%}
+.md-radio-bar-progress input{flex:1;min-width:0;accent-color:var(--md-gold-bright)}
+.md-radio-bar-progress span{font-size:.72rem;color:#aeb8aa}
+.md-radio-bar-feedback{flex-basis:100%;margin:0;font-size:.75rem;color:#c4cabe}.md-radio-bar-feedback:empty{display:none}
+@media(max-width:640px){.md-radio-bar-inner{flex-wrap:nowrap;gap:.6rem}.md-radio-bar-title{flex-direction:column;gap:0}.md-radio-bar-title small{font-size:.66rem;white-space:nowrap}.md-radio-bar-play{width:40px;padding:0;justify-content:center}.md-radio-bar-play [data-radio-label]{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.md-radio-bar-progress,.md-radio-bar-feedback{display:none}.md-radio-bar-progress[hidden]{display:none}}
+
+/* Homepage: live scores first while a match is on (partials/home/live-now) */
+.md-live-now{padding:1.4rem 0 1.6rem;background:#f4efe6;border-bottom:1px solid #d8cebf}
+.md-live-now[hidden]{display:none}
+.md-live-now-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.4rem}
+.md-live-now-head h2{display:flex;align-items:center;gap:.55rem;margin:0;color:#bd382f;font-size:.85rem;font-weight:900;letter-spacing:.2em}
+.md-live-now-head h2 .md-pulse-dot{display:inline-block;animation:md-live-blink 1.4s ease-in-out infinite}
+.md-live-now-head small{color:#736a5d;font-size:.72rem}
+.md-live-now-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,20rem),1fr));column-gap:1.5rem}
+@keyframes md-live-blink{50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){.md-live-now-head h2 .md-pulse-dot{animation:none}}

@@ -1,7 +1,8 @@
 @extends('layouts.public')
 
 @section('content')
-@include('partials.home.radio')
+@include('partials.home.radio-bar')
+@include('partials.home.live-now')
 @if($arena ?? null)@include('partials.home-arena')@endif
 <x-sponsor-slot slot="home" />
 

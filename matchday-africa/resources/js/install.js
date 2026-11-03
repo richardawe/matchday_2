@@ -141,7 +141,22 @@ function page() {
     render();
 }
 
+// The installed app's back button (components/app-back): back within the site, or home.
+function backButton() {
+    document.addEventListener('click', (event) => {
+        const back = event.target.closest('[data-app-back]');
+        if (!back) return;
+        let sameSite = false;
+        try { sameSite = document.referrer && new URL(document.referrer).origin === location.origin; } catch (_) { /* no referrer */ }
+        if (sameSite && history.length > 1) { event.preventDefault(); history.back(); }
+        // Otherwise the link's own href (home) is followed.
+    });
+}
+
 export function start() {
+    // iOS reports the home-screen app through navigator.standalone, not the display-mode query.
+    if (standalone()) document.documentElement.classList.add('is-standalone');
+    backButton();
     if ('serviceWorker' in navigator) {
         const register = () => navigator.serviceWorker.register('/sw.js').catch(() => {});
         if (document.readyState === 'complete') register(); else window.addEventListener('load', register, { once: true });
