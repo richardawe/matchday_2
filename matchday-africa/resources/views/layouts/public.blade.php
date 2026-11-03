@@ -45,7 +45,7 @@
                                 <x-nav-link :href="route('community')" :active="request()->routeIs('community', 'groups.*')">
                                     {{ __('Community') }}
                                 </x-nav-link>
-                                <x-nav-link :href="route('war.index')" :active="request()->routeIs('war.*')">
+                                <x-nav-link :href="\App\Support\WarLinks::home()" :active="request()->routeIs('war.*')">
                                     {{ __('War') }}
                                 </x-nav-link>
                                 <x-nav-link :href="route('discovery.index')" :active="request()->routeIs('discovery.*')">{{ __('Players') }}</x-nav-link>
@@ -143,7 +143,7 @@
                         </x-responsive-nav-link>
                         <x-responsive-nav-link :href="route('community')" :active="request()->routeIs('community')">{{ __('Community') }}</x-responsive-nav-link>
                         <x-responsive-nav-link :href="route('reels.index')" :active="request()->routeIs('reels.*')">{{ __('Reels') }}</x-responsive-nav-link>
-                        <x-responsive-nav-link :href="route('war.index')" :active="request()->routeIs('war.*')">
+                        <x-responsive-nav-link :href="\App\Support\WarLinks::home()" :active="request()->routeIs('war.*')">
                             {{ __('War') }}
                         </x-responsive-nav-link>
                         <x-responsive-nav-link :href="route('teams.index')" :active="request()->routeIs('teams.*')">

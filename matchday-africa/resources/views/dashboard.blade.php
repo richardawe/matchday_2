@@ -77,7 +77,7 @@
             <a href="{{ route('predictions.index') }}"><span>01</span><div><strong>Call the score</strong><small>Make your picks before kickoff.</small></div><b>→</b></a>
             <a href="{{ route('predictions.leaderboard') }}"><span>02</span><div><strong>Check your rank</strong><small>See who is reading the game best.</small></div><b>→</b></a>
             <a href="{{ route('groups.index') }}"><span>03</span><div><strong>Join your people</strong><small>Compete in a private prediction league.</small></div><b>→</b></a>
-            <a href="{{ url('/war') }}"><span>04</span><div><strong>Enter The War</strong><small>Rank kits, play and claim your warrior.</small></div><b>→</b></a>
+            <a href="{{ \App\Support\WarLinks::home() }}"><span>04</span><div><strong>Enter The War</strong><small>Rank kits, play and claim your warrior.</small></div><b>→</b></a>
         </aside>
     </div>
 </section>

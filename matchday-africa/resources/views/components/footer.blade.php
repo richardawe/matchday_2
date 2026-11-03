@@ -28,7 +28,7 @@
                     <li><a href="{{ route('leagues.index') }}" class="text-black hover:text-gray-600 transition-colors">Leagues</a></li>
                     <li><a href="{{ route('community') }}" class="text-black hover:text-gray-600 transition-colors">Community</a></li>
                     <li><a href="{{ route('reels.index') }}" class="text-black hover:text-gray-600 transition-colors">20-second reels</a></li>
-                    <li><a href="{{ route('war.index') }}" class="text-black hover:text-gray-600 transition-colors">Matchday War</a></li>
+                    <li><a href="{{ \App\Support\WarLinks::home() }}" class="text-black hover:text-gray-600 transition-colors">Matchday War</a></li>
                     <li><a href="{{ route('teams.index') }}" class="text-black hover:text-gray-600 transition-colors">Teams</a></li>
                     <li><a href="{{ route('blogs.index') }}" class="text-black hover:text-gray-600 transition-colors">Articles</a></li>
                     <li><a href="{{ route('app.install') }}" class="text-black hover:text-gray-600 transition-colors">Get the app</a></li>

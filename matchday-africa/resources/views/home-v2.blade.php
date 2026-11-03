@@ -9,6 +9,9 @@
     <div class="md-wrap md-reels-grid">
         @php($slides = $featured ? collect([$featured])->concat($reels['rail']) : collect())
         @php($cards = !$featured ? $board->take(6) : collect())
+        {{-- The dots and the swipe hint sit in a strip under the player, never over the reel: its
+             caption box and "matchday.africa · told by the Griot" line are drawn into the video. --}}
+        <div class="md-reels-stage">
         <div class="md-reels-player {{ $featured ? '' : 'is-cards' }}" data-reels-player>
             @if($featured || $cards->isNotEmpty())
                 {{-- Swipe between reels (or, before any reels, this week's fixture cards). The reel on screen plays muted by itself. --}}
@@ -26,16 +29,23 @@
                     @endforeach
                 </div>
                 @if($featured)
-                    <button type="button" class="md-reels-sound" data-reels-sound aria-pressed="false">Sound on</button>
                     <button type="button" class="md-reels-tap" data-reels-tap hidden><span aria-hidden="true">▶</span> Tap to play</button>
                 @endif
                 @if(($featured ? $slides : $cards)->count() > 1)
                     <button type="button" class="md-reels-nav is-prev" data-reels-prev aria-label="Previous">‹</button>
                     <button type="button" class="md-reels-nav is-next" data-reels-next aria-label="Next">›</button>
+                @endif
+            @endif
+        </div>
+        @if($featured || $cards->count() > 1)
+            <div class="md-reels-controls">
+                @if($featured)<button type="button" class="md-reels-sound" data-reels-sound aria-pressed="false">Sound on</button>@endif
+                @if(($featured ? $slides : $cards)->count() > 1)
                     <div class="md-reels-dots" aria-hidden="true">@foreach($featured ? $slides : $cards as $slide)<i @class(['is-on' => $loop->first])></i>@endforeach</div>
                     <span class="md-reels-hint" data-reels-hint aria-hidden="true">Swipe ⇆</span>
                 @endif
-            @endif
+            </div>
+        @endif
         </div>
         <div class="md-reels-copy">
             <p class="md-eyebrow">THIS WEEK'S REELS</p>
@@ -105,7 +115,7 @@
     <div class="md-home-heading"><div><p class="md-eyebrow">PLAY</p><h2>Make your call. Pick your army.</h2></div></div>
     <div class="md-feature-grid">
         <a class="md-feature-card md-feature-predict" href="{{ route('predictions.index') }}"><span>PREDICTIONS</span><h3>Make your call before kick-off.</h3><p>Predict scores, compete with friends and prove how well you know the game.</p><b>Start predicting →</b></a>
-        <a class="md-feature-card md-feature-war" href="{{ route('war.index') }}"><span>MATCHDAY WAR</span><h3>Turn the fixture into a battle.</h3><p>Choose your side and rally supporters. @if($arena)Today's headline match is in the arena.@endif</p><b>Enter Matchday War →</b></a>
+        <a class="md-feature-card md-feature-war" href="{{ \App\Support\WarLinks::home() }}"><span>MATCHDAY WAR</span><h3>Turn the fixture into a battle.</h3><p>Choose your side and rally supporters. @if($arena)Today's headline match is in the arena.@endif</p><b>Enter Matchday War →</b></a>
     </div>
     @if($arena)<p class="md-play-arena"><a href="{{ route('war.arena') }}">Watch the arena: {{ $arena['home']['army'] ?? '' }} v {{ $arena['away']['army'] ?? '' }} →</a></p>@endif
 </div></section>

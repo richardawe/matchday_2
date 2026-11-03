@@ -36,7 +36,7 @@ class SitemapController extends Controller
             ['community', 'daily', '0.6'], ['leagues.index', 'weekly', '0.6'], ['teams.index', 'weekly', '0.5'], ['discovery.index', 'weekly', '0.5'],
             ['war.index', 'weekly', '0.5'], ['premium.index', 'monthly', '0.4'], ['shop.index', 'weekly', '0.4'], ['radio.index', 'daily', '0.5'], ['app.install', 'monthly', '0.4'],
             ['terms', 'yearly', '0.1'], ['privacy', 'yearly', '0.1'], ['cookies', 'yearly', '0.1']] as [$name, $freq, $priority]) {
-            $add(route($name), null, $freq, $priority);
+            $add($name === 'war.index' ? \App\Support\WarLinks::home() : route($name), null, $freq, $priority);
         }
 
         $utc = now('UTC');

@@ -22,7 +22,7 @@
                     <x-nav-link :href="route('leagues.index')" :active="request()->routeIs('leagues.*')">
                         {{ __('Leagues') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('war.index')" :active="request()->routeIs('war.*')">
+                    <x-nav-link :href="\App\Support\WarLinks::home()" :active="request()->routeIs('war.*')">
                         {{ __('War') }}
                     </x-nav-link>
                     <x-nav-link :href="route('teams.index')" :active="request()->routeIs('teams.*')">
