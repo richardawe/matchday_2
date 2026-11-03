@@ -177,8 +177,17 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   now accepts number words and 12-hour kick-off times. A missed edition is not re-run automatically.
 - Reel backfill run on 3 Nov (20 Oct–3 Nov): 20 reels queued for redrawing; 10 from the latest round are reposted
   4 a day from 4 Nov 09:00 Lagos.
-- PR #46 (swipeable home reels) was green and held until after the 17:00 UTC radio edition so the deploy's
-  maintenance window would not skip it; check it was merged and deployed. Don't deploy across 05:00/11:00/17:00 UTC.
+- Radio on 3 Nov: the 18:00 edition first failed the AI fact check because the prompt said "lead with the most
+  important African news" and the writer said so on air; the prompt now forbids ranking or characterising stories
+  (#49). Bulletin 44 was re-run with Server operations `radio-retry` and published at 18:28 Lagos.
+- Statue cut-outs come from BiRefNet mattes committed in `public/war/downloads/rights-safe/masks/` (#48); the old
+  brightness flood fill lost dark legs/faces and kept smoky blobs. Reel bursts sit above the other army, clear of the hero.
+  `ReelService::V2_REVISION` (`v2r2`) marks the art revision; `reel:queue` redraws reels from older revisions.
+- Reels: on 3 Nov evening all 20 reels from 20 Oct–3 Nov were re-queued for the v2r2 art; the latest round's 10 are
+  reposted ("New look!") 4 a day from 4 Nov 09:00 Lagos.
+- Home reels hero is a swipeable strip (#46). All PRs through #49 are merged and deployed.
+- Branch protection requires PRs to be up to date with `main`: after each merge, update the next PR's branch and wait
+  for its CI gate before merging. Don't deploy across 05:00/11:00/17:00 UTC (radio editions).
 - Still dark (not yet in the cartoon look): live goal and red-card story cards (`StoryCardRenderer`). The match chronicle
   endpoint (`/matches/{id}/chronicle`) is JSON, not a page.
 - Local review tooling used on 3 Nov: a demo SQLite database plus Playwright scripts that screenshot every page at
