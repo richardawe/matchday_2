@@ -832,3 +832,15 @@
 
 /* Kick-off times in score boxes (components/kickoff-time): the zone in small type under the time */
 .md-tz{display:block;margin-top:.1em;font-size:.5em;line-height:1;letter-spacing:.14em;font-weight:700;opacity:.8}
+
+/* Reels hero: the player with a control strip under it (dots, swipe hint), clear of the
+   caption and footer line drawn into the reel video. */
+.md-reels-stage{min-width:0;display:grid;justify-items:center;align-content:start;gap:.75rem}
+.md-reels-stage>.md-reels-player{width:100%}
+.md-reels-controls{position:relative;display:flex;align-items:center;justify-content:center;gap:.8rem;width:100%;min-height:2.4rem}
+.md-reels-controls .md-reels-dots{position:static;flex-wrap:wrap;max-width:calc(100% - 15rem)}
+.md-reels-controls .md-reels-dots i{background:rgba(255,255,255,.4)}
+.md-reels-controls .md-reels-dots i.is-on{background:var(--md-gold-bright)}
+.md-reels-controls .md-reels-sound{position:absolute;left:0;top:0;bottom:0;height:fit-content;margin:auto 0}
+.md-reels-controls .md-reels-hint{position:absolute;right:0;top:0;bottom:0;height:fit-content;margin:auto 0}
+@media(max-width:640px){.md-reels-stage>.md-reels-player{width:min(100%,calc(70svh * 9 / 16))}}

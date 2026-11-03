@@ -9,7 +9,7 @@
     <div class="md-card-grid">
         <a class="md-panel" href="{{ auth()->check() ? route('groups.index') : route('register') }}"><small>PREDICTION LEAGUES</small><h2>Start a league with friends</h2><p>Create a private table, send one invite link, and the weekly winner gets the bragging rights.</p></a>
         <a class="md-panel" href="{{ route('matches.index') }}"><small>MATCH ROOMS</small><h2>Talk through the match</h2><p>Every fixture has a live room: react to goals, back your side and call the score before kick-off.</p></a>
-        <a class="md-panel" href="{{ route('war.index') }}"><small>MATCHDAY WAR</small><h2>Turn the fixture into a battle</h2><p>Pick your army and challenge a friend on any match.</p></a>
+        <a class="md-panel" href="{{ \App\Support\WarLinks::home() }}"><small>MATCHDAY WAR</small><h2>Turn the fixture into a battle</h2><p>Pick your army and challenge a friend on any match.</p></a>
         <a class="md-panel" href="{{ route('leagues.index') }}"><small>COMPETITIONS</small><h2>Tables and fixtures</h2><p>Premier League, AFCON, NPFL and the leagues African fans follow.</p></a>
         @if(\App\Models\RadioBulletin::available())<a class="md-panel" href="{{ route('radio.index') }}"><small>MATCHDAY RADIO</small><h2>Listen in</h2><p>Short football bulletins three times a day.</p></a>@endif
         <a class="md-panel" href="{{ route('reels.index') }}"><small>REELS</small><h2>Every match in 20 seconds</h2><p>Share them to your Status minutes after the final whistle.</p></a>
