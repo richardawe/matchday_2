@@ -88,9 +88,9 @@ on:
         options: [unchanged, "on", "off"]
         default: unchanged
       reel_style:
-        description: "configure-release: reel look (v2 = bright comic reel told from the Griot timeline)"
+        description: "configure-release: the look (cartoon = bright comic site and v2 reels told from the Griot timeline; classic = the dark look)"
         type: choice
-        options: [unchanged, classic, v2]
+        options: [unchanged, classic, cartoon]
         default: unchanged
       reels_now:
         description: "configure-release: post reels to Buffer at the final whistle, outside the daily slots (also 1-minute render delay, GitHub overflow when a token is set)"

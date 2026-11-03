@@ -14,9 +14,10 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @if(\App\Support\SiteStyle::cartoon())@vite('resources/css/cartoon.css')@endif
         @include('partials.clarity')
     </head>
-    <body class="font-sans antialiased matchday-shell">
+    <body class="font-sans antialiased matchday-shell {{ \App\Support\SiteStyle::bodyClass() }}">
         <div class="min-h-screen matchday-canvas">
             <!-- Public Navigation -->
             <nav x-data="{ open: false }" class="matchday-nav bg-white border-b border-gray-100">

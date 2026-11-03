@@ -4,6 +4,7 @@ import WarApp from './WarApp';
 import './war.css';
 import './game.css';
 import './wallpapers.css';
+import './war-cartoon.css';
 
 const root=document.getElementById('war-root');
 if(root){

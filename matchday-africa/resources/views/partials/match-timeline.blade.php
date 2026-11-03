@@ -26,6 +26,8 @@
                 @endphp
                 <li class="md-tl-post is-{{ $post->kind }}" id="griot-{{ $post->id }}">
                     <span class="md-tl-clock">{{ $clockLabel }}</span>
+                    @php $moodImages = \App\Support\ArmyMoods::forPost($post, $match); @endphp
+                    @if($moodImages)<span class="md-tl-moods">@foreach($moodImages as $image)<img class="md-mood md-tl-mood" src="{{ $image['url'] }}" alt="{{ $image['alt'] }}" width="76" height="76" loading="lazy">@endforeach</span>@endif
                     <div>
                         <span class="md-tl-tag">{{ $teller->tag($post) }}</span>
                         <h3>{{ $headline }}</h3>

@@ -67,6 +67,7 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Stale live matches | `StaleMatchCloser.php`, `matches:close-stale` (FINISHED after kick-off + 3h with no update for 30 min, or + 6h); flagged `metadata.status_inferred_at`, so scoring and reels wait (`FootballMatch::statusInferred()`) | every 10 min | always on |
 | Signup nudge, footer email | `partials/signup-nudge.blade.php` (localStorage `md_nudge`), `EmailSubscriptionController`, table `email_subscribers` (capture only: no emails are sent yet) | n/a | needs `email_subscribers` migration |
 | Live Griot timeline (ESPN commentary → standard plays → picked moments → Griot captions in 4 voices, shot map, momentum, Kokoro Griot voice clips) | `app/Services/Espn/EspnCommentaryMapper.php`, `app/Services/Griot/*` (`MomentPicker`, `GriotTimeline`, `GriotTeller`, `GriotWriter`), `partials/match-timeline`, `radio/griot-voice.mjs`, `radio/griot-writer.mjs`, tables `match_plays`, `griot_posts`; training in `griot-ml/` (repo root, not deployed) | plays saved by `espn:sync details`; `griot:timeline` 1m, `griot:write` 1m, `griot:voice` 1m | `GRIOT_TIMELINE`, `GRIOT_VOICE`, `GRIOT_WRITER` (+ migration) |
+| Cartoon look (whole site, admin, Matchday War) | `docs/CARTOON.md`; `config/site.php`, `App\Support\SiteStyle` + `SiteStylePreview` middleware (`?style=cartoon`, cookie `md_style`), `resources/css/cartoon.css` (+ generated `cartoon-auto.css`, `scripts/build-cartoon-css.py`), `resources/js/war/war-cartoon.css` + `art.ts`, `App\Support\ArmyMoods` (mood thumbnails `public/war/army/moods/`, `armies:colours`) | n/a | `SITE_STYLE=cartoon` (default classic) |
 | Home arena | `resources/views/partials/home-arena.blade.php`, `resources/js/arena.js` (GSAP), `arena3d.js` (three.js, desktop only) | rides the home pulse refresh | always on when a Premier League match qualifies |
 
 ## 4. CI/CD
@@ -115,7 +116,7 @@ checks: `shellcheck matchday-africa/deploy-production.sh scripts/ci/deploy-ssh.s
    (writes samples to `storage/app/griot/audition`), listen, and set `GRIOT_VOICE=true`; the deploy installs the radio
    Node runtime when `GRIOT_VOICE` or `GRIOT_WRITER` is on. Picker and writer models come from `griot-ml/` (README there);
    ship each only when it beats the rules/templates on held-out matches.
-7. Reels at the final whistle and alerts: Server operations → `configure-release` (`reel_style` v2, `reels_now` on,
+7. Cartoon look, reels at the final whistle and alerts: Server operations → `configure-release` (`reel_style` cartoon, `reels_now` on,
    `push` on). It migrates, creates VAPID keys once, sets `REEL_DELAY_MINUTES=1` and `REEL_OVERFLOW=github` when
    `REEL_GITHUB_TOKEN` is set. Preview the look first with `reel-render` on a past match.
 8. Rollback any feature by switching its flag off and clearing caches.
@@ -127,7 +128,7 @@ the production secret of that name plus channel IDs, `BUFFER_AUTO`, `BUFFER_SLOT
 `matchday-africa/scripts/set-env.php`, which backs `.env` up first, then `config:cache`), `plan-posts` (plan and
 send once), `clear-drafts` (delete unsent X drafts), `reel-check` (recent PL matches with events/chapters/reel state, finds Node 18+, `npm ci` + `node check.mjs`
 in `reel/`), `configure-reel` (`REEL_RENDERER`, `REEL_NODE`, `REEL_GITHUB_TOKEN` from the production secret), `configure-reel-voice` (Kokoro commentary over new reels: `REEL_NARRATION` on/off),
-`reel-render` (rebuild one match's chapters and render its reel now), `configure-release` (`REEL_STYLE`, instant Buffer reels, web push; see go-live step 7), `configure-espn` (`live`, `shadow` or `off`),
+`reel-render` (rebuild one match's chapters and render its reel now), `configure-release` (the look: `cartoon` sets `SITE_STYLE=cartoon` and `REEL_STYLE=v2`; instant Buffer reels; web push; see go-live step 7), `configure-espn` (`live`, `shadow` or `off`),
 `espn-sync` (fixtures, live and details passes now, unmatched fixtures listed), `reel-queue` (backfill reels between two Lagos dates), `configure-home` (`HOME_V2` on or off), `configure-growth` (`WHATSAPP_CHANNEL_URL`, `none` hides the CTA). From a terminal: `gh workflow run server-ops.yml -f action=status`.
 
 ## 6. Environment variables added in this round
@@ -150,6 +151,7 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `BUFFER_REELS_NOW` / `BUFFER_REELS_PER_DAY` | false / 10 | Post a fresh reel (made in the last 6 h) on every channel at once, outside the slots and without using one |
 | `REEL_STYLE` | classic | `v2`: bright comic reel told from the Griot timeline (falls back to chapters) |
 | `REEL_OVERFLOW` | off | `github`: with the server renderer, reels finishing together beyond the first go to GitHub |
+| `SITE_STYLE` | classic | `cartoon`: the bright comic look everywhere (preview per browser with `?style=cartoon`) |
 | `PUSH_ENABLED` / `PUSH_VAPID_*` | false / empty | Web push for match alerts; `php artisan push:keys --write` creates the keys (changing them makes every browser subscribe again) |
 | `BUFFER_SLOTS` / `BUFFER_PREVIEWS_PER_DAY` | 08:00,13:00,19:00 / 3 | Lagos times; each account posts at most once per slot (live cards and reels included), so three a day. Fixture previews planned a day |
 | `WHATSAPP_CHANNEL_URL` | empty | WhatsApp channel invite link for the homepage/match CTA |
@@ -161,6 +163,13 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `GRIOT_PICKER_MODEL` | storage/app/griot/picker.json | Learned moment picker; missing file = strict rules |
 
 ## 7. Open items and known issues
+### Cartoon look (3 Nov 2026)
+- Owner approved the mockups and asked for the whole site, admin and /war in the cartoon style. Built behind `SITE_STYLE`
+  (default classic); preview with `?style=cartoon`. Plan and state in `matchday-africa/docs/CARTOON.md`.
+- In the cartoon look /war uses the crest-free statues (`resources/js/war/art.ts`); the classic /war still shows
+  `public/war/warriors/` portraits, which carry club crests.
+- The generated overrides follow app.css: rerun `python3 scripts/build-cartoon-css.py` after editing app.css or the war styles.
+
 ### Reel v2, instant reels and match alerts (3 Nov 2026)
 - Owner's choices (3 Nov): keep the statue style with bright comic framing; try drawn mood treatments first (no new
   art yet); new pose art (victory, dejected, defeated per army) will be generated without crests, sponsors or maker

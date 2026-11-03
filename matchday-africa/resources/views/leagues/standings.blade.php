@@ -49,6 +49,7 @@
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
+                                @php $tableMoods = \App\Support\ArmyMoods::afterLastResult($standings->pluck('team')->filter()); @endphp
                                 @foreach($standings as $standing)
                                     <tr class="hover:bg-gray-50 {{ $standing->position <= 4 ? 'bg-green-50' : ($standing->position <= 6 ? 'bg-blue-50' : ($standing->position >= 18 ? 'bg-red-50' : '')) }}">
                                         <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -56,7 +57,9 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="flex items-center space-x-3">
-                                                @if($standing->team->logo_url)
+                                                @if($mood = $tableMoods[$standing->team->id] ?? null)
+                                                    <img class="md-mood" src="{{ $mood['url'] }}" alt="{{ $mood['alt'] }}" width="40" height="40" loading="lazy">
+                                                @elseif($standing->team->logo_url)
                                                     <img src="{{ $standing->team->logo_url }}" alt="{{ $standing->team->name }}" class="w-8 h-8 object-contain">
                                                 @endif
                                                 <div class="text-sm font-medium text-gray-900">

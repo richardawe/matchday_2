@@ -15,6 +15,7 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @if(\App\Support\SiteStyle::cartoon())@vite('resources/css/cartoon.css')@endif
     
     <!-- Additional Admin Styles -->
     <style>
@@ -26,7 +27,7 @@
         }
     </style>
 </head>
-<body class="font-sans antialiased matchday-shell matchday-admin bg-gray-100">
+<body class="font-sans antialiased matchday-shell matchday-admin bg-gray-100 {{ \App\Support\SiteStyle::bodyClass() }}">
     <!-- Admin Navigation -->
     <x-admin.navigation />
 
