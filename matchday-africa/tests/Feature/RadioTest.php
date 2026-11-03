@@ -222,6 +222,22 @@ class RadioTest extends TestCase
         }
     }
 
+    public function test_numbers_written_as_words_or_kick_off_times_in_sources_may_be_said_as_digits(): void
+    {
+        $facts = [
+            ['key' => 'news:a', 'kind' => 'news', 'source' => 'BBC Sport', 'rumour' => false,
+                'text' => "Newport County have scored just two from nine penalties across the past two seasons, and twenty-five in all."],
+            ['key' => 'match:9', 'kind' => 'fixture', 'source' => 'Matchday match centre', 'rumour' => false,
+                'text' => 'Galatasaray SK face VfB Stuttgart on Tuesday 3 November at 18:45 WAT.'],
+        ];
+        app(RadioScript::class)->validate([
+            ['fact_keys' => ['news:a'], 'text' => 'Newport County have scored 2 from 9 penalties in 2 seasons and 25 in all, BBC Sport reports.'],
+            ['fact_keys' => ['match:9'], 'text' => 'Galatasaray host Stuttgart on 3 November at 6:45 in the evening.'],
+        ], $facts);
+        $this->expectException(\RuntimeException::class);
+        app(RadioScript::class)->validate([['fact_keys' => ['news:a'], 'text' => 'Newport County have scored 3 from 9 penalties, BBC Sport reports.']], $facts);
+    }
+
     public function test_news_requires_attribution_rumour_labels_and_original_wording(): void
     {
         $fact = ['key' => 'news:a', 'kind' => 'news', 'source' => 'Club desk', 'rumour' => true,
