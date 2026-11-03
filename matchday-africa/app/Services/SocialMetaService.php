@@ -165,7 +165,7 @@ class SocialMetaService
 
         // Otherwise the match card (fixture before, result after); the version changes with the
         // score so link previews refresh at full time.
-        return route('matches.card', ['match' => $match, 'v' => substr(md5($match->status.'|'.$match->home_score.'|'.$match->away_score), 0, 8)]);
+        return route('matches.card', ['match' => $match, 'v' => substr(md5(config('site.style').'|'.$match->status.'|'.$match->home_score.'|'.$match->away_score), 0, 8)]);
     }
 
     private function team(Team $team): array
