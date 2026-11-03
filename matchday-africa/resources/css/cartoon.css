@@ -420,3 +420,11 @@ body.md-cartoon .md-error-code { display: inline-block; padding: .2rem .7rem; ba
 body.md-cartoon .md-error h1 { font-family: var(--c-display); font-weight: 400; color: var(--c-ink); }
 body.md-cartoon .md-error-card > p:not(.md-error-code) { color: var(--c-muted); }
 body.md-cartoon .md-signup-stats b { font-family: var(--c-display); font-weight: 400; color: var(--c-ink); }
+
+/* Home reels strip in the cartoon look. */
+body.md-cartoon .md-reels-player.is-cards { background: var(--c-sun); }
+body.md-cartoon .md-reels-dots i { background: var(--c-paper); border: 2px solid var(--c-ink); border-radius: 0; width: .7rem; height: .7rem; }
+body.md-cartoon .md-reels-dots i.is-on { background: var(--c-sun); width: 1.6rem; }
+body.md-cartoon .md-reels-nav { background: var(--c-sun); color: var(--c-ink); border: 3px solid var(--c-ink); border-radius: 0; box-shadow: 3px 3px 0 var(--c-ink); font-family: var(--c-display); }
+body.md-cartoon .md-reels-tap { background: var(--c-sun); color: var(--c-ink); border: 4px solid var(--c-ink); box-shadow: 5px 5px 0 var(--c-ink); font-family: var(--c-display); font-weight: 400; font-size: 1.3rem; letter-spacing: .04em; text-transform: uppercase; }
+body.md-cartoon .md-reels-hint { background: var(--c-ink); color: var(--c-sun); border: 2px solid var(--c-sun); font-family: var(--c-mono); }
