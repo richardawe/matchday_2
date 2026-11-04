@@ -47,15 +47,10 @@ on:
         description: "reel-queue: last Lagos date, YYYY-MM-DD"
         required: false
       home_v2:
-        description: "configure-home: the reels-first homepage"
+        description: "configure-home: the reels-first homepage. configure-challenge: Beat the Griot and the banter cards"
         type: choice
         options: ["off", "on"]
         default: "off"
-      griot_challenge:
-        description: "configure-challenge: Beat the Griot and the full-time banter cards"
-        type: choice
-        options: ["off", challenge, banter, both]
-        default: both
       whatsapp_channel_url:
         description: "configure-growth: WhatsApp channel invite link, https://whatsapp.com/channel/... (none = hide the CTA)"
         required: false
@@ -155,7 +150,6 @@ jobs:
           INPUT_MATCH_ID: ${{ inputs.match_id }}
           INPUT_ESPN_MODE: ${{ inputs.espn_mode }}
           INPUT_HOME_V2: ${{ inputs.home_v2 }}
-          INPUT_GRIOT_CHALLENGE: ${{ inputs.griot_challenge }}
           INPUT_WHATSAPP_CHANNEL_URL: ${{ inputs.whatsapp_channel_url }}
           INPUT_FROM: ${{ inputs.from_date }}
           INPUT_TO: ${{ inputs.to_date }}

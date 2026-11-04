@@ -302,13 +302,12 @@ elif [[ "$mode" == configure-home ]]; then
     esac
     printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/set-env.php && php artisan config:cache --no-ansi"
 elif [[ "$mode" == configure-challenge ]]; then
-    # Beat the Griot (GRIOT_CHALLENGE) and the full-time banter cards (BANTER_CARDS).
-    case "${INPUT_GRIOT_CHALLENGE:-}" in
+    # Beat the Griot (GRIOT_CHALLENGE) and the full-time banter cards (BANTER_CARDS), together.
+    # Uses the home_v2 on/off input: the workflow is at GitHub's limit of 25 inputs.
+    case "${INPUT_HOME_V2:-}" in
+        on) json='{"GRIOT_CHALLENGE":"true","BANTER_CARDS":"true"}' ;;
         off) json='{"GRIOT_CHALLENGE":"false","BANTER_CARDS":"false"}' ;;
-        challenge) json='{"GRIOT_CHALLENGE":"true","BANTER_CARDS":"false"}' ;;
-        banter) json='{"GRIOT_CHALLENGE":"false","BANTER_CARDS":"true"}' ;;
-        both) json='{"GRIOT_CHALLENGE":"true","BANTER_CARDS":"true"}' ;;
-        *) echo "griot_challenge must be off, challenge, banter or both."; exit 1 ;;
+        *) echo "home_v2 (the on/off switch) must be on or off."; exit 1 ;;
     esac
     printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php artisan migrate --force --no-ansi && php scripts/set-env.php && php artisan config:cache --no-ansi && php artisan griot:challenge --no-ansi"
 elif [[ "$mode" == configure-growth ]]; then
