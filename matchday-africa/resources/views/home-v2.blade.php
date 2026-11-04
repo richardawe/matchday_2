@@ -87,7 +87,7 @@
 
 @if($board->isNotEmpty())
 <section class="md-board"><div class="md-wrap">
-    <div class="md-home-heading"><div><p class="md-eyebrow">MATCHWEEK BOARD</p><h2>Who wins? Call it before kick-off.</h2></div><a href="{{ route('predictions.index') }}">All predictions →</a></div>
+    <div class="md-home-heading"><div><p class="md-eyebrow">MATCHWEEK BOARD</p><h2>Who wins? Call it before kick-off.</h2></div><a href="{{ route('predictions.index') }}">Beat the Griot →</a></div>
     <div class="md-board-grid">
         @foreach($board as $item)
             <a class="md-board-card" href="{{ route('matches.show', $item['match']) }}#prediction-arena">
@@ -115,7 +115,7 @@
 <section class="md-play"><div class="md-wrap">
     <div class="md-home-heading"><div><p class="md-eyebrow">PLAY</p><h2>Make your call. Pick your army.</h2></div></div>
     <div class="md-feature-grid">
-        <a class="md-feature-card md-feature-predict" href="{{ route('predictions.index') }}"><span>PREDICTIONS</span><h3>Make your call before kick-off.</h3><p>Predict scores, compete with friends and prove how well you know the game.</p><b>Start predicting →</b></a>
+        <a class="md-feature-card md-feature-predict" href="{{ route('predictions.index') }}"><span>BEAT THE GRIOT</span><h3>Three matches. Beat the Griot.</h3><p>The Griot calls three scores every round. Score more points and you could win {{ config('griot_challenge.prize') }}.</p><b>Take on the Griot →</b></a>
         <a class="md-feature-card md-feature-war" href="{{ \App\Support\WarLinks::home() }}"><span>MATCHDAY WAR</span><h3>Turn the fixture into a battle.</h3><p>Choose your side and rally supporters. @if($arena)Today's headline match is in the arena.@endif</p><b>Enter Matchday War →</b></a>
     </div>
     @if($arena)<p class="md-play-arena"><a href="{{ route('war.arena') }}">Watch the arena: {{ $arena['home']['army'] ?? '' }} v {{ $arena['away']['army'] ?? '' }} →</a></p>@endif

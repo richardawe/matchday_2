@@ -10,7 +10,6 @@
 
 <section class="md-pred-ledger"><div class="md-wrap">
     <form method="GET" class="md-pred-filters">
-        <label><span>Prediction round</span><select name="prediction_set_id"><option value="">All rounds</option>@foreach($predictionSets as $set)<option value="{{ $set->id }}" @selected(($filters['prediction_set_id'] ?? '') == $set->id)>{{ $set->name }}</option>@endforeach</select></label>
         <label><span>Submitted from</span><input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}"></label>
         <label><span>Submitted to</span><input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}"></label>
         <label><span>Outcome</span><select name="is_correct"><option value="">All outcomes</option><option value="1" @selected(($filters['is_correct'] ?? '') === '1')>Correct</option><option value="0" @selected(($filters['is_correct'] ?? '') === '0')>Incorrect</option></select></label>
@@ -29,7 +28,7 @@
                 <b>{{ $settled ? ($prediction->points_earned > 0 ? '+'.number_format($prediction->points_earned).' pts' : '0 pts') : 'Pending' }}</b>
             </a>
         @empty
-            <div class="md-pred-empty"><span>0</span><div><h3>No calls match these filters.</h3><p>Clear the filters or enter an open challenge to add to your record.</p><a href="{{ route('predictions.index') }}">View open challenges →</a></div></div>
+            <div class="md-pred-empty"><span>0</span><div><h3>No calls match these filters.</h3><p>Clear the filters, or take on the Griot to add to your record.</p><a href="{{ route('predictions.index') }}">Beat the Griot →</a></div></div>
         @endforelse
     </div>
     @if($predictions->hasPages())<div class="md-pred-pages">{{ $predictions->appends(request()->query())->links() }}</div>@endif

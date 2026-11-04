@@ -260,11 +260,6 @@ class FootballMatch extends Model
         return $this->hasMany(UserPrediction::class, 'match_id');
     }
 
-    public function sponsor()
-    {
-        return $this->hasOne(MatchSponsor::class, 'match_id');
-    }
-
     /**
      * Check if match is eligible for predictions
      */

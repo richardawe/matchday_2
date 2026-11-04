@@ -24,11 +24,11 @@ class SiteFixesTest extends TestCase
         $this->assertFileExists(public_path('images/default-team.png'));
     }
 
-    public function test_predictions_and_arena_have_their_own_titles(): void
+    public function test_beat_the_griot_and_arena_have_their_own_titles(): void
     {
-        $this->get('/predictions')->assertOk()
-            ->assertSee('<title>Football predictions: call the score, win the week | Matchday Africa</title>', false)
-            ->assertSee('name="description" content="Free football predictions', false)
+        config(['griot_challenge.enabled' => true]);
+        $this->get('/beat-the-griot')->assertOk()
+            ->assertSee('<title>Beat the Griot: three matches, 1GB of data to win | Matchday Africa</title>', false)
             ->assertDontSee('EPL Odds');
         $this->get('/war/arena')->assertOk()->assertSee('<title>The Arena: this week&#039;s Premier League armies in 3D | Matchday Africa</title>', false);
     }
@@ -53,7 +53,6 @@ class SiteFixesTest extends TestCase
         ]));
 
         $this->assertSame('18:45 WAT', $match->kickoffLabel('H:i'));
-        $this->get('/predictions')->assertOk()->assertSee('Wed 4 Nov, 18:45 WAT')->assertDontSee('17:45');
         // In score boxes the zone sits in small type under the time, so it fits the box.
         $this->get('/')->assertOk()->assertSee('18:45<small class="md-tz">WAT</small>', false);
         // Structured data keeps the true instant with its offset (17:45+00:00); the page text shows WAT.

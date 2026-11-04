@@ -3,9 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\FootballMatch;
-use App\Models\MatchEvent;
 use App\Models\PredictionSet;
-use App\Models\PredictionSetMatch;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\UserPrediction;
@@ -18,57 +16,33 @@ class PredictionSystemTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_configured_points_and_first_goalscorer_are_scored(): void
+    public function test_score_calls_get_three_for_the_exact_score_and_one_for_the_result(): void
     {
         [$user, $set, $match] = $this->scenario();
-        PredictionSetMatch::create(['prediction_set_id' => $set->id, 'match_id' => $match->id, 'prediction_type' => 'goalscorer', 'points_value' => 4]);
-        MatchEvent::create([
-            'football_data_id' => 9001, 'match_id' => $match->id, 'match_football_data_id' => 5001,
-            'team_id' => $match->home_team_id, 'team_football_data_id' => 101, 'type' => 'goal',
-            'minute' => 12, 'sort_order' => 0, 'player_name' => 'Ada Striker',
-        ]);
-        $prediction = UserPrediction::create([
-            'user_id' => $user->id, 'prediction_set_id' => $set->id, 'match_id' => $match->id,
-            'prediction_type' => 'goalscorer', 'prediction_value' => '  ada   striker ', 'submitted_at' => now(),
-        ]);
+        $exact = UserPrediction::create(['user_id' => $user->id, 'prediction_set_id' => $set->id, 'match_id' => $match->id, 'prediction_type' => 'score',
+            'prediction_value' => '2-1', 'home_score_prediction' => 2, 'away_score_prediction' => 1, 'submitted_at' => now(), 'is_scored' => false, 'points_earned' => 0]);
+        $other = User::factory()->create();
+        $result = UserPrediction::create(['user_id' => $other->id, 'prediction_set_id' => $set->id, 'match_id' => $match->id, 'prediction_type' => 'score',
+            'prediction_value' => '3-0', 'home_score_prediction' => 3, 'away_score_prediction' => 0, 'submitted_at' => now(), 'is_scored' => false, 'points_earned' => 0]);
 
-        $result = app(PredictionScoringService::class)->evaluatePredictionWithScoring($prediction, $match);
+        app(PredictionScoringService::class)->scoreMatchPredictions($match);
 
-        $this->assertTrue($result['is_correct']);
-        $this->assertSame(4, $result['points_earned']);
+        $this->assertSame(3, $exact->fresh()->points_earned);
+        $this->assertSame(1, $result->fresh()->points_earned);
     }
 
-    public function test_missing_goalscorer_event_is_not_marked_incorrect(): void
+    public function test_old_prediction_pages_lead_to_the_griot(): void
     {
-        [$user, $set, $match] = $this->scenario();
-        PredictionSetMatch::create(['prediction_set_id' => $set->id, 'match_id' => $match->id, 'prediction_type' => 'goalscorer', 'points_value' => 2]);
-        $prediction = UserPrediction::create([
-            'user_id' => $user->id, 'prediction_set_id' => $set->id, 'match_id' => $match->id,
-            'prediction_type' => 'goalscorer', 'prediction_value' => 'Ada Striker', 'submitted_at' => now(),
-        ]);
-
-        $result = app(PredictionScoringService::class)->evaluatePredictionWithScoring($prediction, $match);
-
-        $this->assertNull($result['is_correct']);
-        $this->assertSame(0, $result['points_earned']);
+        config(['griot_challenge.enabled' => true]);
+        $this->get('/predictions')->assertRedirect(route('griot.challenge'));
+        $this->get('/predictions/leaderboard')->assertRedirect(route('griot.challenge'));
+        $this->get('/prediction-leagues/invite/ABC123')->assertRedirect(route('griot.challenge'));
+        config(['griot_challenge.enabled' => false]);
+        $this->get('/predictions')->assertRedirect(route('matches.index'));
+        $this->actingAs(User::factory()->create())->get('/predictions/history')->assertOk();
     }
 
-    public function test_missing_goalscorer_event_remains_retryable(): void
-    {
-        [$user, $set, $match] = $this->scenario();
-        PredictionSetMatch::create(['prediction_set_id' => $set->id, 'match_id' => $match->id, 'prediction_type' => 'goalscorer', 'points_value' => 2]);
-        $prediction = UserPrediction::create([
-            'user_id' => $user->id, 'prediction_set_id' => $set->id, 'match_id' => $match->id,
-            'prediction_type' => 'goalscorer', 'prediction_value' => 'Ada Striker', 'submitted_at' => now(),
-        ]);
-
-        app(PredictionScoringService::class)->scoreSinglePrediction($prediction, $match);
-
-        $this->assertFalse($prediction->fresh()->is_scored);
-        $this->assertNull($prediction->fresh()->is_correct);
-    }
-
-    public function test_leaderboard_stats_sum_all_points_without_leaking_filters(): void
+    public function test_stats_sum_all_points(): void
     {
         [$user, $set, $match] = $this->scenario();
         foreach ([[true, 3, '2-1'], [false, 2, '0-4']] as [$correct, $points, $value]) {
@@ -79,24 +53,12 @@ class PredictionSystemTest extends TestCase
             ]);
         }
 
-        $stats = app(PredictionService::class)->getUserStats($user, $set);
+        $stats = app(PredictionService::class)->getUserStats($user);
 
         $this->assertSame(2, $stats['total_predictions']);
         $this->assertSame(1, $stats['correct_predictions']);
         $this->assertSame(5, $stats['total_points']);
-    }
-
-    public function test_predictions_cannot_be_updated_after_deadline(): void
-    {
-        [$user, $set, $match] = $this->scenario();
-        $set->update(['prediction_deadline' => now()->subMinute()]);
-
-        $result = app(PredictionService::class)->updatePredictions($user, $set, [[
-            'match_id' => $match->id, 'prediction_type' => 'result', 'prediction_value' => 'Home Win',
-        ]]);
-
-        $this->assertFalse($result['success']);
-        $this->assertSame(0, $result['submitted_count']);
+        $this->assertSame(1, $stats['rank']);
     }
 
     public function test_history_ignores_blank_filters_and_includes_the_full_end_date(): void
@@ -109,41 +71,10 @@ class PredictionSystemTest extends TestCase
         ]);
 
         $history = app(PredictionService::class)->getUserPredictionHistory($user, [
-            'prediction_set_id' => '', 'date_from' => '', 'date_to' => now()->toDateString(), 'is_correct' => '',
+            'date_from' => '', 'date_to' => now()->toDateString(), 'is_correct' => '',
         ]);
 
         $this->assertSame(1, $history->total());
-    }
-
-    public function test_leaderboard_opens_without_filter_parameters(): void
-    {
-        [$user] = $this->scenario();
-        $user->forceFill(['email_verified_at' => now()])->save();
-
-        $this->actingAs($user)
-            ->get(route('predictions.leaderboard'))
-            ->assertOk()
-            ->assertSee('Global standings');
-    }
-
-    public function test_one_round_accepts_multiple_prediction_types_for_the_same_match(): void
-    {
-        [$user,$set,$match]=$this->scenario();
-        $user->forceFill(['email_verified_at'=>now()])->save();
-        $match->update(['match_date'=>now()->addDay(),'status'=>'SCHEDULED','is_prediction_eligible'=>true]);
-        $resultItem=PredictionSetMatch::create(['prediction_set_id'=>$set->id,'match_id'=>$match->id,'prediction_type'=>'result','points_value'=>1]);
-        $scoreItem=PredictionSetMatch::create(['prediction_set_id'=>$set->id,'match_id'=>$match->id,'prediction_type'=>'score','points_value'=>3]);
-
-        $this->actingAs($user)->get(route('predictions.show',$set))
-            ->assertOk()
-            ->assertSee('predictions['.$resultItem->id.'][prediction_value]',false)
-            ->assertSee('predictions['.$scoreItem->id.'][prediction_value]',false);
-
-        $this->actingAs($user)->post(route('predictions.submit',$set),['predictions'=>[
-            $resultItem->id=>['match_id'=>$match->id,'prediction_type'=>'result','prediction_value'=>'Home Win'],
-            $scoreItem->id=>['match_id'=>$match->id,'prediction_type'=>'score','prediction_value'=>'2-1'],
-        ]])->assertRedirect(route('predictions.show',$set));
-        $this->assertSame(2,UserPrediction::where('user_id',$user->id)->count());
     }
 
     private function scenario(): array

@@ -14,7 +14,7 @@
             <p>Your football world in one place — fixtures to follow, calls to make, and your form across the season.</p>
             <div class="md-home-actions">
                 <a class="md-primary" href="{{ route('matches.index') }}">Explore fixtures</a>
-                <a class="md-secondary" href="{{ route('predictions.index') }}">Make a prediction</a>
+                <a class="md-secondary" href="{{ route('predictions.index') }}">Beat the Griot</a>
             </div>
         </div>
 
@@ -74,18 +74,17 @@
         <aside class="md-dash-rail">
             <p class="md-eyebrow">QUICK PLAY</p>
             <h2>What will you do next?</h2>
-            <a href="{{ route('predictions.index') }}"><span>01</span><div><strong>Call the score</strong><small>Make your picks before kickoff.</small></div><b>→</b></a>
-            <a href="{{ route('predictions.leaderboard') }}"><span>02</span><div><strong>Check your rank</strong><small>See who is reading the game best.</small></div><b>→</b></a>
-            <a href="{{ route('groups.index') }}"><span>03</span><div><strong>Join your people</strong><small>Compete in a private prediction league.</small></div><b>→</b></a>
-            <a href="{{ \App\Support\WarLinks::home() }}"><span>04</span><div><strong>Enter The War</strong><small>Rank kits, play and claim your warrior.</small></div><b>→</b></a>
+            <a href="{{ route('predictions.index') }}"><span>01</span><div><strong>Beat the Griot</strong><small>Three calls a round, {{ config('griot_challenge.prize') }} to win.</small></div><b>→</b></a>
+            <a href="{{ route('predictions.history') }}"><span>02</span><div><strong>Your record</strong><small>Every call and the points it won.</small></div><b>→</b></a>
+            <a href="{{ \App\Support\WarLinks::home() }}"><span>03</span><div><strong>Enter The War</strong><small>Rank kits, play and claim your warrior.</small></div><b>→</b></a>
         </aside>
     </div>
 </section>
 
 <section class="md-dash-cta">
     <div class="md-wrap">
-        <div><p class="md-eyebrow">BUILD YOUR TABLE</p><h2>Football is better with rivals.</h2><p>Create a prediction league, invite your friends and settle the debate every matchweek.</p></div>
-        <a class="md-primary" href="{{ route('groups.index') }}">Start a league</a>
+        <div><p class="md-eyebrow">EVERY ROUND</p><h2>Think you read the game better than the Griot?</h2><p>Three matches, three calls. Score more points than the Griot and you could win {{ config('griot_challenge.prize') }}.</p></div>
+        <a class="md-primary" href="{{ route('predictions.index') }}">Take on the Griot</a>
     </div>
 </section>
 @endsection

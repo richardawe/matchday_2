@@ -46,13 +46,6 @@ class PredictionSet extends Model
         return $this->hasMany(UserPrediction::class);
     }
 
-    /**
-     * Get leaderboard entries for this prediction set
-     */
-    public function leaderboards(): HasMany
-    {
-        return $this->hasMany(PredictionLeaderboard::class);
-    }
 
     /**
      * Check if prediction set is active

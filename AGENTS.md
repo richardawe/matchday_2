@@ -62,7 +62,7 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Homepage top (both homes) | radio as a slim bar `partials/home/radio-bar` (plays in place via `resources/js/radio.js`), then live scores `partials/home/live-now` while a match is credibly live (refilled by the pulse JSON `live` key every 30 s) | n/a | radio needs `RADIO_ENABLED` |
 | Reels-first homepage | `resources/views/home-v2.blade.php`, `HomeShowcase.php` (reels, matchweek board), `resources/js/home-reels.js` (swipeable scroll-snap strip: the reel on screen autoplays muted, Tap to play when blocked; fixture cards 16:9 when there are no reels), shared blocks in `resources/views/partials/home/`; arena at `/war/arena` (`ArenaService.php`) | n/a | `HOME_V2` (preview `/?home=v2`) |
 | Signup attribution + `/admin/users` | `app/Support/Attribution.php` (first-touch `md_attr` cookie), `CaptureAttribution` middleware, `User::creating` hook in `AppServiceProvider`, `Admin/UserController.php` | n/a | needs `users.utm_*` migration |
-| Guest predictions + league invites | `GuestPredictions.php` (`md_guest` cookie, claimed on `Login`), `MatchPredictionRecorder.php`, `LeagueTable.php` (weekly Mon–Sun Lagos), `/prediction-leagues/invite/{code}`, `GET /auth/google` | n/a | needs `guest_predictions` migration |
+| Guest predictions and match-page calls | `GuestPredictions.php` (`md_guest` cookie, claimed on `Login`), `MatchPredictionRecorder.php` (one system round per match), scoring `PredictionScoringService` (score 3/1, result 1; `predictions:score` 5m), record `/predictions/history`; `/predictions` and old round/league links redirect to Beat the Griot; `GET /auth/google` | `predictions:score` 5m | needs `guest_predictions` migration |
 | Follow/share/WhatsApp | `config/social.php`, components `social-follow`, `share-bar` (`App\Support\ShareLink`, UTM `utm_medium=share`), `whatsapp-channel`; reel pages `/reels`, `/reels/{match}` (`ReelPageController`) | n/a | `WHATSAPP_CHANNEL_URL` (CTA hidden while empty) |
 | SEO | `SocialMetaService.php` (titles, OG/X tags, JSON-LD SportsEvent/SportsTeam/NewsArticle/VideoObject), `@section('meta_title'/'meta_description'/'meta_robots')`, `SitemapController` (`/sitemap.xml`), `public/robots.txt` | n/a | always on |
 | Stale live matches | `StaleMatchCloser.php`, `matches:close-stale` (FINISHED after kick-off + 3h with no update for 30 min, or + 6h); flagged `metadata.status_inferred_at`, so scoring and reels wait (`FootballMatch::statusInferred()`) | every 10 min | always on |
@@ -200,6 +200,11 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   phone width and flag elements still in the classic serif/beige/Tailwind colours. Re-create them if needed; they are not in the repo.
 
 ### Beat the Griot and banter cards (4 Nov 2026)
+- Old prediction engine removed on 4 Nov (owner's decision): hand-made admin rounds, prediction seasons, goalscorer and
+  total-goals types, per-match sponsor prizes, the leaderboard page and table writes, prediction leagues and invites, and the
+  debug scoring commands. Their tables (`prediction_seasons`, `match_sponsors`, `match_prize_awards`, `prediction_leaderboards`,
+  `prediction_groups`, `prediction_group_members`) are left in the database untouched. Kept: past predictions and points,
+  `/predictions/history`, match-page calls, guest predictions, `predictions:score`. Ad slots (`SponsorPlacement`) are separate and stay.
 - Owner's choices (4 Nov): three matches per round; prize 1GB of data; 10 fans drawn at random from those who beat the
   Griot; winners message one of Matchday's social accounts with their code, number and network and an admin credits them by
   hand (no payout API); Nigeria only for now (Kenya and South Africa later); the old prediction engine stays as it is

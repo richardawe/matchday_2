@@ -39,21 +39,6 @@
                     </div>
                 </div>
 
-                <!-- Predictions -->
-                <div class="relative group" x-data="{ open: false }">
-                    <button @click="open = !open" class="px-3 py-2 rounded-md text-sm font-medium {{ request()->routeIs('admin.predictions.*') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-700' }}">
-                        🎯 Predictions
-                        <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </button>
-                    <div x-show="open" @click.away="open = false" class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50" style="display: none;">
-                        <a href="{{ route('admin.predictions.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">📋 Prediction Sets</a>
-                        <a href="{{ route('admin.predictions.transparency') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🔍 Transparency</a>
-                        <a href="{{ route('admin.predictions.analytics') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">📊 Analytics</a>
-                    </div>
-                </div>
-
                 <!-- Match Management -->
                 <div class="relative group" x-data="{ open: false }">
                     <button @click="open = !open" class="px-3 py-2 rounded-md text-sm font-medium {{ request()->routeIs('admin.matches.*') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-700' }}">

@@ -108,9 +108,6 @@ class SocialSharingService
             return route('blogs.show', $content);
         }
         
-        if ($content instanceof PredictionSet) {
-            return route('predictions.show', $content);
-        }
 
         return config('app.url');
     }

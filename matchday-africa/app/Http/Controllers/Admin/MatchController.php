@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\FootballMatch;
 use App\Models\League;
 use App\Models\MatchEvent;
-use App\Models\MatchPrizeAward;
-use App\Models\MatchSponsor;
 use App\Services\PredictionScoringService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -82,15 +80,8 @@ class MatchController extends Controller
      */
     public function show(FootballMatch $match)
     {
-        $match->load(['homeTeam', 'awayTeam', 'league', 'userPredictions', 'events.team', 'sponsor.awards.user']);
+        $match->load(['homeTeam', 'awayTeam', 'league', 'userPredictions', 'events.team']);
         
-        // Get prediction sets that include this match
-        $predictionSets = DB::table('prediction_set_matches')
-            ->join('prediction_sets', 'prediction_set_matches.prediction_set_id', '=', 'prediction_sets.id')
-            ->where('prediction_set_matches.match_id', $match->id)
-            ->select('prediction_sets.*')
-            ->get();
-
         // Get user predictions for this match
         $userPredictions = DB::table('user_predictions')
             ->join('users', 'user_predictions.user_id', '=', 'users.id')
@@ -99,7 +90,7 @@ class MatchController extends Controller
             ->select('user_predictions.*', 'users.name as user_name', 'users.email as user_email', 'prediction_sets.name as prediction_set_name')
             ->get();
 
-        return view('admin.matches.show', compact('match', 'predictionSets', 'userPredictions'));
+        return view('admin.matches.show', compact('match', 'userPredictions'));
     }
 
     public function storeEvent(Request $request, FootballMatch $match)
@@ -140,25 +131,6 @@ class MatchController extends Controller
         abort_unless($event->match_id === $match->id && data_get($event->metadata, 'provider') === 'matchday-reporter', 404);
         $event->delete();
         return back()->with('success', 'Reporter event removed.');
-    }
-
-    public function storeSponsor(Request $request, FootballMatch $match)
-    {
-        $data=$request->validate(['name'=>'required|string|max:150','logo'=>'nullable|image|mimes:jpeg,png,webp|max:2048','website_url'=>'nullable|url:http,https|max:1000','prize_title'=>'required|string|max:180','prize_value'=>'nullable|string|max:100','prize_quantity'=>'required|integer|min:1|max:100','terms'=>'nullable|string|max:2000','claim_deadline'=>'nullable|date','active'=>'nullable|boolean']);
-        $sponsor=$match->sponsor;$path=$sponsor?->logo_path;
-        if($request->hasFile('logo')){if($path)Storage::disk('public')->delete($path);$path=$request->file('logo')->store('match-sponsors','public');}
-        MatchSponsor::updateOrCreate(['match_id'=>$match->id],[...collect($data)->except('logo')->all(),'logo_path'=>$path,'active'=>(bool)($data['active']??false),'created_by'=>$request->user()->id]);
-        return back()->with('success','Match sponsor and prize saved.');
-    }
-
-    public function destroySponsor(FootballMatch $match)
-    {
-        if($match->sponsor?->logo_path)Storage::disk('public')->delete($match->sponsor->logo_path);$match->sponsor?->delete();return back()->with('success','Match sponsor removed.');
-    }
-
-    public function updateAward(Request $request,FootballMatch $match,MatchPrizeAward $award)
-    {
-        abort_unless($award->sponsor?->match_id===$match->id,404);$data=$request->validate(['status'=>'required|in:selected,contacted,claimed,fulfilled']);$award->update(['status'=>$data['status'],'contacted_at'=>$data['status']==='contacted'?now():$award->contacted_at,'claimed_at'=>$data['status']==='claimed'?now():$award->claimed_at,'fulfilled_at'=>$data['status']==='fulfilled'?now():$award->fulfilled_at]);return back()->with('success','Prize status updated.');
     }
 
     /**

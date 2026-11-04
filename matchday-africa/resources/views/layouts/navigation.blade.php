@@ -35,7 +35,7 @@
                         {{ __('Dashboard') }}
                     </x-nav-link>
                     <x-nav-link :href="route('predictions.index')" :active="request()->routeIs('predictions.*')" class="text-purple-600">
-                        {{ __('🎯 Predictions') }}
+                        {{ \App\Services\Griot\GriotChallengeService::ready() ? __('🥁 Beat the Griot') : __('🎯 Predictions') }}
                     </x-nav-link>
                     @auth
                         @if(auth()->user()?->isAdmin())
@@ -96,8 +96,8 @@
                             <x-dropdown-link :href="route('admin.dashboard')">
                                 {{ __('🛠️ Admin Dashboard') }}
                             </x-dropdown-link>
-                            <x-dropdown-link :href="route('admin.predictions.index')">
-                                {{ __('🎯 Manage Predictions') }}
+                            <x-dropdown-link :href="route('admin.griot.index')">
+                                {{ __('🥁 Beat the Griot') }}
                             </x-dropdown-link>
                             <x-dropdown-link :href="route('admin.blogs.index')">
                                 {{ __('📝 Manage Blog') }}
@@ -114,13 +114,10 @@
                                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">My Activity</p>
                             </div>
                             <x-dropdown-link :href="route('predictions.index')">
-                                {{ __('🎯 Make Predictions') }}
+                                {{ __('🥁 Beat the Griot') }}
                             </x-dropdown-link>
                             <x-dropdown-link :href="route('predictions.history')">
                                 {{ __('📊 My Predictions') }}
-                            </x-dropdown-link>
-                            <x-dropdown-link :href="route('predictions.leaderboard')">
-                                {{ __('🏆 Leaderboard') }}
                             </x-dropdown-link>
                         @endif
 
@@ -178,7 +175,7 @@
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('predictions.index')" :active="request()->routeIs('predictions.*')">
-                {{ __('🎯 Predictions') }}
+                {{ \App\Services\Griot\GriotChallengeService::ready() ? __('🥁 Beat the Griot') : __('🎯 Predictions') }}
             </x-responsive-nav-link>
             @auth
                 @if(auth()->user()?->isAdmin())
@@ -226,8 +223,8 @@
                     <x-responsive-nav-link :href="route('admin.dashboard')">
                         {{ __('🛠️ Admin Dashboard') }}
                     </x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('admin.predictions.index')">
-                        {{ __('🎯 Manage Predictions') }}
+                    <x-responsive-nav-link :href="route('admin.griot.index')">
+                        {{ __('🥁 Beat the Griot') }}
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.match-previews.index')">
                         {{ __('🔮 Match Previews') }}
@@ -235,9 +232,6 @@
                 @else
                     <x-responsive-nav-link :href="route('predictions.history')">
                         {{ __('📊 My Predictions') }}
-                    </x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('predictions.leaderboard')">
-                        {{ __('🏆 Leaderboard') }}
                     </x-responsive-nav-link>
                 @endif
 

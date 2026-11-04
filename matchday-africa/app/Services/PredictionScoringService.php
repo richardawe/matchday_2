@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\FootballMatch;
 use App\Models\UserPrediction;
 use App\Models\PredictionSet;
-use App\Models\PredictionLeaderboard;
 use App\Models\User;
 use App\Notifications\PredictionScoredNotification;
 use App\Notifications\MatchFinishedNotification;
@@ -44,13 +43,9 @@ class PredictionScoringService
                     }
                 }
 
-                // Update leaderboards for affected prediction sets
-                $this->updateLeaderboardsForMatch($match);
-                
                 // Send match finished notifications
                 $this->sendMatchFinishedNotifications($match);
             });
-            app(PrizeAllocationService::class)->allocate($match->fresh());
 
             return [
                 'success' => true,
@@ -120,10 +115,6 @@ class PredictionScoringService
                 return $this->evaluateResultPredictionWithScoring($prediction, $match);
             case 'score':
                 return $this->evaluateScorePredictionWithScoring($prediction, $match);
-            case 'goalscorer':
-                return $this->evaluateGoalscorerPredictionWithScoring($prediction, $match);
-            case 'total_goals':
-                return $this->evaluateTotalGoalsPredictionWithScoring($prediction, $match);
             default:
                 return [
                     'is_correct' => false,
@@ -243,88 +234,9 @@ class PredictionScoringService
         return $result['is_correct'];
     }
 
-    /**
-     * Evaluate first goalscorer prediction with comprehensive scoring
-     */
-    private function evaluateGoalscorerPredictionWithScoring(UserPrediction $prediction, FootballMatch $match): array
-    {
-        $firstGoal = $match->events()
-            ->where('type', 'goal')
-            ->where('is_own_goal', false)
-            ->orderBy('minute')
-            ->orderByRaw('COALESCE(extra_minute, 0)')
-            ->orderBy('sort_order')
-            ->first();
 
-        if (!$firstGoal || !$firstGoal->player_name) {
-            // Do not turn unavailable event data into a losing prediction.
-            return [
-                'is_correct' => null,
-                'points_earned' => 0,
-                'scoring_type' => 'goalscorer_event_unavailable'
-            ];
-        }
 
-        $normalize = static fn (string $name): string => mb_strtolower(trim(preg_replace('/\s+/', ' ', $name)));
-        $isCorrect = $normalize($prediction->prediction_value) === $normalize($firstGoal->player_name);
 
-        return [
-            'is_correct' => $isCorrect,
-            'points_earned' => $isCorrect ? $this->pointsFor($prediction, 2) : 0,
-            'scoring_type' => 'first_goalscorer'
-        ];
-    }
-
-    /**
-     * Evaluate total goals prediction with comprehensive scoring
-     */
-    private function evaluateTotalGoalsPredictionWithScoring(UserPrediction $prediction, FootballMatch $match): array
-    {
-        $totalGoals = $match->home_score + $match->away_score;
-        $predictionValue = $prediction->prediction_value;
-
-        if (str_starts_with($predictionValue, 'Over ')) {
-            $threshold = (float) str_replace('Over ', '', $predictionValue);
-            $isCorrect = $totalGoals > $threshold;
-            return [
-                'is_correct' => $isCorrect,
-                'points_earned' => $isCorrect ? $this->pointsFor($prediction, 1) : 0,
-                'scoring_type' => 'total_goals_over'
-            ];
-        } elseif (str_starts_with($predictionValue, 'Under ')) {
-            $threshold = (float) str_replace('Under ', '', $predictionValue);
-            $isCorrect = $totalGoals < $threshold;
-            return [
-                'is_correct' => $isCorrect,
-                'points_earned' => $isCorrect ? $this->pointsFor($prediction, 1) : 0,
-                'scoring_type' => 'total_goals_under'
-            ];
-        }
-
-        return [
-            'is_correct' => false,
-            'points_earned' => 0,
-            'scoring_type' => 'total_goals_invalid'
-        ];
-    }
-
-    /**
-     * Evaluate first goalscorer prediction - Legacy method
-     */
-    private function evaluateGoalscorerPrediction(UserPrediction $prediction, FootballMatch $match): bool
-    {
-        $result = $this->evaluateGoalscorerPredictionWithScoring($prediction, $match);
-        return $result['is_correct'];
-    }
-
-    /**
-     * Evaluate total goals prediction (Over/Under) - Legacy method
-     */
-    private function evaluateTotalGoalsPrediction(UserPrediction $prediction, FootballMatch $match): bool
-    {
-        $result = $this->evaluateTotalGoalsPredictionWithScoring($prediction, $match);
-        return $result['is_correct'];
-    }
 
     /**
      * Get match result as string
@@ -362,27 +274,6 @@ class PredictionScoringService
         }
     }
 
-    /**
-     * Calculate points for a correct prediction (Legacy method - now handled in evaluation methods)
-     */
-    private function calculatePoints(UserPrediction $prediction): int
-    {
-        // This method is now deprecated - scoring is handled in individual evaluation methods
-        // Keeping for backward compatibility
-        switch ($prediction->prediction_type) {
-            case 'score':
-                return 3; // Correct score gets 3 points
-            case 'result':
-                return 1; // Correct result gets 1 point
-            case 'goalscorer':
-                return 2; // First goalscorer gets 2 points (bonus for difficulty)
-            case 'total_goals':
-                return 1; // Total goals gets 1 point
-            default:
-                return 0;
-        }
-    }
-
     /** Resolve the administrator-configured value for this set/match/type. */
     private function pointsFor(UserPrediction $prediction, int $default): int
     {
@@ -394,125 +285,11 @@ class PredictionScoringService
         return $configured !== null ? (int) $configured : $default;
     }
 
-    /**
-     * Update leaderboards for a specific match
-     */
-    public function updateLeaderboardsForMatch(FootballMatch $match): void
-    {
-        $predictionSets = $match->predictionSetMatches()
-            ->with('predictionSet')
-            ->get()
-            ->pluck('predictionSet')
-            ->filter() // Remove null values
-            ->unique('id');
 
-        foreach ($predictionSets as $predictionSet) {
-            if ($predictionSet) {
-                $this->updateLeaderboardForPredictionSet($predictionSet);
-            }
-        }
 
-        // Update global leaderboard
-        $this->updateGlobalLeaderboard();
-    }
 
-    /**
-     * Update leaderboard for a specific prediction set
-     */
-    public function updateLeaderboardForPredictionSet(PredictionSet $predictionSet): void
-    {
-        if (!$predictionSet) {
-            return;
-        }
 
-        $users = $predictionSet->userPredictions()
-            ->distinct('user_id')
-            ->pluck('user_id');
 
-        foreach ($users as $userId) {
-            $this->updateUserLeaderboardEntry($userId, $predictionSet);
-        }
-    }
-
-    /**
-     * Update global leaderboard
-     */
-    public function updateGlobalLeaderboard(): void
-    {
-        $users = UserPrediction::distinct('user_id')->pluck('user_id');
-
-        foreach ($users as $userId) {
-            $this->updateUserLeaderboardEntry($userId);
-        }
-    }
-
-    /**
-     * Update user leaderboard entry
-     */
-    public function updateUserLeaderboardEntry(int $userId, ?PredictionSet $predictionSet = null): void
-    {
-        $query = UserPrediction::where('user_id', $userId);
-
-        if ($predictionSet) {
-            $query->where('prediction_set_id', $predictionSet->id);
-        }
-
-        $totalPredictions = $query->count();
-        $correctPredictions = (clone $query)->where('is_correct', true)->count();
-        $totalPoints = (clone $query)->sum('points_earned');
-        $accuracy = $totalPredictions > 0 ? round(($correctPredictions / $totalPredictions) * 100, 2) : 0;
-
-        PredictionLeaderboard::updateOrCreate(
-            [
-                'user_id' => $userId,
-                'prediction_set_id' => $predictionSet?->id,
-                'period' => 'all_time',
-            ],
-            [
-                'total_points' => $totalPoints,
-                'correct_predictions' => $correctPredictions,
-                'total_predictions' => $totalPredictions,
-                'accuracy_percentage' => $accuracy,
-            ]
-        );
-    }
-
-    /**
-     * Update all leaderboard ranks
-     */
-    public function updateAllLeaderboardRanks(): void
-    {
-        // Update ranks for each prediction set
-        $predictionSets = PredictionSet::all();
-        foreach ($predictionSets as $predictionSet) {
-            $this->updateLeaderboardRanks($predictionSet);
-        }
-
-        // Update global ranks
-        $this->updateLeaderboardRanks();
-    }
-
-    /**
-     * Update leaderboard ranks for a prediction set or globally
-     */
-    public function updateLeaderboardRanks(?PredictionSet $predictionSet = null): void
-    {
-        $query = PredictionLeaderboard::query();
-        
-        if ($predictionSet) {
-            $query->where('prediction_set_id', $predictionSet->id);
-        } else {
-            $query->whereNull('prediction_set_id');
-        }
-
-        $leaderboard = $query->orderBy('total_points', 'desc')
-            ->orderBy('accuracy_percentage', 'desc')
-            ->get();
-
-        foreach ($leaderboard as $index => $entry) {
-            $entry->update(['rank' => $index + 1]);
-        }
-    }
 
     /**
      * Score all pending predictions for completed matches
@@ -538,8 +315,6 @@ class PredictionScoringService
             $totalErrors += count($result['errors']);
         }
 
-        // Update all leaderboard ranks
-        $this->updateAllLeaderboardRanks();
 
         return [
             'success' => true,

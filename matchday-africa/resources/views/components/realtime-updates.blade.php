@@ -114,26 +114,6 @@ function showPredictionScored(data) {
 }
 
 function updateLeaderboard() {
-    // Refresh leaderboard data via AJAX
-    if (typeof fetch !== 'undefined') {
-        fetch('/predictions/leaderboard', {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.leaderboard) {
-                // Update leaderboard display
-                const leaderboardContainer = document.getElementById('leaderboard-container');
-                if (leaderboardContainer) {
-                    // This would need to be implemented based on your leaderboard structure
-                    console.log('Leaderboard updated:', data);
-                }
-            }
-        })
-        .catch(error => console.error('Error updating leaderboard:', error));
-    }
+    // The old leaderboard page is gone; scores show on match pages and in Beat the Griot.
 }
 </script>

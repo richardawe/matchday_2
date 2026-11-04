@@ -30,11 +30,10 @@
 
     <section class="md-ops-actions"><header><p class="md-eyebrow">ADMIN TOOLS</p><h2>Run the club.</h2></header><div>
         <a href="{{ route('admin.matches.index') }}"><b>01</b><strong>Match desk</strong><span>Fixtures, results and scoring →</span></a>
-        <a href="{{ route('admin.predictions.index') }}"><b>02</b><strong>Prediction control</strong><span>Challenges and analytics →</span></a>
+        <a href="{{ route('admin.griot.index') }}"><b>02</b><strong>Beat the Griot</strong><span>Rounds and winners to credit →</span></a>
         <a href="{{ route('admin.blogs.index') }}"><b>03</b><strong>Newsroom</strong><span>Stories and automated briefs →</span></a>
-        <a href="{{ route('admin.predictions.season.index') }}"><b>04</b><strong>Season management</strong><span>Safe competition reset →</span></a>
-        <a href="{{ route('admin.creators.index') }}"><b>05</b><strong>Creator council</strong><span>Review submissions →</span></a>
-        <a href="{{ route('admin.commerce.index') }}"><b>06</b><strong>Commerce</strong><span>Products and revenue →</span></a>
+        <a href="{{ route('admin.creators.index') }}"><b>04</b><strong>Creator council</strong><span>Review submissions →</span></a>
+        <a href="{{ route('admin.commerce.index') }}"><b>05</b><strong>Commerce</strong><span>Products and revenue →</span></a>
     </div></section>
 </div>
 @endsection
