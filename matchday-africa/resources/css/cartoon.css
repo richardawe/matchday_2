@@ -497,6 +497,7 @@ body.md-cartoon .md-griot-table td { border-bottom: 1px solid rgba(11, 11, 11, .
 body.md-cartoon .md-griot-winners li { border: 2px solid var(--c-ink); background: var(--c-surface); }
 body.md-cartoon .md-griot-winners small { color: #1f9d55; }
 body.md-cartoon .md-griot-rules ul { color: var(--c-muted); }
+body.md-cartoon .md-griot-strip a, body.md-cartoon .md-griot-strip a * { text-decoration: none; }
 body.md-cartoon .md-griot-strip a { background: var(--c-surface); border: 3px solid var(--c-ink); color: var(--c-ink) !important; box-shadow: 5px 5px 0 var(--c-sun); }
 body.md-cartoon .md-griot-strip strong { font-family: var(--c-display); font-weight: 400; font-size: 1.6rem; }
 body.md-cartoon .md-griot-strip span { color: var(--c-muted); }

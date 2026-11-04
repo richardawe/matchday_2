@@ -207,8 +207,8 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   `/predictions/history`, match-page calls, guest predictions, `predictions:score`. Ad slots (`SponsorPlacement`) are separate and stay.
 - Owner's choices (4 Nov): three matches per round; prize 1GB of data; 10 fans drawn at random from those who beat the
   Griot; winners message one of Matchday's social accounts with their code, number and network and an admin credits them by
-  hand (no payout API); Nigeria only for now (Kenya and South Africa later); the old prediction engine stays as it is
-  (hand-made admin rounds, seasons, sponsor prizes are not removed).
+  hand (no payout API); Nigeria only for now (Kenya and South Africa later). Switched on in production on 4 Nov at 12:53 UTC
+  (`configure-challenge` on; `.env` backup `.env.backup-20261104-125320`); first round Fri 6 – Sun 8 Nov.
 - The Griot's calls come from the site's own results only; its lines quote form only when five results back the call.
   Pidgin, Sheng and Mzansi lines (`ChallengeLines`, `BanterCardRenderer`) need a native speaker's review.
 - Mockup approved by the owner: https://claude.ai/artifact/9zNsmk7vXbvdQ7xWSYY13q
