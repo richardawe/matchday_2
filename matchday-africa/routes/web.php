@@ -105,6 +105,13 @@ Route::get('/matches', [MatchController::class, 'index'])->name('matches.index')
 Route::get('/matches/{match}/chronicle', [MatchController::class, 'chronicle'])->name('matches.chronicle');
 Route::get('/matches/{match}/live', [MatchController::class, 'live'])->name('matches.live');
 Route::get('/matches/{match}/card.png', [App\Http\Controllers\MomentCardController::class, 'fixture'])->name('matches.card');
+Route::get('/matches/{match}/banter/{side}/{voice}.png', [App\Http\Controllers\MomentCardController::class, 'banter'])
+    ->where(['side' => 'home|away', 'voice' => 'en|pcm|sw|za'])->name('matches.banter');
+// Beat the Griot (GRIOT_CHALLENGE).
+Route::get('/beat-the-griot', [App\Http\Controllers\GriotChallengeController::class, 'show'])->name('griot.challenge');
+Route::post('/beat-the-griot', [App\Http\Controllers\GriotChallengeController::class, 'store'])->middleware('throttle:20,1')->name('griot.calls');
+Route::get('/beat-the-griot/{challenge}/{kind}.png', [App\Http\Controllers\GriotChallengeController::class, 'card'])->where('kind', 'calls|verdict')->name('griot.card');
+Route::redirect('/griot', '/beat-the-griot');
 // An extensionless URL avoids the host's static MP4 cache, which strips range requests: iPhones
 // then can't play the reel and Buffer can't read it.
 Route::get('/matches/{match}/reel', [App\Http\Controllers\ReelController::class, 'show'])->name('matches.reel');

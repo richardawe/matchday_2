@@ -456,3 +456,55 @@ body.md-cartoon .md-reels-dots i.is-on { background: var(--c-sun); width: 1.6rem
 body.md-cartoon .md-reels-nav { background: var(--c-sun); color: var(--c-ink); border: 3px solid var(--c-ink); border-radius: 0; box-shadow: 3px 3px 0 var(--c-ink); font-family: var(--c-display); }
 body.md-cartoon .md-reels-tap { background: var(--c-sun); color: var(--c-ink); border: 4px solid var(--c-ink); box-shadow: 5px 5px 0 var(--c-ink); font-family: var(--c-display); font-weight: 400; font-size: 1.3rem; letter-spacing: .04em; text-transform: uppercase; }
 body.md-cartoon .md-reels-hint { background: var(--c-ink); color: var(--c-sun); border: 2px solid var(--c-sun); font-family: var(--c-mono); }
+
+/* Beat the Griot and the banter cards: comic panels, ink and sun. */
+body.md-cartoon .md-griot-head h1 span { background: var(--c-live); color: var(--c-surface); padding: 0 .2em; border: 4px solid var(--c-ink); display: inline-block; transform: rotate(-2deg); }
+body.md-cartoon .md-griot-drum { background: var(--c-sun); border: 3px solid var(--c-ink); color: var(--c-ink); box-shadow: 3px 3px 0 var(--c-ink); }
+body.md-cartoon .md-griot-says p { background: var(--c-surface); border: 3px solid var(--c-ink); color: var(--c-ink); position: relative; }
+body.md-cartoon .md-griot-says small { color: var(--c-muted); font-family: var(--c-mono); }
+body.md-cartoon .md-griot-voices a { border: 2px solid var(--c-ink); color: var(--c-ink) !important; background: var(--c-paper); font-family: var(--c-mono); }
+body.md-cartoon .md-griot-voices a[aria-current] { background: var(--c-ink); color: var(--c-sun) !important; }
+body.md-cartoon .md-griot-toast { border: 3px solid var(--c-ink); font-family: var(--c-mono); }
+body.md-cartoon .md-griot-match { background: var(--c-surface); border: 3px solid var(--c-ink); color: var(--c-ink); box-shadow: 4px 4px 0 var(--c-ink); }
+body.md-cartoon .md-griot-top { border-bottom: 2px solid var(--c-ink); color: var(--c-ink); font-family: var(--c-mono); }
+body.md-cartoon .md-griot-closes { color: var(--c-live); }
+body.md-cartoon .md-griot-team img, body.md-cartoon .md-griot-mono { border: 3px solid var(--c-ink); background: var(--c-ink); }
+body.md-cartoon .md-griot-mono { color: var(--c-sun); font-family: var(--c-display); font-weight: 400; }
+body.md-cartoon .md-griot-team small { color: var(--c-muted); font-family: var(--c-mono); }
+body.md-cartoon .md-griot-vs, body.md-cartoon .md-griot-pick b, body.md-cartoon .md-griot-prize b, body.md-cartoon .md-griot-versus b, body.md-cartoon .md-griot-badge b, body.md-cartoon .md-griot-locked { font-family: var(--c-display); font-weight: 400; }
+body.md-cartoon .md-griot-pick, body.md-cartoon .md-griot-badge { background: var(--c-ink); color: var(--c-paper) !important; }
+body.md-cartoon .md-griot-pick small, body.md-cartoon .md-griot-badge small { color: var(--c-sun); font-family: var(--c-mono); }
+body.md-cartoon .md-griot-pick b, body.md-cartoon .md-griot-badge b { color: var(--c-sun); }
+body.md-cartoon .md-griot-badge { border: 3px solid var(--c-ink); box-shadow: 5px 5px 0 var(--c-sun); }
+body.md-cartoon .md-griot-label { font-family: var(--c-mono); }
+body.md-cartoon .md-griot-yours input { background: var(--c-paper); color: var(--c-ink); border: 3px solid var(--c-ink); font-family: var(--c-display); font-weight: 400; }
+body.md-cartoon .md-griot-prize { background: var(--c-sun); border: 3px solid var(--c-ink); color: var(--c-ink); box-shadow: 4px 4px 0 var(--c-ink); }
+body.md-cartoon .md-griot-prize b { color: var(--c-ink); background: var(--c-surface); border: 3px solid var(--c-ink); padding: .1em .25em; transform: rotate(-4deg); }
+body.md-cartoon .md-griot-cta { background: var(--c-live); color: var(--c-surface) !important; font-size: 1.4rem; }
+body.md-cartoon .md-griot-fine, body.md-cartoon .md-banter-note { color: var(--c-muted); }
+body.md-cartoon .md-griot-won { background: var(--c-sun); border: 4px solid var(--c-ink); color: var(--c-ink); box-shadow: 6px 6px 0 var(--c-ink); }
+body.md-cartoon .md-griot-won h2 { font-family: var(--c-display); font-weight: 400; }
+body.md-cartoon .md-griot-code { color: var(--c-ink); background: var(--c-surface); border: 2px solid var(--c-ink); padding: 0 .3em; font-family: var(--c-mono); }
+body.md-cartoon .md-griot-last, body.md-cartoon .md-griot-rules { color: var(--c-ink); }
+body.md-cartoon .md-griot-versus > div { background: var(--c-surface); border: 3px solid var(--c-ink); }
+body.md-cartoon .md-griot-versus > div.is-win { background: var(--c-sun); box-shadow: 3px 3px 0 var(--c-ink); }
+body.md-cartoon .md-griot-versus small { font-family: var(--c-mono); }
+body.md-cartoon .md-griot-verdict { font-family: var(--c-display); font-weight: 400; border: 3px solid var(--c-ink); background: var(--c-surface); transform: rotate(-1.5deg); }
+body.md-cartoon .md-griot-verdict.is-win { background: #1f9d55; color: var(--c-surface); }
+body.md-cartoon .md-griot-table { background: var(--c-surface); border: 2px solid var(--c-ink); }
+body.md-cartoon .md-griot-table th { background: var(--c-paper); color: var(--c-ink); font-family: var(--c-mono); }
+body.md-cartoon .md-griot-table td { border-bottom: 1px solid rgba(11, 11, 11, .2); font-family: var(--c-mono); }
+body.md-cartoon .md-griot-winners li { border: 2px solid var(--c-ink); background: var(--c-surface); }
+body.md-cartoon .md-griot-winners small { color: #1f9d55; }
+body.md-cartoon .md-griot-rules ul { color: var(--c-muted); }
+body.md-cartoon .md-griot-strip a { background: var(--c-surface); border: 3px solid var(--c-ink); color: var(--c-ink) !important; box-shadow: 5px 5px 0 var(--c-sun); }
+body.md-cartoon .md-griot-strip strong { font-family: var(--c-display); font-weight: 400; font-size: 1.6rem; }
+body.md-cartoon .md-griot-strip span { color: var(--c-muted); }
+body.md-cartoon .md-griot-strip .md-primary { background: var(--c-live); color: var(--c-surface) !important; }
+body.md-cartoon .md-banter { border-block: 4px solid var(--c-ink); background: var(--c-sun); }
+body.md-cartoon .md-banter-controls { color: var(--c-ink); }
+body.md-cartoon .md-banter-controls h2 { font-family: var(--c-display); font-weight: 400; }
+body.md-cartoon .md-banter-preview img { border: 4px solid var(--c-ink); box-shadow: 6px 6px 0 var(--c-ink); }
+body.md-cartoon .md-banter-choice button { border: 2px solid var(--c-ink); background: var(--c-surface); color: var(--c-ink); font-family: var(--c-mono); }
+body.md-cartoon .md-banter-choice button[aria-pressed="true"] { background: var(--c-ink); color: var(--c-sun); }
+body.md-cartoon .md-banter-wa { border: 3px solid var(--c-ink); box-shadow: 5px 5px 0 var(--c-ink); font-family: var(--c-display); font-weight: 400; font-size: 1.15rem; }

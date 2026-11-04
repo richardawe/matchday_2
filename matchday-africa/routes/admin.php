@@ -20,6 +20,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
+    Route::get('/griot', [\App\Http\Controllers\Admin\GriotChallengeController::class, 'index'])->name('griot.index');
+    Route::post('/griot/winners/{winner}/credit', [\App\Http\Controllers\Admin\GriotChallengeController::class, 'credit'])->name('griot.credit');
     Route::get('/commerce', [CommerceController::class, 'index'])->name('commerce.index');
     Route::post('/commerce/sponsors', [CommerceController::class, 'sponsor'])->name('commerce.sponsors');
     Route::post('/commerce/products/{product}/toggle', [CommerceController::class, 'toggleProduct'])->name('commerce.products.toggle');

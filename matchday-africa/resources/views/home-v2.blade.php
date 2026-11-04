@@ -4,6 +4,7 @@
 @section('content')
 @include('partials.home.radio-bar')
 @include('partials.home.live-now')
+@include('partials.home.griot-challenge')
 @php($featured = $reels['featured'])
 <section class="md-reels" id="reels-hero" aria-labelledby="reels-title">
     <div class="md-wrap md-reels-grid">

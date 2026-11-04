@@ -3,6 +3,7 @@
 @section('content')
 @include('partials.home.radio-bar')
 @include('partials.home.live-now')
+@include('partials.home.griot-challenge')
 @if($arena ?? null)@include('partials.home-arena')@endif
 <x-sponsor-slot slot="home" />
 

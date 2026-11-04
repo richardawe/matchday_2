@@ -12,9 +12,11 @@
 
 <x-whatsapp-channel context="match" />
 <div id="match-story">@include('partials.match-story')</div>
+@include('partials.banter-share')
 <div id="match-timeline">@include('partials.match-timeline')</div>
 @if(!empty($reel))<x-social-follow variant="block" context="match" title="Follow for every reel like this one." />@endif
 
+@include('partials.griot-match')
 <section id="prediction-arena" class="md-phase"><div class="md-wrap"><div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
     <div class="lg:col-span-2 bg-gray-950 text-white rounded-2xl p-6">
         <p class="md-eyebrow">MATCH PREDICTION</p><h2 class="text-3xl font-black mt-2">Call the final score.</h2><p class="text-gray-300 mt-2">Predict any scheduled match. Entries lock when the match goes live.</p>

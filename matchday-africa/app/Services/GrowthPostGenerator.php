@@ -30,7 +30,7 @@ class GrowthPostGenerator
 
     public function generate(): int
     {
-        return $this->reels() + $this->news() + $this->previews() + $this->fixtures() + $this->results();
+        return $this->reels() + $this->news() + $this->previews() + $this->fixtures() + $this->results() + $this->griot();
     }
 
     /**
@@ -222,14 +222,14 @@ class GrowthPostGenerator
     }
 
     /** One row per channel that can carry it: X takes everything, Instagram needs media, TikTok video. */
-    private function plan(string $subject, string $type, string $text, ?string $image, ?string $url, Carbon $at, Carbon $expires, ?string $video = null): int
+    private function plan(string $subject, string $type, string $text, ?string $image, ?string $url, Carbon $at, Carbon $expires, ?string $video = null, bool $instagram = true): int
     {
         if ($expires->isPast()) {
             return 0;
         }
         $appTz = config('app.timezone');
         $created = 0;
-        $channels = ['x' => true, 'instagram' => ($image || $video) && config('buffer.channels.instagram'), 'tiktok' => $video && config('buffer.channels.tiktok')];
+        $channels = ['x' => true, 'instagram' => $instagram && ($image || $video) && config('buffer.channels.instagram'), 'tiktok' => $video && config('buffer.channels.tiktok')];
         foreach ($channels as $channel => $carries) {
             $key = $channel === 'x' ? $subject : "{$subject}@{$channel}";
             if (!$carries) {
@@ -249,6 +249,55 @@ class GrowthPostGenerator
                 'scheduled_at' => $at->copy()->setTimezone($appTz), 'expires_at' => $expires->copy()->setTimezone($appTz),
             ]);
             $created++;
+        }
+
+        return $created;
+    }
+
+    /**
+     * Beat the Griot (GRIOT_CHALLENGE): "The Griot has spoken" with its three calls when a round
+     * opens, the verdict the morning after it is scored, and (BANTER_CARDS) the losing side's
+     * banter card after each of the round's matches, to X only (the card is 9:16).
+     */
+    private function griot(): int
+    {
+        if (!\App\Services\Griot\GriotChallengeService::ready()) {
+            return 0;
+        }
+        $created = 0;
+        $tz = config('buffer.x.timezone');
+        $link = route('griot.challenge');
+        $prize = config('griot_challenge.prize');
+        $club = fn ($t) => $this->name($t);
+        $hashtags = trim((config('buffer.x.competition_tags')['PL'] ?? '').' '.config('buffer.x.hashtags'));
+        $rounds = \App\Models\GriotChallenge::with('picks.match.homeTeam', 'picks.match.awayTeam')->where('created_at', '>=', now()->subDays(10))->get();
+        foreach ($rounds as $round) {
+            if ($round->status === 'open' && $round->firstKickoffUtc()->isFuture()) {
+                $lines = $round->picks->map(fn ($p) => $club($p->match->homeTeam).' '.$p->call().' '.$club($p->match->awayTeam))->implode("\n");
+                $body = "The Griot has spoken 🥁\n\n{$lines}\n\nScore more points than the Griot and you could win {$prize}. Free to play 👇";
+                $created += $this->plan("griot:{$round->id}:calls", 'griot', XText::compose($body, $link, $hashtags),
+                    \App\Services\Griot\ChallengeCardRenderer::cardUrl($round, 'calls'), $link, now(), $round->firstKickoffUtc()->subMinutes(30));
+            }
+            if ($round->status === 'scored' && $round->scored_at) {
+                $morning = $round->scored_at->copy()->setTimezone($tz)->addDay()->setTime(8, 0);
+                $at = $round->scored_at->copy()->setTimezone($tz)->hour < 6 ? $round->scored_at->copy()->setTimezone($tz)->setTime(8, 0) : $morning;
+                $head = $round->beaters > 0 ? number_format($round->beaters).' '.($round->beaters === 1 ? 'fan' : 'fans').' beat the Griot' : 'The Griot wins this round';
+                $body = "{$head} 🥁\n\nThe Griot scored ".(int) $round->griot_points.' from its three calls. '.(int) config('griot_challenge.winners')." winners drawn for {$prize}. Next three calls are up 👇";
+                $created += $this->plan("griot:{$round->id}:verdict", 'griot', XText::compose($body, $link, $hashtags),
+                    \App\Services\Griot\ChallengeCardRenderer::cardUrl($round, 'verdict'), $link, $at->max(now()), $at->copy()->addDays(2));
+            }
+            foreach ($round->picks as $pick) {
+                $m = $pick->match;
+                if (!$m || !\App\Services\BanterCardRenderer::ready($m) || $m->home_score === $m->away_score) {
+                    continue;
+                }
+                $loser = $m->home_score < $m->away_score ? 'home' : 'away';
+                $words = app(\App\Services\BanterCardRenderer::class)->words($m, $loser, 'pcm');
+                $matchLink = route('matches.show', $m);
+                $finished = $this->kickoff($m)->addHours(2);
+                $created += $this->plan("banter:{$m->id}", 'banter', XText::compose($words['head'].' '.$words['line']."\n\nGet the card for your status 👇", $matchLink.'#banter', $this->tags($m)),
+                    \App\Services\BanterCardRenderer::cardUrl($m, $loser, 'pcm'), $matchLink, now(), $finished->copy()->addDay(), null, false);
+            }
         }
 
         return $created;
