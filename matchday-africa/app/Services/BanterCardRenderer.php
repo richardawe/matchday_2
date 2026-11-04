@@ -21,23 +21,23 @@ class BanterCardRenderer extends FixtureCardRenderer
 
     private const LINES = [
         'en' => [
-            'lost' => ['eyebrow' => 'FOR THE {club} FAN IN YOUR GROUP', 'head' => 'THE {army} FALL', 'line' => '{winner} beat {loser} {score}. Explain this one in the group chat.'],
-            'won' => ['eyebrow' => 'FOR YOUR STATUS', 'head' => 'THE {army} TAKE IT', 'line' => '{winner} beat {loser} {score}. Post it, let them see.'],
+            'lost' => ['eyebrow' => 'FOR THE {club} FAN IN YOUR GROUP', 'head' => '{club} FALL', 'line' => '{winner} beat {loser} {score}. Explain this one in the group chat.'],
+            'won' => ['eyebrow' => 'FOR YOUR STATUS', 'head' => '{club} TAKE IT', 'line' => '{winner} beat {loser} {score}. Post it, let them see.'],
             'draw' => ['eyebrow' => 'FULL TIME', 'head' => 'NOBODY YIELDS', 'line' => '{home} {score} {away}. Both armies go home with a point.'],
         ],
         'pcm' => [
-            'lost' => ['eyebrow' => 'FOR THE {club} FAN FOR YOUR GROUP', 'head' => '{army} DON FALL!', 'line' => '{winner} beat {loser} {score}. Una go explain this one for group chat.'],
-            'won' => ['eyebrow' => 'FOR YOUR STATUS', 'head' => '{army} DON CARRY AM!', 'line' => '{winner} beat {loser} {score}. Post am make dem see.'],
+            'lost' => ['eyebrow' => 'FOR THE {club} FAN FOR YOUR GROUP', 'head' => '{club} DON FALL!', 'line' => '{winner} beat {loser} {score}. Una go explain this one for group chat.'],
+            'won' => ['eyebrow' => 'FOR YOUR STATUS', 'head' => '{club} DON CARRY AM!', 'line' => '{winner} beat {loser} {score}. Post am make dem see.'],
             'draw' => ['eyebrow' => 'FULL TIME', 'head' => 'NOBODY GREE', 'line' => '{home} {score} {away}. Everybody collect one point go house.'],
         ],
         'sw' => [
-            'lost' => ['eyebrow' => 'KWA SHABIKI WA {club} KWA GROUP', 'head' => '{army} WAMEANGUKA', 'line' => '{winner} wamewapiga {loser} {score}. Eleza hii kwa group.'],
-            'won' => ['eyebrow' => 'KWA STATUS YAKO', 'head' => '{army} WAMEBEBA', 'line' => '{winner} wamewapiga {loser} {score}. Post hii waone.'],
+            'lost' => ['eyebrow' => 'KWA SHABIKI WA {club} KWA GROUP', 'head' => '{club} WAMEANGUKA', 'line' => '{winner} wamewapiga {loser} {score}. Eleza hii kwa group.'],
+            'won' => ['eyebrow' => 'KWA STATUS YAKO', 'head' => '{club} WAMEBEBA', 'line' => '{winner} wamewapiga {loser} {score}. Post hii waone.'],
             'draw' => ['eyebrow' => 'FULL TIME', 'head' => 'HAKUNA ALIYEKUBALI', 'line' => '{home} {score} {away}. Kila mtu pointi moja.'],
         ],
         'za' => [
-            'lost' => ['eyebrow' => 'FOR THE {club} FAN IN YOUR GROUP', 'head' => 'EISH, THE {army} FALL', 'line' => '{winner} beat {loser} {score}. Explain that one in the group, neh.'],
-            'won' => ['eyebrow' => 'FOR YOUR STATUS', 'head' => 'THE {army} TAKE IT', 'line' => '{winner} beat {loser} {score}. Sharp sharp, post it and let them see.'],
+            'lost' => ['eyebrow' => 'FOR THE {club} FAN IN YOUR GROUP', 'head' => 'EISH, {club} FALL', 'line' => '{winner} beat {loser} {score}. Explain that one in the group, neh.'],
+            'won' => ['eyebrow' => 'FOR YOUR STATUS', 'head' => '{club} TAKE IT', 'line' => '{winner} beat {loser} {score}. Sharp sharp, post it and let them see.'],
             'draw' => ['eyebrow' => 'FULL TIME', 'head' => 'NOBODY BACKS DOWN', 'line' => '{home} {score} {away}. A point each, neh.'],
         ],
     ];
@@ -66,7 +66,7 @@ class BanterCardRenderer extends FixtureCardRenderer
 
     private static function version(FootballMatch $match): string
     {
-        return 'b2|'.$match->home_team_id.'|'.$match->away_team_id.'|'.$match->home_score.'-'.$match->away_score;
+        return 'b3|'.$match->home_team_id.'|'.$match->away_team_id.'|'.$match->home_score.'-'.$match->away_score;
     }
 
     /** 'won', 'lost' or 'draw' for that side. */
@@ -92,7 +92,6 @@ class BanterCardRenderer extends FixtureCardRenderer
         $low = min((int) $match->home_score, (int) $match->away_score);
         $values = [
             '{club}' => mb_strtoupper($this->club($team)),
-            '{army}' => mb_strtoupper(Armies::for($team)['army'] ?? $this->club($team)),
             '{winner}' => $this->club($winner),
             '{loser}' => $this->club($loser),
             '{home}' => $this->club($match->homeTeam),
@@ -167,11 +166,17 @@ class BanterCardRenderer extends FixtureCardRenderer
         $sw = $sb[2] - $sb[0];
         $this->text($img, 'display', 84, self::INK, (int) (540 - $sw / 2), 310, $score);
         $sideWidth = (int) (($w - 120) / 2 - $sw / 2 - 60);
-        $home = $this->fit(mb_strtoupper($this->club($match->homeTeam)), 'display', 44, $sideWidth);
-        $this->text($img, 'display', 44, self::INK, 90, 290, $home);
-        $away = $this->fit(mb_strtoupper($this->club($match->awayTeam)), 'display', 44, $sideWidth);
-        $ab = imagettfbbox(44, 0, $this->font('display'), $away);
-        $this->text($img, 'display', 44, self::INK, $w - 90 - ($ab[2] - $ab[0]), 290, $away);
+        // Full club names: both step down together until the longer one fits its half.
+        [$homeName, $awayName] = [mb_strtoupper($this->club($match->homeTeam)), mb_strtoupper($this->club($match->awayTeam))];
+        $nameSize = 44;
+        $wide = fn (string $t, int $z) => ($b = imagettfbbox($z, 0, $this->font('display'), $t))[2] - $b[0];
+        while ($nameSize > 26 && max($wide($homeName, $nameSize), $wide($awayName, $nameSize)) > $sideWidth) {
+            $nameSize -= 2;
+        }
+        $home = $this->fit($homeName, 'display', $nameSize, $sideWidth);
+        $this->text($img, 'display', $nameSize, self::INK, 90, 290, $home);
+        $away = $this->fit($awayName, 'display', $nameSize, $sideWidth);
+        $this->text($img, 'display', $nameSize, self::INK, $w - 90 - $wide($away, $nameSize), 290, $away);
 
         // Bottom: the Griot's words. The headline steps down until it fits two rows.
         $words = $this->words($match, $side, $voice);
@@ -205,6 +210,6 @@ class BanterCardRenderer extends FixtureCardRenderer
 
     private function club($team): string
     {
-        return \App\Support\ClubName::short($team);
+        return \App\Support\ClubName::full($team);
     }
 }

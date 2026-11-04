@@ -2,7 +2,7 @@
 @if(\App\Services\BanterCardRenderer::ready($match))
 @php($banter = app(\App\Services\BanterCardRenderer::class))
 @php($sides = collect(['home' => $match->homeTeam, 'away' => $match->awayTeam]))
-@php($club = fn ($t) => \App\Support\ClubName::short($t))
+@php($club = fn ($t) => \App\Support\ClubName::full($t))
 @php($cards = [])
 @foreach($sides as $side => $team)@foreach(array_keys(\App\Services\Griot::VOICES) as $v)
     @php($w = $banter->words($match, $side, $v))

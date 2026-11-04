@@ -229,13 +229,13 @@ class GriotChallengeTest extends TestCase
         $cards = app(BanterCardRenderer::class);
         $this->assertSame('lost', BanterCardRenderer::outcome($match, 'away'));
         $words = $cards->words($match, 'away', 'pcm');
-        $this->assertSame('MONGOL HORDE DON FALL!', $words['head']);
-        $this->assertStringContainsString('Liverpool beat Man City 2–0', $words['line']);
+        $this->assertSame('MANCHESTER CITY DON FALL!', $words['head']);
+        $this->assertStringContainsString('Liverpool beat Manchester City 2–0', $words['line']);
 
         $res = $this->get(route('matches.banter', ['match' => $match, 'side' => 'away', 'voice' => 'pcm']))->assertOk();
         [$w, $h] = getimagesize($res->baseResponse->getFile()->getPathname());
         $this->assertSame([1080, 1920], [$w, $h]);
-        $this->get(route('matches.show', $match))->assertOk()->assertSee('Send the banter')->assertSee('Roast Man City');
+        $this->get(route('matches.show', $match))->assertOk()->assertSee('Send the banter')->assertSee('Roast Manchester City');
 
         $upcoming = $this->fixture('Arsenal FC', 'Chelsea FC', '2026-11-07 12:30:00');
         $this->get(route('matches.banter', ['match' => $upcoming, 'side' => 'home', 'voice' => 'en']))->assertNotFound();
