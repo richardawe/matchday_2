@@ -5,8 +5,8 @@ set -Eeuo pipefail
 
 mode=${1:-}
 case "$mode" in
-    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-growth|radio-check|configure-radio|configure-radio-model|configure-radio-voice|configure-griot|configure-reel-voice|configure-release|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
-    *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-growth"; exit 2 ;;
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-challenge|configure-growth|radio-check|configure-radio|configure-radio-model|configure-radio-voice|configure-griot|configure-reel-voice|configure-release|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
+    *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-challenge|configure-growth"; exit 2 ;;
 esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
     [[ -n "${!variable:-}" ]] || { echo "Missing production secret: $variable"; exit 1; }
@@ -301,6 +301,16 @@ elif [[ "$mode" == configure-home ]]; then
         *) echo "home_v2 must be on or off."; exit 1 ;;
     esac
     printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/set-env.php && php artisan config:cache --no-ansi"
+elif [[ "$mode" == configure-challenge ]]; then
+    # Beat the Griot (GRIOT_CHALLENGE) and the full-time banter cards (BANTER_CARDS).
+    case "${INPUT_GRIOT_CHALLENGE:-}" in
+        off) json='{"GRIOT_CHALLENGE":"false","BANTER_CARDS":"false"}' ;;
+        challenge) json='{"GRIOT_CHALLENGE":"true","BANTER_CARDS":"false"}' ;;
+        banter) json='{"GRIOT_CHALLENGE":"false","BANTER_CARDS":"true"}' ;;
+        both) json='{"GRIOT_CHALLENGE":"true","BANTER_CARDS":"true"}' ;;
+        *) echo "griot_challenge must be off, challenge, banter or both."; exit 1 ;;
+    esac
+    printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php artisan migrate --force --no-ansi && php scripts/set-env.php && php artisan config:cache --no-ansi && php artisan griot:challenge --no-ansi"
 elif [[ "$mode" == configure-growth ]]; then
     # The "Join our WhatsApp channel" CTA: a channel invite link, or none to hide it.
     url=${INPUT_WHATSAPP_CHANNEL_URL:-none}

@@ -1,7 +1,6 @@
 <?php
 namespace App\Http\Controllers;
-use App\Models\{AnalyticsEvent,FootballMatch,NotificationPreference,PredictionGroup,Team,UserFavorite,UserPrediction};
-use App\Services\LeagueTable;
+use App\Models\{AnalyticsEvent,FootballMatch,NotificationPreference,Team,UserFavorite,UserPrediction};
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -20,40 +19,6 @@ class ExperienceController extends Controller {
         $fav=UserFavorite::where(['user_id'=>auth()->id(),'favorable_type'=>Team::class,'favorable_id'=>$team->id])->first();
         $fav ? $fav->delete() : UserFavorite::create(['user_id'=>auth()->id(),'favorable_type'=>Team::class,'favorable_id'=>$team->id]);
         return back();
-    }
-    public function groups(){
-        $groups=PredictionGroup::withCount('members')->whereHas('members',fn($q)=>$q->where('users.id',auth()->id()))->get();
-        return view('experience.groups',compact('groups'));
-    }
-    public function createGroup(Request $request){
-        $data=$request->validate(['name'=>'required|string|max:80','is_public'=>'nullable|boolean']);
-        do {$code=strtoupper(Str::random(6));} while(PredictionGroup::whereCode($code)->exists());
-        $group=PredictionGroup::create(['owner_id'=>auth()->id(),'name'=>$data['name'],'code'=>$code,'is_public'=>$request->boolean('is_public')]);
-        $group->members()->attach(auth()->id());
-        return redirect()->route('groups.show',$group)->with('success','League created. Send your friends the invite link below.');
-    }
-    public function joinGroup(Request $request){
-        $code=strtoupper($request->validate(['code'=>'required|string'])['code']); $group=PredictionGroup::whereCode($code)->firstOrFail();
-        $group->members()->syncWithoutDetaching(auth()->id());
-        return redirect()->route('groups.show',$group)->with('success','You joined '.$group->name.'.');
-    }
-    public function group(Request $request, PredictionGroup $group, LeagueTable $table){
-        $member=$group->members()->where('users.id',auth()->id())->exists();
-        abort_unless($group->is_public||$member,403);
-        $period=$request->query('period')==='all'?'all':'week';
-        [$weekStart,$weekEnd]=$table->week();
-        return view('experience.group',['group'=>$group,'rows'=>$table->rows($group,$period),'period'=>$period,'member'=>$member,
-            'weekStart'=>$weekStart,'weekEnd'=>$weekEnd,'inviteUrl'=>route('groups.invite',$group->code)]);
-    }
-    /** The invite link: anyone can open it; visitors are asked to sign up and join on arrival. */
-    public function invite(Request $request, string $code, LeagueTable $table){
-        $group=PredictionGroup::with('owner')->withCount('members')->where('code',strtoupper($code))->firstOrFail();
-        if(auth()->check()&&$group->members()->where('users.id',auth()->id())->exists()) return redirect()->route('groups.show',$group);
-        if(!auth()->check()){
-            $request->session()->put(\App\Services\GuestPredictions::LEAGUE_SESSION,$group->code);
-            $request->session()->put('url.intended',route('groups.show',$group));
-        }
-        return view('experience.invite',['group'=>$group,'rows'=>$table->rows($group)->take(5)]);
     }
     public function settings(){
         $preferences=NotificationPreference::firstOrCreate(['user_id'=>auth()->id()]); return view('experience.settings',compact('preferences'));

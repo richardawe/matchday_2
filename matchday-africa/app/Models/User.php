@@ -74,10 +74,6 @@ class User extends Authenticatable
         return $this->hasMany(UserFavorite::class);
     }
 
-    public function predictionGroups()
-    {
-        return $this->belongsToMany(PredictionGroup::class, 'prediction_group_members')->withTimestamps();
-    }
     public function badges(){return $this->hasMany(UserBadge::class);}
     public function creatorProfile(){return $this->hasOne(CreatorProfile::class);}
     public function isPremium(): bool { return $this->subscription_status === 'active' && (!$this->premium_until || $this->premium_until->isFuture()); }
@@ -90,13 +86,6 @@ class User extends Authenticatable
         return $this->predictions();
     }
 
-    /**
-     * Get all leaderboard entries for this user
-     */
-    public function leaderboardEntries()
-    {
-        return $this->hasMany(PredictionLeaderboard::class);
-    }
 
     /**
      * Check if user is an admin

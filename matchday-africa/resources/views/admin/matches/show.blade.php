@@ -138,23 +138,6 @@
         </div>
     </div>
 
-    <section class="bg-white rounded-xl border border-gray-200 p-6">
-        <p class="text-xs font-bold tracking-widest text-purple-700">MATCH SPONSOR & PRIZE</p><h3 class="text-xl font-semibold mt-1">Reward prediction winners</h3><p class="text-sm text-gray-500 mb-5">If exact-score winners exceed the prize quantity, earliest submissions receive the prizes.</p>
-        <form method="POST" enctype="multipart/form-data" action="{{ route('admin.matches.sponsor.store',$match) }}" class="grid grid-cols-1 md:grid-cols-2 gap-4">@csrf
-            <label class="text-sm font-medium">Sponsor name<input name="name" required value="{{ old('name',$match->sponsor?->name) }}" class="mt-1 w-full border-gray-300 rounded-lg"></label>
-            <label class="text-sm font-medium">Sponsor website<input name="website_url" type="url" value="{{ old('website_url',$match->sponsor?->website_url) }}" class="mt-1 w-full border-gray-300 rounded-lg"></label>
-            <label class="text-sm font-medium">Prize<input name="prize_title" required value="{{ old('prize_title',$match->sponsor?->prize_title) }}" placeholder="Signed shirt" class="mt-1 w-full border-gray-300 rounded-lg"></label>
-            <label class="text-sm font-medium">Prize value<input name="prize_value" value="{{ old('prize_value',$match->sponsor?->prize_value) }}" placeholder="£100" class="mt-1 w-full border-gray-300 rounded-lg"></label>
-            <label class="text-sm font-medium">Number of prizes<input name="prize_quantity" required type="number" min="1" max="100" value="{{ old('prize_quantity',$match->sponsor?->prize_quantity??1) }}" class="mt-1 w-full border-gray-300 rounded-lg"></label>
-            <label class="text-sm font-medium">Claim deadline<input name="claim_deadline" type="datetime-local" value="{{ old('claim_deadline',$match->sponsor?->claim_deadline?->format('Y-m-d\TH:i')) }}" class="mt-1 w-full border-gray-300 rounded-lg"></label>
-            <label class="text-sm font-medium">Logo<input name="logo" type="file" accept="image/png,image/jpeg,image/webp" class="mt-1 w-full border border-gray-300 rounded-lg p-2"></label>
-            <label class="text-sm font-medium flex items-center gap-2 pt-7"><input name="active" type="checkbox" value="1" {{ old('active',$match->sponsor?->active??true)?'checked':'' }} class="rounded"> Show sponsor and prize</label>
-            <label class="text-sm font-medium md:col-span-2">Terms<textarea name="terms" maxlength="2000" rows="3" class="mt-1 w-full border-gray-300 rounded-lg">{{ old('terms',$match->sponsor?->terms) }}</textarea></label>
-            <button class="md:col-span-2 bg-purple-700 hover:bg-purple-800 text-white font-bold py-3 rounded-lg">Save sponsor and prize</button>
-        </form>
-        @if($match->sponsor)<div class="mt-6 border-t pt-5"><div class="flex justify-between"><h4 class="font-bold">Prize winners</h4><form method="POST" action="{{ route('admin.matches.sponsor.destroy',$match) }}" onsubmit="return confirm('Remove sponsor and prize?')">@csrf @method('DELETE')<button class="text-red-700 text-sm">Remove sponsor</button></form></div><div class="mt-3 space-y-2">@forelse($match->sponsor->awards as $award)<form method="POST" action="{{ route('admin.matches.awards.update',[$match,$award]) }}" class="flex items-center gap-3 border rounded-lg p-3">@csrf @method('PATCH')<strong class="flex-1">{{ $award->user?->name }}</strong><select name="status" class="rounded-lg border-gray-300"><option value="selected" @selected($award->status==='selected')>Selected</option><option value="contacted" @selected($award->status==='contacted')>Contacted</option><option value="claimed" @selected($award->status==='claimed')>Claimed</option><option value="fulfilled" @selected($award->status==='fulfilled')>Fulfilled</option></select><button class="text-purple-700 font-bold">Update</button></form>@empty<p class="text-sm text-gray-500">Winners appear after the match is scored.</p>@endforelse</div></div>@endif
-    </section>
-
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section class="bg-white rounded-xl border border-gray-200 p-6">
             <p class="text-xs font-bold tracking-widest text-red-700">LIVE REPORTER</p>
@@ -206,36 +189,6 @@
             </div>
         </section>
     </div>
-
-    <!-- Prediction Sets -->
-    @if($predictionSets->count() > 0)
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">🎯 Prediction Sets</h3>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                @foreach($predictionSets as $predictionSet)
-                    <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors duration-200">
-                        <div class="flex items-center justify-between mb-2">
-                            <h4 class="font-medium text-gray-900">{{ $predictionSet->name }}</h4>
-                            <span class="px-2 py-1 rounded-full text-xs font-medium
-                                @if($predictionSet->status === 'active') bg-green-100 text-green-800
-                                @elseif($predictionSet->status === 'draft') bg-yellow-100 text-yellow-800
-                                @else bg-gray-100 text-gray-800
-                                @endif">
-                                {{ ucfirst($predictionSet->status) }}
-                            </span>
-                        </div>
-                        <p class="text-sm text-gray-600 mb-3">{{ Str::limit($predictionSet->description, 100) }}</p>
-                        <div class="flex items-center justify-between text-sm text-gray-500">
-                            <span>Deadline: {{ Carbon\Carbon::parse($predictionSet->prediction_deadline)->format('M j, H:i') }}</span>
-                            <a href="{{ route('admin.predictions.show', $predictionSet->id) }}" 
-                               class="text-blue-600 hover:text-blue-900">View Details</a>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-    @endif
 
     <!-- User Predictions -->
     @if($userPredictions->count() > 0)

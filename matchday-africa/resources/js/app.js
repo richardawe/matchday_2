@@ -19,6 +19,10 @@ if (arena) import('./arena.js').then((m) => m.start(arena));
 const reelsHero = document.getElementById('reels-hero');
 if (reelsHero) import('./home-reels.js').then((m) => m.start(reelsHero));
 
+// Full-time banter cards for WhatsApp status, only on finished match pages.
+const banter = document.querySelector('[data-banter]');
+if (banter) import('./banter.js').then((m) => m.start(banter));
+
 // "Alert me" and phone alerts, only on pages that offer them.
 if (document.querySelector('[data-alert-toggle], [data-push-panel]')) import('./alerts.js').then((m) => m.start());
 

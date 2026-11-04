@@ -84,7 +84,7 @@ return [
     'x' => [
         'auto' => (bool) env('BUFFER_AUTO', false),
         // Which planned post wins a free slot: lower first, then the earliest due.
-        'priority' => ['custom' => 0, 'results' => 1, 'preview' => 2, 'fixtures' => 3, 'news' => 4],
+        'priority' => ['custom' => 0, 'griot' => 1, 'results' => 1, 'preview' => 2, 'fixtures' => 3, 'news' => 4, 'banter' => 5],
         'timezone' => 'Africa/Lagos',
         // Previews go out this long before kick-off, for at most this many fixtures a day
         // (most important competitions first, config/competitions.php).

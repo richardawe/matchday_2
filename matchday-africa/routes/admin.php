@@ -3,8 +3,6 @@
 use App\Http\Controllers\Admin\BlogController;
 use App\Http\Controllers\Admin\MatchController;
 use App\Http\Controllers\Admin\MatchPreviewController;
-use App\Http\Controllers\Admin\PredictionController;
-use App\Http\Controllers\Admin\PredictionSeasonController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\CreatorController;
 use App\Http\Controllers\Admin\CommerceController;
@@ -20,6 +18,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
+    Route::get('/griot', [\App\Http\Controllers\Admin\GriotChallengeController::class, 'index'])->name('griot.index');
+    Route::post('/griot/winners/{winner}/credit', [\App\Http\Controllers\Admin\GriotChallengeController::class, 'credit'])->name('griot.credit');
     Route::get('/commerce', [CommerceController::class, 'index'])->name('commerce.index');
     Route::post('/commerce/sponsors', [CommerceController::class, 'sponsor'])->name('commerce.sponsors');
     Route::post('/commerce/products/{product}/toggle', [CommerceController::class, 'toggleProduct'])->name('commerce.products.toggle');
@@ -68,9 +68,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::get('/', [MatchController::class, 'index'])->name('index');
         Route::post('/{match}/events', [MatchController::class, 'storeEvent'])->name('events.store');
         Route::delete('/{match}/events/{event}', [MatchController::class, 'destroyEvent'])->name('events.destroy');
-        Route::post('/{match}/sponsor', [MatchController::class, 'storeSponsor'])->name('sponsor.store');
-        Route::delete('/{match}/sponsor', [MatchController::class, 'destroySponsor'])->name('sponsor.destroy');
-        Route::patch('/{match}/awards/{award}', [MatchController::class, 'updateAward'])->name('awards.update');
         Route::get('/{match}', [MatchController::class, 'show'])->name('show');
         Route::post('/{match}/update-score', [MatchController::class, 'updateScore'])->name('update-score');
         Route::post('/{match}/force-score', [MatchController::class, 'forceScore'])->name('force-score');
@@ -79,45 +76,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::post('/verify-all-scores', [MatchController::class, 'verifyAllScores'])->name('verify-all-scores');
         Route::get('/api/matches', [MatchController::class, 'getMatches'])->name('api.matches');
         Route::get('/api/stats', [MatchController::class, 'getStats'])->name('api.stats');
-    });
-    
-    // ============================================================================
-    // PREDICTION SYSTEM
-    // ============================================================================
-    
-    // Prediction Sets Management
-    Route::prefix('predictions')->name('predictions.')->group(function () {
-        // Main prediction sets
-        Route::get('/', [PredictionController::class, 'index'])->name('index');
-        Route::get('/create', [PredictionController::class, 'create'])->name('create');
-        Route::post('/', [PredictionController::class, 'store'])->name('store');
-        Route::get('/season', [PredictionSeasonController::class, 'index'])->name('season.index');
-        Route::post('/season', [PredictionSeasonController::class, 'store'])->name('season.store');
-        
-        // Specific routes (must come before parameterized routes)
-        Route::get('/analytics', [PredictionController::class, 'analyticsDashboard'])->name('analytics');
-        Route::get('/analytics/export', [PredictionController::class, 'exportAnalytics'])->name('analytics.export');
-        Route::get('/transparency', [PredictionController::class, 'predictionsTransparency'])->name('transparency');
-        Route::get('/match/{match}/predictions', [PredictionController::class, 'matchPredictionsDetail'])->name('match-detail');
-        
-        // Utilities
-        Route::get('/available-matches', [PredictionController::class, 'getAvailableMatches'])->name('available-matches');
-        Route::post('/score', [PredictionController::class, 'scorePredictions'])->name('score');
-        Route::get('/scoring-stats', [PredictionController::class, 'getScoringStats'])->name('scoring-stats');
-        
-        // Individual prediction set management
-        Route::get('/{prediction}', [PredictionController::class, 'show'])->name('show');
-        Route::get('/{prediction}/edit', [PredictionController::class, 'edit'])->name('edit');
-        Route::put('/{prediction}', [PredictionController::class, 'update'])->name('update');
-        Route::delete('/{prediction}', [PredictionController::class, 'destroy'])->name('destroy');
-        
-        // Prediction set actions
-        Route::get('/{prediction}/analytics', [PredictionController::class, 'analytics'])->name('prediction.analytics');
-        Route::get('/{prediction}/export', [PredictionController::class, 'export'])->name('export');
-        Route::post('/{prediction}/activate', [PredictionController::class, 'activate'])->name('activate');
-        Route::post('/{prediction}/close', [PredictionController::class, 'close'])->name('close');
-        Route::post('/{prediction}/archive', [PredictionController::class, 'archive'])->name('archive');
-        Route::post('/{prediction}/rescore', [PredictionController::class, 'rescore'])->name('rescore');
     });
     
     // ============================================================================

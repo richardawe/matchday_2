@@ -62,7 +62,7 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Homepage top (both homes) | radio as a slim bar `partials/home/radio-bar` (plays in place via `resources/js/radio.js`), then live scores `partials/home/live-now` while a match is credibly live (refilled by the pulse JSON `live` key every 30 s) | n/a | radio needs `RADIO_ENABLED` |
 | Reels-first homepage | `resources/views/home-v2.blade.php`, `HomeShowcase.php` (reels, matchweek board), `resources/js/home-reels.js` (swipeable scroll-snap strip: the reel on screen autoplays muted, Tap to play when blocked; fixture cards 16:9 when there are no reels), shared blocks in `resources/views/partials/home/`; arena at `/war/arena` (`ArenaService.php`) | n/a | `HOME_V2` (preview `/?home=v2`) |
 | Signup attribution + `/admin/users` | `app/Support/Attribution.php` (first-touch `md_attr` cookie), `CaptureAttribution` middleware, `User::creating` hook in `AppServiceProvider`, `Admin/UserController.php` | n/a | needs `users.utm_*` migration |
-| Guest predictions + league invites | `GuestPredictions.php` (`md_guest` cookie, claimed on `Login`), `MatchPredictionRecorder.php`, `LeagueTable.php` (weekly Mon–Sun Lagos), `/prediction-leagues/invite/{code}`, `GET /auth/google` | n/a | needs `guest_predictions` migration |
+| Guest predictions and match-page calls | `GuestPredictions.php` (`md_guest` cookie, claimed on `Login`), `MatchPredictionRecorder.php` (one system round per match), scoring `PredictionScoringService` (score 3/1, result 1; `predictions:score` 5m), record `/predictions/history`; `/predictions` and old round/league links redirect to Beat the Griot; `GET /auth/google` | `predictions:score` 5m | needs `guest_predictions` migration |
 | Follow/share/WhatsApp | `config/social.php`, components `social-follow`, `share-bar` (`App\Support\ShareLink`, UTM `utm_medium=share`), `whatsapp-channel`; reel pages `/reels`, `/reels/{match}` (`ReelPageController`) | n/a | `WHATSAPP_CHANNEL_URL` (CTA hidden while empty) |
 | SEO | `SocialMetaService.php` (titles, OG/X tags, JSON-LD SportsEvent/SportsTeam/NewsArticle/VideoObject), `@section('meta_title'/'meta_description'/'meta_robots')`, `SitemapController` (`/sitemap.xml`), `public/robots.txt` | n/a | always on |
 | Stale live matches | `StaleMatchCloser.php`, `matches:close-stale` (FINISHED after kick-off + 3h with no update for 30 min, or + 6h); flagged `metadata.status_inferred_at`, so scoring and reels wait (`FootballMatch::statusInferred()`) | every 10 min | always on |
@@ -70,6 +70,8 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Live Griot timeline (ESPN commentary → standard plays → picked moments → Griot captions in 4 voices, shot map, momentum, Kokoro Griot voice clips) | `app/Services/Espn/EspnCommentaryMapper.php`, `app/Services/Griot/*` (`MomentPicker`, `GriotTimeline`, `GriotTeller`, `GriotWriter`), `partials/match-timeline`, `radio/griot-voice.mjs`, `radio/griot-writer.mjs`, tables `match_plays`, `griot_posts`; training in `griot-ml/` (repo root, not deployed) | plays saved by `espn:sync details`; `griot:timeline` 1m, `griot:write` 1m, `griot:voice` 1m | `GRIOT_TIMELINE`, `GRIOT_VOICE`, `GRIOT_WRITER` (+ migration) |
 | Cartoon look (whole site, admin, Matchday War) | `docs/CARTOON.md`; `config/site.php`, `App\Support\SiteStyle` + `SiteStylePreview` middleware (`?style=cartoon`, cookie `md_style`), `resources/css/cartoon.css` (+ generated `cartoon-auto.css`, `scripts/build-cartoon-css.py`), `resources/js/war/war-cartoon.css` + `art.ts`, `App\Support\ArmyMoods` (mood thumbnails `public/war/army/moods/`, `armies:colours`) | n/a | `SITE_STYLE=cartoon` (default classic) |
 | Installable app (iPhone + Android home screen) | `public/manifest.webmanifest` (maskable icons, shortcuts), `public/sw.js` (registered on every page; push, notification taps, offline screen `public/offline.html` for page loads only, no other caching), `resources/js/install.js` (banner `partials/install-banner`: Install on Android, Share → Add to Home Screen on iPhone from the 2nd page view, then "Turn on match alerts" inside the app; localStorage `md_install`), page `/app` (`app-install.blade.php`), Android badge `public/icons/badge-96.png`, back button for the installed app (`components/app-back`, standalone only, never on home) | n/a | always on; alerts in the app need `PUSH_ENABLED` |
+| Beat the Griot (each PL round the Griot picks 3 matches, calls the scores; fans who beat its points go into a draw, 10 win 1GB of data, credited by hand) | `app/Services/Griot/GriotChallengeService.php` (plan, remind, score, draw), `GriotForecaster.php` (Poisson from the last 10 results: likeliest result, then score), `ChallengeLines.php` (4 voices, facts only), `ChallengeCardRenderer.php` (square calls/verdict cards), `GriotChallengeController`, page `/beat-the-griot` (`/griot`), home strip `partials/home/griot-challenge`, match badge `partials/griot-match`, admin `/admin/griot` (winner codes, Mark credited), tables `griot_challenges`, `griot_challenge_matches`, `griot_challenge_entries`, `griot_challenge_winners`; fans' calls are ordinary `user_predictions`/`guest_predictions` (a call on the match page counts) | `griot:challenge` 10m; `twitter:engage` posts the calls card when a round opens and the verdict the next morning (type `griot`) | `GRIOT_CHALLENGE` (+ migration) |
+| Banter cards (9:16 WhatsApp status cards at full time: winner in victory, loser in the rain, 4 voices) | `app/Services/BanterCardRenderer.php`, route `matches.banter`, `partials/banter-share` (match page, `resources/js/banter.js`: Web Share with the image on phones, wa.me text otherwise); the losing side's card of each Beat the Griot match goes to X (type `banter`) | n/a | `BANTER_CARDS` |
 | Home arena | `resources/views/partials/home-arena.blade.php`, `resources/js/arena.js` (GSAP), `arena3d.js` (three.js, desktop only) | rides the home pulse refresh | always on when a Premier League match qualifies |
 
 ## 4. CI/CD
@@ -131,7 +133,7 @@ the production secret of that name plus channel IDs, `BUFFER_AUTO`, `BUFFER_SLOT
 send once), `clear-drafts` (delete unsent X drafts), `reel-check` (recent PL matches with events/chapters/reel state, finds Node 18+, `npm ci` + `node check.mjs`
 in `reel/`), `configure-reel` (`REEL_RENDERER`, `REEL_NODE`, `REEL_GITHUB_TOKEN` from the production secret), `configure-reel-voice` (Kokoro commentary over new reels: `REEL_NARRATION` on/off),
 `reel-render` (rebuild one match's chapters and render its reel now), `configure-release` (the look: `cartoon` sets `SITE_STYLE=cartoon` and `REEL_STYLE=v2`; instant Buffer reels; web push; see go-live step 7), `configure-espn` (`live`, `shadow` or `off`),
-`espn-sync` (fixtures, live and details passes now, unmatched fixtures listed), `reel-queue` (backfill reels between two Lagos dates), `configure-home` (`HOME_V2` on or off), `configure-growth` (`WHATSAPP_CHANNEL_URL`, `none` hides the CTA). From a terminal: `gh workflow run server-ops.yml -f action=status`.
+`espn-sync` (fixtures, live and details passes now, unmatched fixtures listed), `reel-queue` (backfill reels between two Lagos dates), `configure-home` (`HOME_V2` on or off), `configure-challenge` (Beat the Griot and banter cards: `off`, `challenge`, `banter`, `both`; migrates, then runs `griot:challenge` once), `configure-growth` (`WHATSAPP_CHANNEL_URL`, `none` hides the CTA). From a terminal: `gh workflow run server-ops.yml -f action=status`.
 
 ## 6. Environment variables added in this round
 See the block at the end of `matchday-africa/.env.example` / `production.env.example`.
@@ -163,6 +165,8 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `RADIO_VOICE` | griot | Daily bulletin voice: `griot` (with groove and effects) or a Kokoro voice ID |
 | `GRIOT_WRITER` / `GRIOT_WRITER_MODEL` | false / storage/app/griot/writer | Fine-tuned Qwen3-0.6B writer (transformers.js); every caption fact-checked, templates otherwise |
 | `GRIOT_PICKER_MODEL` | storage/app/griot/picker.json | Learned moment picker; missing file = strict rules |
+| `GRIOT_CHALLENGE` / `GRIOT_CHALLENGE_WINNERS` / `GRIOT_CHALLENGE_PRIZE` | false / 10 / 1GB of data | Beat the Griot; winners drawn each round, Nigeria numbers (MTN, Airtel, Glo, 9mobile), credited by hand from `/admin/griot` |
+| `BANTER_CARDS` | false | Full-time banter cards on match pages |
 
 ## 7. Open items and known issues
 ### State on 3 Nov 2026 (end of session)
@@ -194,6 +198,20 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   endpoint (`/matches/{id}/chronicle`) is JSON, not a page.
 - Local review tooling used on 3 Nov: a demo SQLite database plus Playwright scripts that screenshot every page at
   phone width and flag elements still in the classic serif/beige/Tailwind colours. Re-create them if needed; they are not in the repo.
+
+### Beat the Griot and banter cards (4 Nov 2026)
+- Old prediction engine removed on 4 Nov (owner's decision): hand-made admin rounds, prediction seasons, goalscorer and
+  total-goals types, per-match sponsor prizes, the leaderboard page and table writes, prediction leagues and invites, and the
+  debug scoring commands. Their tables (`prediction_seasons`, `match_sponsors`, `match_prize_awards`, `prediction_leaderboards`,
+  `prediction_groups`, `prediction_group_members`) are left in the database untouched. Kept: past predictions and points,
+  `/predictions/history`, match-page calls, guest predictions, `predictions:score`. Ad slots (`SponsorPlacement`) are separate and stay.
+- Owner's choices (4 Nov): three matches per round; prize 1GB of data; 10 fans drawn at random from those who beat the
+  Griot; winners message one of Matchday's social accounts with their code, number and network and an admin credits them by
+  hand (no payout API); Nigeria only for now (Kenya and South Africa later); the old prediction engine stays as it is
+  (hand-made admin rounds, seasons, sponsor prizes are not removed).
+- The Griot's calls come from the site's own results only; its lines quote form only when five results back the call.
+  Pidgin, Sheng and Mzansi lines (`ChallengeLines`, `BanterCardRenderer`) need a native speaker's review.
+- Mockup approved by the owner: https://claude.ai/artifact/9zNsmk7vXbvdQ7xWSYY13q
 
 ### Redrawn reels (3 Nov 2026)
 - `reel:queue` (Server operations → `reel-queue`) redraws reels made in an earlier look (`metadata.reel.style`).

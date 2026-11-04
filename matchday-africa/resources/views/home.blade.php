@@ -3,6 +3,7 @@
 @section('content')
 @include('partials.home.radio-bar')
 @include('partials.home.live-now')
+@include('partials.home.griot-challenge')
 @if($arena ?? null)@include('partials.home-arena')@endif
 <x-sponsor-slot slot="home" />
 
@@ -25,7 +26,7 @@
 
 <section class="md-home-features"><div class="md-wrap"><div class="md-home-heading"><div><p class="md-eyebrow">MORE THAN SCORES</p><h2>Follow the game. Join the conversation.</h2></div></div><div class="md-feature-grid">
     <a class="md-feature-card md-feature-war" href="{{ \App\Support\WarLinks::home() }}"><span>01 · MATCHDAY WAR</span><h3>Turn the fixture into a battle.</h3><p>Choose your side, rally supporters and experience football rivalry in real time.</p><b>Enter the arena →</b></a>
-    <a class="md-feature-card md-feature-predict" href="{{ route('predictions.index') }}"><span>02 · PREDICTIONS</span><h3>Make your call before kickoff.</h3><p>Predict scores, compete with friends and prove how well you know the game.</p><b>Start predicting →</b></a>
+    <a class="md-feature-card md-feature-predict" href="{{ route('predictions.index') }}"><span>02 · BEAT THE GRIOT</span><h3>Three matches. Beat the Griot.</h3><p>The Griot calls three scores every round. Score more points and you could win {{ config('griot_challenge.prize') }}.</p><b>Take on the Griot →</b></a>
 </div></div></section>
 
 @if($hasFeaturedBlogs)<section class="md-home-stories"><div class="md-wrap"><div class="md-home-heading"><div><p class="md-eyebrow">FROM THE CONTINENT</p><h2>Football stories worth your time.</h2></div><a href="{{ route('blogs.index') }}">All stories →</a></div><div class="md-story-grid">

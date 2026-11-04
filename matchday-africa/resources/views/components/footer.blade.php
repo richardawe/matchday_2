@@ -32,9 +32,7 @@
                     <li><a href="{{ route('teams.index') }}" class="text-black hover:text-gray-600 transition-colors">Teams</a></li>
                     <li><a href="{{ route('blogs.index') }}" class="text-black hover:text-gray-600 transition-colors">Articles</a></li>
                     <li><a href="{{ route('app.install') }}" class="text-black hover:text-gray-600 transition-colors">Get the app</a></li>
-                    @auth
-                        <li><a href="{{ route('predictions.index') }}" class="text-black hover:text-gray-600 transition-colors">Predictions</a></li>
-                    @endauth
+                    <li><a href="{{ route('predictions.index') }}" class="text-black hover:text-gray-600 transition-colors">Beat the Griot</a></li>
                 </ul>
             </div>
 

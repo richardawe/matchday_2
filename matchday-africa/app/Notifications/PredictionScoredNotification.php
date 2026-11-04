@@ -50,7 +50,7 @@ class PredictionScoredNotification extends Notification implements ShouldQueue
             ->line("Match Result: {$this->match->home_score}-{$this->match->away_score}")
             ->line("Your Prediction: {$this->prediction->prediction_value}")
             ->line("Points Earned: {$points}")
-            ->action('View Leaderboard', url('/predictions/leaderboard'))
+            ->action('See your predictions', route('predictions.history'))
             ->line('Thank you for using Matchday Africa!');
     }
 

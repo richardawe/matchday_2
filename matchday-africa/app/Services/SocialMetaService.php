@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
 class SocialMetaService
 {
     private const SITE = 'Matchday Africa';
-    private const DESCRIPTION = 'Live scores, 20-second match reels, free prediction leagues, Matchday Radio and football news for African fans.';
+    private const DESCRIPTION = 'Live scores, 20-second match reels, Beat the Griot (free score predictions), Matchday Radio and football news for African fans.';
 
     public function getSocialPreviewData($content = null, array $overrides = []): array
     {
@@ -25,7 +25,6 @@ class SocialMetaService
             $content instanceof FootballMatch => $this->match($content),
             $content instanceof Team => $this->team($content),
             $content instanceof Blog => $this->blog($content),
-            $content instanceof PredictionSet => $this->predictionSet($content),
             default => $this->defaults(),
         };
         if (is_array($content)) {
@@ -213,19 +212,6 @@ class SocialMetaService
                 'author' => ['@type' => $blog->author_name ? 'Person' : 'Organization', 'name' => $blog->author_name ?: self::SITE],
                 'publisher' => ['@type' => 'Organization', 'name' => self::SITE, 'logo' => ['@type' => 'ImageObject', 'url' => asset('favicon.png')]],
                 'mainEntityOfPage' => route('blogs.show', $blog)]),
-        ];
-    }
-
-    private function predictionSet(PredictionSet $set): array
-    {
-        return [
-            'title' => "{$set->name}: football predictions | ".self::SITE,
-            'description' => "Make your calls for {$set->name}. Free football predictions: score points, climb the weekly table and beat your friends' league.",
-            'url' => route('predictions.show', $set),
-            'type' => 'website',
-            'image' => route('images.social-default', ['v' => '20261103']),
-            'image_width' => '1200', 'image_height' => '630',
-            'robots' => 'noindex, follow',
         ];
     }
 

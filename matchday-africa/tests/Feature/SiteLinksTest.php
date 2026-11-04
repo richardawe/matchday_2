@@ -24,7 +24,7 @@ class SiteLinksTest extends TestCase
 
     public function test_community_page_exists(): void
     {
-        $this->get('/community')->assertOk()->assertSee('Start a league with friends');
+        $this->get('/community')->assertOk()->assertSee('Three calls a round');
     }
 
     public function test_sitemap_lists_pages_matches_reels_and_articles(): void

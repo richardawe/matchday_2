@@ -102,12 +102,12 @@ class FixtureCardRenderer extends StoryCardRenderer
         return config('site.style') === 'cartoon';
     }
 
-    private const INK = [11, 11, 11];
-    private const SUN = [255, 210, 63];
-    private const RAY = [255, 196, 31];
-    private const CREAM = [255, 248, 231];
-    private const RED = [255, 75, 62];
-    private const SOFT = [58, 51, 40];
+    protected const INK = [11, 11, 11];
+    protected const SUN = [255, 210, 63];
+    protected const RAY = [255, 196, 31];
+    protected const CREAM = [255, 248, 231];
+    protected const RED = [255, 75, 62];
+    protected const SOFT = [58, 51, 40];
 
     /**
      * The cartoon card: a sunburst, a cream comic panel with the fixture, and each club's army
@@ -181,7 +181,7 @@ class FixtureCardRenderer extends StoryCardRenderer
     }
 
     /** A filled box with an ink border and an offset ink shadow. */
-    private function panel(GdImage $img, int $x, int $y, int $w, int $h, array $fill, int $border, int $shadow): void
+    protected function panel(GdImage $img, int $x, int $y, int $w, int $h, array $fill, int $border, int $shadow): void
     {
         $ink = $this->color($img, self::INK);
         if ($shadow) {
@@ -192,7 +192,7 @@ class FixtureCardRenderer extends StoryCardRenderer
     }
 
     /** A club's army in its mood, framed; a monogram tile when the club has no army. */
-    private function moodPanel(GdImage $img, $team, string $mood, int $x, int $y, int $size): void
+    protected function moodPanel(GdImage $img, $team, string $mood, int $x, int $y, int $size): void
     {
         $army = Armies::for($team);
         $file = $army && $army['art'] ? public_path(config('armies.optimised')."/moods/{$army['art']}-{$mood}.webp") : null;

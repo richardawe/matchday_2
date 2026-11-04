@@ -10,7 +10,6 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use App\Models\Team;
-use App\Models\PredictionSet;
 use Illuminate\Http\JsonResponse;
 use App\Models\Player;
 use Illuminate\Support\Str;
@@ -156,7 +155,6 @@ class HomeController extends Controller
                 $personalMatches = FootballMatch::with(['homeTeam','awayTeam','league'])
                     ->where(fn($q)=>$q->whereIn('home_team_id',$teamIds)->orWhereIn('away_team_id',$teamIds))
                     ->whereBetween('match_date',[now()->subHours(3),now()->addDays(7)])->orderBy('match_date')->take(8)->get();
-                $openPredictionSets = PredictionSet::where('status','active')->where('prediction_deadline','>',now())->withCount('matches')->take(3)->get();
             }
 
             $arena = app(\App\Services\ArenaService::class)->headline($now);

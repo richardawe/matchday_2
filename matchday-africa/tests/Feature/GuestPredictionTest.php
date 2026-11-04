@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\FootballMatch;
-use App\Models\PredictionGroup;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\UserPrediction;
@@ -67,36 +66,6 @@ class GuestPredictionTest extends TestCase
 
         $this->post(route('matches.prediction.store', $match), ['home_score' => 1, 'away_score' => 0])->assertStatus(422);
         $this->assertDatabaseCount('guest_predictions', 0);
-    }
-
-    public function test_league_invite_link_lets_a_visitor_sign_up_and_join(): void
-    {
-        $owner = User::factory()->create();
-        $group = PredictionGroup::create(['owner_id' => $owner->id, 'name' => 'Lagos Ballers', 'code' => 'LAG123']);
-        $group->members()->attach($owner->id);
-
-        $this->get(route('groups.invite', 'lag123'))->assertOk()->assertSee('Join Lagos Ballers')->assertSee('Create my free account');
-        $this->post('/register', ['name' => 'Tobi', 'email' => 'tobi@example.com', 'password' => 'password'])
-            ->assertRedirect(route('groups.show', $group));
-
-        $this->assertTrue($group->members()->where('email', 'tobi@example.com')->exists());
-    }
-
-    public function test_weekly_table_counts_only_this_weeks_matches(): void
-    {
-        $this->travelTo('2026-10-29 12:00:00'); // a Thursday
-        $owner = User::factory()->create(['name' => 'Owner']);
-        $group = PredictionGroup::create(['owner_id' => $owner->id, 'name' => 'Office', 'code' => 'OFF111']);
-        $group->members()->attach($owner->id);
-        $thisWeek = $this->match(['match_date' => '2026-10-27 19:00:00', 'status' => 'FINISHED', 'football_data_id' => 9001]);
-        $lastWeek = $this->match(['match_date' => '2026-10-20 19:00:00', 'status' => 'FINISHED', 'football_data_id' => 9002]);
-        foreach ([[$thisWeek, 3], [$lastWeek, 5]] as [$m, $points]) {
-            UserPrediction::create(['user_id' => $owner->id, 'match_id' => $m->id, 'prediction_type' => 'score', 'prediction_value' => '1-0', 'points_earned' => $points, 'submitted_at' => now(),
-                'prediction_set_id' => \App\Models\PredictionSet::create(['name' => 'S'.$m->id, 'admin_id' => $owner->id, 'status' => 'active', 'prediction_deadline' => now()])->id]);
-        }
-
-        $this->actingAs($owner)->get(route('groups.show', $group))->assertOk()->assertSee('3 pts')->assertSee(route('groups.invite', 'OFF111'), false);
-        $this->actingAs($owner)->get(route('groups.show', ['group' => $group, 'period' => 'all']))->assertOk()->assertSee('8 pts');
     }
 
     private function match(array $attributes = []): FootballMatch
