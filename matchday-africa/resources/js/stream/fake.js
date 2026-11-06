@@ -4,7 +4,7 @@
  * card, a goal ruled out, two live matches taking turns, then the between-matches screen.
  * One loop lasts 150 seconds; each loop uses new ids so its goals are announced again.
  */
-const art = (name) => `/war/army/${name}-cutout-960.webp`;
+const art = (name) => `/war/army/${name}-solid.webp`;
 const mood = (name, m) => `/war/army/moods/${name}-${m}.webp`;
 const team = (name, short, colour, ink, army, file) => ({
     name, short, colour, ink, army, art: art(file),

@@ -146,6 +146,6 @@ class StreamPageTest extends TestCase
         $this->assertSame('Norse Vikings', $home['army']);
         $this->assertSame('#C8102E', $home['colour']);
         $this->assertSame('#ffffff', $home['ink']);
-        $this->assertStringContainsString('war/army/norse-viking-cutout-960.webp', $home['art']);
+        $this->assertStringContainsString('war/army/norse-viking-solid.webp', $home['art']);
     }
 }

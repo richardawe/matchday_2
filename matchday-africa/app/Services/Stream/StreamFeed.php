@@ -167,7 +167,8 @@ class StreamFeed
         if ($full) {
             $art = $army['art'] ?? null;
             $row['army'] = $army['army'] ?? null;
-            $row['art'] = $art ? $army['cutout'] : null;
+            // The solid cut-outs (model mattes, 3 Nov): the older brightness cut-outs let the background show through.
+            $row['art'] = $art ? (is_file((string) $army['solid_path']) ? $army['solid'] : $army['cutout']) : null;
             $row['moods'] = $art ? collect(['warrior', 'victory', 'dejected', 'defeated'])
                 ->mapWithKeys(fn ($mood) => [$mood => is_file(public_path(config('armies.optimised')."/moods/{$art}-{$mood}.webp"))
                     ? asset(config('armies.optimised')."/moods/{$art}-{$mood}.webp") : null])->filter()->all() : [];
