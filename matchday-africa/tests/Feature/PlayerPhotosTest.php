@@ -91,6 +91,31 @@ class PlayerPhotosTest extends TestCase
         $this->assertSame(0, app(PlayerPhotos::class)->sync()['calls']);
     }
 
+    public function test_clubs_are_found_by_name_when_the_plan_has_no_current_season(): void
+    {
+        $png = "\x89PNG\r\n\x1a\n".str_repeat('x', 800);
+        Http::fake([
+            // API-Football's free plan refuses the current season's league list.
+            'v3.football.api-sports.io/teams?league*' => Http::response(['errors' => ['plan' => 'Free plans do not have access to this season, try from 2022 to 2024.'], 'response' => []]),
+            'v3.football.api-sports.io/teams?search=Liverpool*' => Http::response(['errors' => [], 'response' => [
+                ['team' => ['id' => 9999, 'name' => 'Liverpool Montevideo', 'national' => false]],
+                ['team' => ['id' => 40, 'name' => 'Liverpool', 'national' => false]],
+            ]]),
+            'v3.football.api-sports.io/teams?search=*' => Http::response(['errors' => [], 'response' => [['team' => ['id' => 50, 'name' => 'Manchester City', 'national' => false]]]]),
+            'v3.football.api-sports.io/players/squads*' => Http::response(['errors' => [], 'response' => [['players' => [
+                ['id' => 306, 'name' => 'M. Salah', 'number' => 11, 'photo' => 'https://media.api-sports.io/football/players/306.png'],
+            ]]]]),
+            'media.api-sports.io/*' => Http::response($png, 200, ['Content-Type' => 'image/png']),
+        ]);
+
+        $result = app(PlayerPhotos::class)->sync();
+
+        $this->assertSame(40, $this->liverpool->fresh()->metadata['api_football_team_id']);
+        $this->assertSame(2, $result['teams']);
+        $this->assertStringContainsString('Free plans do not have access', $result['error']);
+        $this->artisan('players:photos')->assertSuccessful();
+    }
+
     public function test_nothing_is_fetched_without_a_key(): void
     {
         config(['services.api_football.key' => '']);
