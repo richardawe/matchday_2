@@ -20,6 +20,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
     Route::get('/griot', [\App\Http\Controllers\Admin\GriotChallengeController::class, 'index'])->name('griot.index');
     Route::post('/griot/winners/{winner}/credit', [\App\Http\Controllers\Admin\GriotChallengeController::class, 'credit'])->name('griot.credit');
+    Route::get('/player-photos', [\App\Http\Controllers\Admin\PlayerPhotoController::class, 'index'])->name('player-photos.index');
     Route::get('/youtube', [\App\Http\Controllers\Admin\YouTubeController::class, 'index'])->name('youtube.index');
     Route::get('/youtube/connect', [\App\Http\Controllers\Admin\YouTubeController::class, 'connect'])->name('youtube.connect');
     Route::get('/youtube/callback', [\App\Http\Controllers\Admin\YouTubeController::class, 'callback'])->name('youtube.callback');
