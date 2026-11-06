@@ -43,6 +43,8 @@ Schedule::command('news:publish-daily --limit=1')->dailyAt('16:30')->withoutOver
 Schedule::command('radio:edition')->cron('0 6,12,18 * * *')->timezone('Africa/Lagos')->withoutOverlapping(5)->name('radio-editions');
 Schedule::command('radio:work')->everyMinute()->withoutOverlapping(30)->runInBackground()->name('radio-worker');
 // Beat the Griot: plan the next round's three calls, remind, score and draw the winners (GRIOT_CHALLENGE).
+// YouTube LIVE: a broadcast per matchday (YOUTUBE_AUTO) and ending finished ones; quiet until /admin/youtube is connected.
+Schedule::command('youtube:broadcasts')->everyTenMinutes()->withoutOverlapping(10)->name('youtube-broadcasts');
 Schedule::command('griot:challenge')->everyTenMinutes()->withoutOverlapping(10)->name('griot-challenge');
 Schedule::command('twitter:engage')->everyTenMinutes()->withoutOverlapping(10)->name('x-timeline-planner');
 Schedule::command('matches:enrich-events')->everyThirtyMinutes()->withoutOverlapping(20)->name('match-event-enrichment');

@@ -99,6 +99,9 @@
                             <x-dropdown-link :href="route('admin.griot.index')">
                                 {{ __('🥁 Beat the Griot') }}
                             </x-dropdown-link>
+                            <x-dropdown-link :href="route('admin.youtube.index')">
+                                {{ __('📺 YouTube LIVE') }}
+                            </x-dropdown-link>
                             <x-dropdown-link :href="route('admin.blogs.index')">
                                 {{ __('📝 Manage Blog') }}
                             </x-dropdown-link>
@@ -225,6 +228,9 @@
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.griot.index')">
                         {{ __('🥁 Beat the Griot') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('admin.youtube.index')">
+                        {{ __('📺 YouTube LIVE') }}
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.match-previews.index')">
                         {{ __('🔮 Match Previews') }}

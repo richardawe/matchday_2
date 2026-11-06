@@ -5,7 +5,7 @@ set -Eeuo pipefail
 
 mode=${1:-}
 case "$mode" in
-    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-challenge|configure-stream|configure-growth|radio-check|configure-radio|configure-radio-model|configure-radio-voice|configure-griot|configure-reel-voice|configure-release|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-challenge|configure-stream|configure-youtube|configure-growth|radio-check|configure-radio|configure-radio-model|configure-radio-voice|configure-griot|configure-reel-voice|configure-release|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
     *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-challenge|configure-growth"; exit 2 ;;
 esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
@@ -319,6 +319,19 @@ elif [[ "$mode" == configure-stream ]]; then
         *) echo "home_v2 (the on/off switch) must be on or off."; exit 1 ;;
     esac
     printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/set-env.php && php artisan config:cache --no-ansi$after"
+elif [[ "$mode" == configure-youtube ]]; then
+    # YouTube LIVE: copies the OAuth client from the production secrets (when set) and switches
+    # automatic matchday broadcasts with the home_v2 on/off input. Values travel as JSON on stdin,
+    # so the secret never appears in a command line or log. Connect the channel at /admin/youtube.
+    # shellcheck disable=SC2016 # the single-quoted program is PHP, not shell
+    json=$(php -r '
+$set = [];
+foreach (["YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET"] as $k) { $v = trim((string) getenv($k)); if ($v !== "") { $set[$k] = $v; } }
+$on = getenv("INPUT_HOME_V2");
+if ($on === "on" || $on === "off") { $set["YOUTUBE_AUTO"] = $on === "on" ? "true" : "false"; }
+if ($set === []) { fwrite(STDERR, "Nothing to set: add the YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET production secrets, or choose on/off.\n"); exit(1); }
+echo json_encode($set);')
+    printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php artisan migrate --force --no-ansi && php scripts/set-env.php && php artisan config:cache --no-ansi && php artisan youtube:broadcasts --no-ansi"
 elif [[ "$mode" == configure-growth ]]; then
     # The "Join our WhatsApp channel" CTA: a channel invite link, or none to hide it.
     url=${INPUT_WHATSAPP_CHANNEL_URL:-none}
