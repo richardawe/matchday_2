@@ -34,7 +34,10 @@ class GuestPredictions
     {
         $token = (string) $request->cookie(self::COOKIE);
         if (!Str::isUuid($token)) {
-            $token = (string) Str::uuid();
+            // A first visit has no cookie yet: make one token for the whole request, so a visitor's
+            // three Beat the Griot calls (saved in one request) share it and are all found and claimed later.
+            $token = (string) ($request->attributes->get('md_guest_token') ?: Str::uuid());
+            $request->attributes->set('md_guest_token', $token);
         }
         Cookie::queue(self::COOKIE, $token, 60 * 24 * 365, null, null, null, true, false, 'lax');
 

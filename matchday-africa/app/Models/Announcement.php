@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /** A message from Matchday Africa to users, sent from /admin/messages. */
 class Announcement extends Model
 {
-    public const AUDIENCES = ['all' => 'Everyone with an account', 'alerts' => 'Users who set a match alert in the last 30 days', 'push' => 'Users with push turned on'];
+    public const AUDIENCES = ['all' => 'Everyone with an account', 'alerts' => 'Users who set a match alert in the last 30 days', 'push' => 'Users with push turned on', 'griot' => 'Everyone who has made Beat the Griot calls'];
 
     protected $fillable = ['title', 'body', 'url', 'audience', 'pushed', 'recipients', 'created_by'];
 

@@ -9,6 +9,7 @@ use App\Models\PushSubscription;
 use App\Models\User;
 use App\Notifications\InboxMessage;
 use App\Services\Alerts\Alerts;
+use App\Services\Griot\GriotChallengeService;
 use Illuminate\Http\Request;
 
 /** Messages from Matchday Africa to users: in every recipient's inbox, and by push if asked. */
@@ -51,6 +52,7 @@ class AnnouncementController extends Controller
         return match ($audience) {
             'alerts' => User::whereIn('id', MatchAlert::where('created_at', '>=', now()->subDays(30))->select('user_id')),
             'push' => User::whereIn('id', PushSubscription::select('user_id')),
+            'griot' => GriotChallengeService::tablesReady() ? GriotChallengeService::everyCaller() : User::whereRaw('1 = 0'),
             default => User::query(),
         };
     }

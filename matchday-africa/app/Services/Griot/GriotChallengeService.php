@@ -224,6 +224,43 @@ class GriotChallengeService
     }
 
     /** Saves the calls for matches that haven't kicked off. Returns how many were saved. */
+    /**
+     * Fans with an account who made calls in a round, most calls first:
+     * [['user' => User, 'calls' => 0-3, 'last' => Carbon], ...]. Entries only exist once a round
+     * is scored, so this reads the calls themselves.
+     */
+    public function callers(GriotChallenge $challenge): Collection
+    {
+        $ids = $challenge->picks->pluck('match_id');
+        $rows = UserPrediction::whereIn('match_id', $ids)->where('prediction_type', 'score')
+            ->whereNotNull('home_score_prediction')->whereNotNull('away_score_prediction')
+            ->selectRaw('user_id, count(distinct match_id) as calls, max(coalesce(submitted_at, updated_at)) as last_at')
+            ->groupBy('user_id')->get();
+        $users = User::whereIn('id', $rows->pluck('user_id'))->get()->keyBy('id');
+
+        return $rows->filter(fn ($r) => $users->has($r->user_id))
+            ->map(fn ($r) => ['user' => $users[$r->user_id], 'calls' => (int) $r->calls, 'last' => $r->last_at ? Carbon::parse($r->last_at) : null])
+            ->sortByDesc(fn ($r) => sprintf('%d%s', $r['calls'], $r['last']?->format('YmdHis') ?? ''))->values();
+    }
+
+    /** Visitors without an account who made calls in a round (they can't get inbox messages). */
+    public function guestCallers(GriotChallenge $challenge): int
+    {
+        if (!GuestPredictions::ready()) {
+            return 0;
+        }
+
+        return GuestPrediction::whereIn('match_id', $challenge->picks->pluck('match_id'))->whereNull('claimed_at')
+            ->distinct()->count('guest_token');
+    }
+
+    /** Everyone with an account who has made a call in any round of Beat the Griot. */
+    public static function everyCaller()
+    {
+        return User::whereIn('id', UserPrediction::where('prediction_type', 'score')
+            ->whereIn('match_id', GriotChallengeMatch::select('match_id'))->select('user_id'));
+    }
+
     public function submit(GriotChallenge $challenge, ?User $user, Request $request, array $calls): int
     {
         $saved = 0;

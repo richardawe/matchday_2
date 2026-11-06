@@ -108,6 +108,8 @@ class GriotChallengeTest extends TestCase
 
         $this->post('/beat-the-griot', ['calls' => $calls])->assertRedirect('/beat-the-griot');
         $this->assertDatabaseCount('guest_predictions', 3);
+        // One visitor, one token: all three calls are theirs.
+        $this->assertSame(1, \App\Models\GuestPrediction::distinct()->count('guest_token'));
 
         $user = User::factory()->create();
         $this->actingAs($user)->post('/beat-the-griot', ['calls' => $calls])->assertRedirect('/beat-the-griot');
@@ -189,6 +191,45 @@ class GriotChallengeTest extends TestCase
         $this->assertSame(1, GriotChallengeService::points(3, 1, 2, 1));
         $this->assertSame(1, GriotChallengeService::points(0, 0, 2, 2));
         $this->assertSame(0, GriotChallengeService::points(1, 2, 2, 1));
+    }
+
+    public function test_admin_sees_who_called_and_messages_them(): void
+    {
+        $challenge = $this->round();
+        $calls = $challenge->picks->mapWithKeys(fn ($p) => [$p->match_id => ['home' => 1, 'away' => 1]])->all();
+        $kemi = User::factory()->create(['name' => 'Kemi Adeyemi', 'email' => 'kemi@example.com']);
+        $tunde = User::factory()->create(['name' => 'Tunde Bakare']);
+        $bystander = User::factory()->create(['name' => 'Not Playing']);
+        $this->actingAs($kemi)->post('/beat-the-griot', ['calls' => $calls]);
+        $this->actingAs($tunde)->post('/beat-the-griot', ['calls' => array_slice($calls, 0, 1, true)]);
+        $this->app['auth']->forgetGuards();
+        $this->post('/beat-the-griot', ['calls' => $calls]); // a guest
+        $this->assertDatabaseCount('guest_predictions', 3);
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)->get('/admin/griot')->assertOk()
+            ->assertSee('Kemi Adeyemi')->assertSee('kemi@example.com')->assertSee('3 of 3')
+            ->assertSee('Tunde Bakare')->assertSee('1 of 3')->assertDontSee('Not Playing')
+            ->assertSee('2 fans with an account', false)->assertSee('1 guest without an account', false)
+            ->assertSee("Message this round's 2 fans", false);
+
+        $this->actingAs($admin)->post(route('admin.griot.message.round', $challenge), [
+            'title' => 'Calls close soon', 'body' => 'Lock in your last call before Saturday.',
+        ])->assertRedirect()->assertSessionHas('success');
+        $this->assertSame(['Calls close soon'], $kemi->notifications()->get()->pluck('data.title')->all());
+        $this->assertSame(1, $tunde->notifications()->count());
+        $this->assertSame(0, $bystander->notifications()->count());
+        $this->assertDatabaseHas('announcements', ['audience' => "griot:{$challenge->id}", 'recipients' => 2]);
+        $this->assertSame(route('griot.challenge'), $kemi->notifications()->first()->data['url']);
+
+        // Everyone who has ever played, from here or from /admin/messages.
+        $this->actingAs($admin)->post(route('admin.griot.message'), ['title' => 'New round', 'body' => 'The Griot has spoken.'])->assertRedirect();
+        $this->assertSame(2, $kemi->notifications()->count());
+        $this->actingAs($admin)->post(route('admin.messages.store'), ['title' => 'Prizes', 'body' => 'Ten winners.', 'audience' => 'griot'])->assertRedirect();
+        $this->assertSame(3, $tunde->notifications()->count());
+        $this->assertSame(0, $bystander->notifications()->count());
+
+        $this->actingAs($kemi)->post(route('admin.griot.message'), ['title' => 'x', 'body' => 'y'])->assertForbidden();
     }
 
     public function test_admin_records_a_credited_winner(): void
