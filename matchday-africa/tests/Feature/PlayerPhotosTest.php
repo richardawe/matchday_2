@@ -154,6 +154,21 @@ class PlayerPhotosTest extends TestCase
         $this->assertSame(2, $result['teams']);
     }
 
+    public function test_a_rate_limit_stops_the_run_instead_of_burning_calls(): void
+    {
+        $this->liverpool->update(['metadata' => ['api_football_team_id' => 40]]);
+        Team::where('name', 'Manchester City FC')->first()->update(['metadata' => ['api_football_team_id' => 50]]);
+        Http::fake(['v3.football.api-sports.io/players/squads*' => Http::response(['errors' => ['rateLimit' => 'Too many requests. You have reached your per-minute request limit.'], 'response' => []])]);
+
+        $result = app(PlayerPhotos::class)->sync();
+
+        $this->assertSame(1, $result['calls']);
+        $this->assertSame(0, $result['teams']);
+        $this->assertStringContainsString('per-minute', $result['error']);
+        // The refused squad is tried again next time.
+        $this->assertArrayNotHasKey('api_football_photos_at', $this->liverpool->fresh()->metadata);
+    }
+
     public function test_nothing_is_fetched_without_a_key(): void
     {
         config(['services.api_football.key' => '']);
