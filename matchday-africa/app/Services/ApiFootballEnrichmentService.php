@@ -6,6 +6,7 @@ use App\Http\Controllers\DiscoveryController;
 use App\Models\FootballMatch;
 use App\Models\MatchEvent;
 use App\Models\Player;
+use App\Support\PlayerNames;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -21,8 +22,9 @@ class ApiFootballEnrichmentService
     {
         if ((string) config('services.api_football.key') === '') return ['configured'=>false,'fixtures'=>0,'eligible'=>0,'matched'=>0,'events'=>0,'calls'=>0];
         $matches = FootballMatch::with(['homeTeam','awayTeam','league'])->whereDate('match_date',$date)->get();
-        // Matches ESPN already covers don't spend the 100-calls-a-day budget.
-        $eligible = $this->eligible($matches->reject(fn($m)=>$m->events_source==='espn'));
+        // ESPN already gives these matches' events and stats, so they only spend calls on line-ups and,
+        // after full time, player ratings and photos (two calls per match, not four).
+        $eligible = $this->eligible($matches);
         if ($eligible->isEmpty()) return $this->result(0,0,0,0);
 
         $fixtures = $this->fetch('fixtures',['date'=>$date,'timezone'=>config('app.timezone','UTC')],10800);
@@ -34,6 +36,10 @@ class ApiFootballEnrichmentService
             if (!$match->match_date?->between(now()->subHours(6),now()->addMinutes(90))) continue;
 
             $this->storeLineups($match,$id,$this->fetch('fixtures/lineups',['fixture'=>$id],43200,1200));
+            if ($match->events_source==='espn') {
+                if($this->finished($match))$this->storePlayers($match,$id,$this->fetch('fixtures/players',['fixture'=>$id],43200,1800));
+                continue;
+            }
             if ($this->live($match)||$this->finished($match)) {
                 $events=$this->fetch('fixtures/events',['fixture'=>$id],$this->live($match)?1500:43200,900);
                 $stats=$this->fetch('fixtures/statistics',['fixture'=>$id],$this->live($match)?4200:43200,1200);
@@ -105,14 +111,17 @@ class ApiFootballEnrichmentService
         if($visible){$meta=$this->meta($match->fresh()->metadata);$meta['api_football_lineups']=$visible;$meta['api_football_lineups_at']=now()->toIso8601String();$match->update(['metadata'=>$meta]);}
     }
 
+    /** Ratings for every player of both sides (African players are picked out where they're shown), and their photos. */
     private function storePlayers(FootballMatch $match,int $id,array $sides): void
     {
-        $players=$this->africanPlayers($match);
+        $players=Player::whereIn('team_id',[$match->home_team_id,$match->away_team_id])->get();
+        $photos=app(PlayerPhotos::class);
         foreach($sides as $side){$team=$this->localTeam($match,(string)data_get($side,'team.name'));if(!$team)continue;
             foreach(data_get($side,'players',[]) as $row){$player=$this->findPlayer($players,$team->id,(string)data_get($row,'player.name'));if(!$player)continue;
                 $meta=$this->meta($player->metadata);$meta['api_football_player_id']=data_get($row,'player.id');$meta['api_football_stats']=[
                     'date'=>$match->match_date?->toDateString(),'match_id'=>$match->id,'fixture_id'=>$id,'statistics'=>data_get($row,'statistics.0',[])];
-                $player->update(['photo_url'=>data_get($row,'player.photo')?:$player->photo_url,'metadata'=>$meta,'last_api_update'=>now()]);
+                $player->update(['metadata'=>$meta,'last_api_update'=>now()]);
+                $photos->store($player,data_get($row,'player.photo'),(int)data_get($row,'player.id'));
             }
         }
     }
@@ -123,7 +132,7 @@ class ApiFootballEnrichmentService
     }
     private function findPlayer(Collection $players,int $teamId,string $name): ?Player
     {
-        $needle=$this->normalize($name);return $players->where('team_id',$teamId)->first(fn($p)=>$this->normalize($p->name)===$needle||($needle!==''&&(str_contains($this->normalize($p->name),$needle)||str_contains($needle,$this->normalize($p->name)))));
+        return $players->where('team_id',$teamId)->first(fn($p)=>PlayerNames::same($p->name,$name));
     }
     private function localTeam(FootballMatch $m,string $name){return $this->normalize($name)===$this->normalize($m->homeTeam?->name??'')?$m->homeTeam:$m->awayTeam;}
     private function matchLocal(Collection $matches,array $fixture): ?FootballMatch

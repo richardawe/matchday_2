@@ -1,0 +1,225 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\League;
+use App\Models\Player;
+use App\Models\Team;
+use App\Support\PlayerNames;
+use Illuminate\Http\Client\Response;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+/**
+ * Player photos from API-Football: one call lists a league's teams, one call per team lists its
+ * squad with a photo for every player. Photos are saved under public/generated/players/ and served
+ * as static files (AGENTS rule 4), so pages and the stream never depend on API-Football's image
+ * host. Players missing from our squads (football-data.org's free tier lists few leagues) are
+ * added from API-Football so a scorer always has a photo.
+ *
+ * Calls share API-Football's daily budget with ApiFootballEnrichmentService (same counter).
+ */
+class PlayerPhotos
+{
+    private int $calls = 0;
+
+    public function configured(): bool
+    {
+        return (string) config('services.api_football.key') !== '';
+    }
+
+    /**
+     * Refreshes the squads whose photos are oldest (never, or over a week ago), at most $teams per run.
+     *
+     * @return array{teams: int, photos: int, added: int, calls: int}
+     */
+    public function sync(int $teams = 8): array
+    {
+        $result = ['teams' => 0, 'photos' => 0, 'added' => 0, 'calls' => 0];
+        if (!$this->configured()) {
+            return $result;
+        }
+        foreach (config('services.api_football.photo_leagues', []) as $code => $apiLeague) {
+            $this->linkTeams($code, (int) $apiLeague);
+        }
+        $due = Team::all()
+            ->filter(fn (Team $t) => data_get($this->meta($t), 'api_football_team_id'))
+            ->filter(fn (Team $t) => !($at = data_get($this->meta($t), 'api_football_photos_at')) || now()->diffInDays($at, true) >= 7)
+            ->sortBy(fn (Team $t) => data_get($this->meta($t), 'api_football_photos_at') ?? '')
+            ->take($teams);
+
+        foreach ($due as $team) {
+            $squad = $this->fetch('players/squads', ['team' => data_get($this->meta($team), 'api_football_team_id')]);
+            if ($squad === null) {
+                break; // out of budget for today
+            }
+            [$photos, $added] = $this->storeSquad($team, data_get($squad, '0.players', []));
+            $meta = $this->meta($team);
+            $meta['api_football_photos_at'] = now()->toIso8601String();
+            $team->update(['metadata' => $meta]);
+            $result['teams']++;
+            $result['photos'] += $photos;
+            $result['added'] += $added;
+        }
+        $result['calls'] = $this->calls;
+
+        return $result;
+    }
+
+    /**
+     * Saves a photo for a player (from any API-Football response) and points photo_url at our
+     * copy. Returns false when the image could not be fetched; the player keeps what they had.
+     */
+    public function store(Player $player, ?string $source, ?int $apiId = null): bool
+    {
+        if (!$source || !preg_match('#^https://#', $source)) {
+            return false;
+        }
+        $meta = is_array($player->metadata) ? $player->metadata : [];
+        $file = "generated/players/{$player->id}.png";
+        $fresh = ($meta['photo_source'] ?? null) === $source && is_file(public_path($file));
+        if (!$fresh) {
+            try {
+                $response = Http::timeout(20)->get($source);
+                if (!$response->successful() || !str_starts_with((string) $response->header('Content-Type'), 'image/') || strlen($response->body()) < 500) {
+                    return false;
+                }
+                File::ensureDirectoryExists(public_path('generated/players'));
+                File::put(public_path($file).'.part', $response->body());
+                File::move(public_path($file).'.part', public_path($file));
+            } catch (\Throwable $e) {
+                Log::warning('Player photo download failed', ['player' => $player->id, 'error' => $e->getMessage()]);
+
+                return false;
+            }
+        }
+        $meta['photo_source'] = $source;
+        if ($apiId) {
+            $meta['api_football_player_id'] = $apiId;
+        }
+        $player->update(['photo_url' => asset($file).'?v='.substr(sha1($source.filesize(public_path($file))), 0, 8), 'metadata' => $meta]);
+
+        return true;
+    }
+
+    /** Our photo for a player named in a match feed, or null. Includes players who left the squad. */
+    public static function forName(?int $teamId, ?string $name): ?string
+    {
+        if (!$teamId || !$name) {
+            return null;
+        }
+        $player = Player::where('team_id', $teamId)->whereNotNull('photo_url')->get()
+            ->sortByDesc('is_active')->first(fn (Player $p) => PlayerNames::same($p->name, $name));
+
+        return $player?->photo_url;
+    }
+
+    /** Stores API-Football's team id on our teams (one call per league a week). */
+    private function linkTeams(string $code, int $apiLeague): void
+    {
+        $league = League::where('short_code', $code)->orWhere('espn_slug', $code)->first();
+        if (!$league) {
+            return;
+        }
+        $ids = $league->matches()->pluck('home_team_id')->merge($league->matches()->pluck('away_team_id'))->filter()->unique();
+        $teams = Team::whereIn('id', $ids)->get();
+        $unlinked = $teams->filter(fn (Team $t) => !data_get($this->meta($t), 'api_football_team_id'));
+        if ($unlinked->isEmpty()) {
+            return;
+        }
+        $season = now()->month >= 7 ? now()->year : now()->year - 1;
+        foreach ($this->fetch('teams', ['league' => $apiLeague, 'season' => $season]) ?? [] as $row) {
+            $name = (string) data_get($row, 'team.name');
+            $team = $unlinked->first(fn (Team $t) => $this->sameClub($t, $name));
+            if ($team) {
+                $meta = $this->meta($team);
+                $meta['api_football_team_id'] = (int) data_get($row, 'team.id');
+                $team->update(['metadata' => $meta]);
+            }
+        }
+    }
+
+    /** @return array{0: int, 1: int} photos saved, players added */
+    private function storeSquad(Team $team, array $squad): array
+    {
+        $players = Player::where('team_id', $team->id)->get();
+        $photos = 0;
+        $added = 0;
+        foreach ($squad as $row) {
+            $name = trim((string) data_get($row, 'name'));
+            $apiId = (int) data_get($row, 'id');
+            if ($name === '' || !$apiId) {
+                continue;
+            }
+            $player = $players->first(fn (Player $p) => (int) data_get($p->metadata, 'api_football_player_id') === $apiId)
+                ?? $players->first(fn (Player $p) => PlayerNames::same($p->name, $name));
+            if (!$player) {
+                $number = data_get($row, 'number');
+                $taken = $number !== null && $players->contains(fn (Player $p) => $p->shirt_number === (int) $number);
+                $player = Player::create([
+                    'team_id' => $team->id, 'name' => $name, 'position' => data_get($row, 'position'),
+                    'shirt_number' => $taken ? null : $number, 'age' => data_get($row, 'age'), 'is_active' => true,
+                    'metadata' => ['api_football_player_id' => $apiId, 'source' => 'api-football'],
+                ]);
+                $players->push($player);
+                $added++;
+            }
+            $photos += $this->store($player, data_get($row, 'photo'), $apiId) ? 1 : 0;
+        }
+
+        return [$photos, $added];
+    }
+
+    private function sameClub(Team $team, string $name): bool
+    {
+        $strip = fn (string $v) => trim(preg_replace('/\b(a?fc|cf|sc)\b/', '', PlayerNames::normalize($v)));
+        $a = $strip($team->name);
+        $b = $strip($name);
+        $c = $strip((string) $team->common_name);
+
+        return $a !== '' && $b !== '' && ($a === $b || $c === $b || str_starts_with($a, "{$b} ") || str_starts_with($b, "{$a} ")
+            || ($c !== '' && (str_starts_with($c, "{$b} ") || str_starts_with($b, "{$c} "))));
+    }
+
+    /** One API-Football call, cached for a week; null when today's budget is spent or the call failed. */
+    private function fetch(string $endpoint, array $query): ?array
+    {
+        $key = 'api-football:'.sha1($endpoint.'|'.json_encode($query));
+        $cached = Cache::get($key);
+        if (is_array($cached)) {
+            return $cached;
+        }
+        $usage = 'api-football:daily-calls:'.now()->toDateString();
+        if ((int) Cache::get($usage, 0) >= (int) config('services.api_football.daily_budget', 95)) {
+            return null;
+        }
+        /** @var Response $response */
+        $response = Http::timeout(35)->withHeaders(['x-apisports-key' => config('services.api_football.key')])
+            ->get(rtrim(config('services.api_football.url'), '/').'/'.$endpoint, $query);
+        $this->calls++;
+        Cache::put($usage, (int) Cache::get($usage, 0) + 1, now()->endOfDay());
+        if (!$response->successful() || !empty($response->json('errors'))) {
+            Log::warning('API-Football '.$endpoint.' failed', ['errors' => $response->json('errors') ?: $response->status()]);
+
+            return null;
+        }
+        $data = $response->json('response', []);
+        $data = is_array($data) ? $data : [];
+        Cache::put($key, $data, now()->addDays(empty($data) ? 1 : 7));
+
+        return $data;
+    }
+
+    private function meta(Team $team): array
+    {
+        $meta = $team->metadata;
+        if (is_string($meta)) {
+            $meta = json_decode($meta, true);
+        }
+
+        return is_array($meta) ? $meta : [];
+    }
+}

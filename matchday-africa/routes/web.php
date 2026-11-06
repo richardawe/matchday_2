@@ -51,6 +51,9 @@ Route::post('/subscribe', [App\Http\Controllers\EmailSubscriptionController::cla
 Route::get('/unsubscribe/{token}', [App\Http\Controllers\EmailSubscriptionController::class, 'unsubscribe'])->where('token', '[A-Za-z0-9]{20,64}')->name('unsubscribe');
 
 Route::get('/listen', [App\Http\Controllers\RadioController::class, 'index'])->name('radio.index');
+// Matchday Live: the vertical screen YouTube/TikTok live streams show (STREAM_PAGE).
+Route::get('/stream', [App\Http\Controllers\StreamController::class, 'show'])->name('stream.show');
+Route::get('/stream/feed', [App\Http\Controllers\StreamController::class, 'feed'])->name('stream.feed');
 // Check readiness before implicit binding can query a table that is not migrated yet.
 Route::bind('bulletin', function ($id) {
     abort_unless(\App\Models\RadioBulletin::available(), 404);

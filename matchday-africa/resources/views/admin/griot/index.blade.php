@@ -6,6 +6,13 @@
 @section('content')
 <div class="md-xdesk md-signups">
  @if(session('success'))<p class="md-notice">{{ session('success') }}</p>@endif
+ @if($errors->any())<p class="md-notice md-flash-error">{{ $errors->first() }}</p>@endif
+ @if($ready && $inbox && $everyone > 0)
+  <details class="md-griot-message">
+   <summary>Message everyone who has played ({{ number_format($everyone) }} {{ \Illuminate\Support\Str::plural('fan', $everyone) }} with an account)</summary>
+   @include('admin.griot.message-form', ['action' => route('admin.griot.message'), 'id' => 'all', 'count' => $everyone])
+  </details>
+ @endif
  @if(!$ready)
   <section class="md-xguide"><span>NOT SET UP</span><p>Run the migrations (<code>php artisan migrate --force</code>), then set <code>GRIOT_CHALLENGE=true</code>.</p></section>
  @elseif(!$enabled)
@@ -17,6 +24,24 @@
   <table class="md-signup-table"><thead><tr><th>Match</th><th>Kick-off</th><th>Griot</th><th>Result</th></tr></thead><tbody>
    @foreach($c->picks as $p)<tr><td>{{ $p->match?->homeTeam?->name }} v {{ $p->match?->awayTeam?->name }}</td><td>{{ $p->match?->kickoffLabel('D j M H:i') }}</td><td>{{ $p->call() }}</td><td>{{ $p->match?->isFinished() ? $p->match->home_score.'–'.$p->match->away_score : $p->match?->status }}</td></tr>@endforeach
   </tbody></table>
+  @php($fans = $callers[$c->id] ?? collect())
+  @php($guestCount = $guests[$c->id] ?? 0)
+  <details class="md-griot-fans" @if($c->status !== 'scored') open @endif>
+   <summary><b>{{ number_format($fans->count()) }} {{ \Illuminate\Support\Str::plural('fan', $fans->count()) }} with an account</b> made calls this round @if($guestCount)· plus {{ number_format($guestCount) }} {{ \Illuminate\Support\Str::plural('guest', $guestCount) }} without an account (they can't get messages)@endif</summary>
+   @if($fans->isNotEmpty())
+    <table class="md-signup-table"><thead><tr><th>Fan</th><th>Email</th><th>Calls</th><th>Last call</th></tr></thead><tbody>
+     @foreach($fans as $f)
+      <tr><td>{{ $f['user']->name }}@if($f['user']->username) ({{ '@'.$f['user']->username }})@endif</td><td>{{ $f['user']->email }}</td>
+       <td>{{ $f['calls'] }} of {{ $c->picks->count() }}</td><td>{{ $f['last']?->timezone('Africa/Lagos')->format('D j M H:i') }}</td></tr>
+     @endforeach
+    </tbody></table>
+    @if($inbox)
+     <details class="md-griot-message"><summary>Message this round's {{ number_format($fans->count()) }} {{ \Illuminate\Support\Str::plural('fan', $fans->count()) }}</summary>
+      @include('admin.griot.message-form', ['action' => route('admin.griot.message.round', $c), 'id' => $c->id, 'count' => $fans->count()])
+     </details>
+    @endif
+   @else<p>No calls from fans with an account yet.</p>@endif
+  </details>
   @if($c->winners->isNotEmpty())
    <table class="md-signup-table"><thead><tr><th>Code</th><th>Winner</th><th>Email</th><th>Credited</th></tr></thead><tbody>
     @foreach($c->winners as $w)

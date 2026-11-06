@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Support\PlayerNames;
+
 use App\Models\Player;
 use App\Models\Team;
 use Illuminate\Support\Facades\Log;
@@ -34,14 +36,17 @@ class PlayerService
             $errorCount = 0;
             $squadData = $response["squad"] ?? [];
 
-            // Clear existing players for this team
-            Player::where("team_id", $team->id)->delete();
+            // Update players in place (never delete and recreate): their photos, API-Football data
+            // and page links (/players/{id}) must survive the weekly refresh. Players who left the
+            // squad are kept but marked inactive.
+            $existing = Player::where("team_id", $team->id)->get();
+            $seen = [];
 
             foreach ($squadData as $playerData) {
                 try {
                     $position = $this->mapPosition($playerData["position"] ?? "");
                     $detailedPosition = $playerData["position"] ?? null;
-                    
+
                     // Calculate age if date of birth is available
                     $age = null;
                     $dateOfBirth = null;
@@ -50,21 +55,34 @@ class PlayerService
                         $age = \Carbon\Carbon::parse($dateOfBirth)->age;
                     }
 
-                    Player::create([
+                    $player = $existing->first(fn (Player $p) => $p->football_data_id && $p->football_data_id === ($playerData["id"] ?? null))
+                        ?? $existing->first(fn (Player $p) => !in_array($p->id, $seen, true) && PlayerNames::same($p->name, (string) $playerData["name"]));
+                    $number = $playerData["shirtNumber"] ?? null;
+                    if ($number !== null) {
+                        // Shirt numbers are unique per team: free this one if a departed player still holds it.
+                        Player::where("team_id", $team->id)->where("shirt_number", $number)
+                            ->when($player, fn ($q) => $q->where("id", "!=", $player->id))->update(["shirt_number" => null]);
+                    }
+                    $meta = $player && is_array($player->metadata) ? $player->metadata : [];
+
+                    $values = [
                         "team_id" => $team->id,
                         "football_data_id" => $playerData["id"] ?? null,
                         "name" => $playerData["name"],
                         "position" => $position,
                         "detailed_position" => $detailedPosition,
-                        "shirt_number" => $playerData["shirtNumber"] ?? null,
+                        "shirt_number" => $number,
                         "nationality" => $playerData["nationality"] ?? null,
                         "nationality_code" => $this->getNationalityCode($playerData["nationality"] ?? ""),
                         "date_of_birth" => $dateOfBirth,
                         "age" => $age,
                         "is_active" => true,
                         "last_api_update" => now(),
-                        "metadata" => json_encode($playerData)
-                    ]);
+                        // football-data.org's fields, keeping what other providers added (photos, API-Football ids).
+                        "metadata" => array_merge($meta, $playerData),
+                    ];
+                    $player ? $player->update($values) : $player = Player::create($values);
+                    $seen[] = $player->id;
 
                     $successCount++;
 
@@ -73,6 +91,10 @@ class PlayerService
                     Log::error("Failed to sync player: " . ($playerData["name"] ?? "unknown") . " - " . $e->getMessage());
                     echo "❌ Player error: " . ($playerData["name"] ?? "unknown") . " - " . $e->getMessage() . "\n";
                 }
+            }
+
+            if ($seen) {
+                Player::where("team_id", $team->id)->whereNotIn("id", $seen)->update(["is_active" => false]);
             }
 
             return [

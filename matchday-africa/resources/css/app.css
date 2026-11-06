@@ -916,6 +916,7 @@
 .md-griot-badge p{font-size:.88rem}
 .md-griot-credit{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
 .md-griot-credit input,.md-griot-credit select{min-height:2.4rem;padding:.3rem .5rem;border:1px solid #888;background:#fff;color:#111}
+.md-griot-fans,.md-griot-message{margin:.8rem 0}.md-griot-fans>summary,.md-griot-message>summary{cursor:pointer;padding:.5rem 0;font-weight:600}.md-griot-message .md-admin-form{max-width:40rem;margin-top:.5rem}
 @media(max-width:640px){.md-griot-strip a{grid-template-columns:1fr}.md-griot-strip .md-primary{grid-column:1;grid-row:auto;margin-top:.5rem}}
 
 /* Full-time banter cards (partials/banter-share) */
