@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Log;
 class PlayerPhotos
 {
     private int $calls = 0;
+    private ?string $error = null;
 
     public function configured(): bool
     {
@@ -38,7 +39,7 @@ class PlayerPhotos
      */
     public function sync(int $teams = 8): array
     {
-        $result = ['teams' => 0, 'photos' => 0, 'added' => 0, 'calls' => 0];
+        $result = ['teams' => 0, 'photos' => 0, 'added' => 0, 'calls' => 0, 'error' => null];
         if (!$this->configured()) {
             return $result;
         }
@@ -65,6 +66,7 @@ class PlayerPhotos
             $result['added'] += $added;
         }
         $result['calls'] = $this->calls;
+        $result['error'] = $this->error;
 
         return $result;
     }
@@ -132,13 +134,38 @@ class PlayerPhotos
         }
         $season = now()->month >= 7 ? now()->year : now()->year - 1;
         foreach ($this->fetch('teams', ['league' => $apiLeague, 'season' => $season]) ?? [] as $row) {
-            $name = (string) data_get($row, 'team.name');
-            $team = $unlinked->first(fn (Team $t) => $this->sameClub($t, $name));
-            if ($team) {
-                $meta = $this->meta($team);
-                $meta['api_football_team_id'] = (int) data_get($row, 'team.id');
-                $team->update(['metadata' => $meta]);
+            $this->linkTeam($unlinked, $row);
+        }
+        // The league list needs a season the plan covers (the free plan stops short of the current
+        // one); club search doesn't, so look up whoever is still unlinked by name instead.
+        foreach ($unlinked->filter(fn (Team $t) => !data_get($this->meta($t->fresh()), 'api_football_team_id')) as $team) {
+            $name = trim(preg_replace('/\b(a?fc)\b/i', '', (string) ($team->common_name ?: $team->name)));
+            $found = $this->fetch('teams', ['search' => mb_substr($name, 0, 40)]);
+            if ($found === null) {
+                break; // out of budget, or the API refused: try again tomorrow
             }
+            // An exact name first: "Liverpool" also finds "Liverpool Montevideo".
+            $clubs = collect($found)->reject(fn ($r) => data_get($r, 'team.national'));
+            $row = $clubs->first(fn ($r) => $this->clubKey((string) data_get($r, 'team.name')) === $this->clubKey($name))
+                ?? $clubs->first(fn ($r) => $this->sameClub($team, (string) data_get($r, 'team.name')));
+            if ($row) {
+                $this->linkTeam(collect([$team]), $row);
+            }
+        }
+    }
+
+    private function clubKey(string $name): string
+    {
+        return trim(preg_replace('/\b(a?fc|cf|sc)\b/', '', PlayerNames::normalize($name)));
+    }
+
+    private function linkTeam(Collection $teams, array $row): void
+    {
+        $team = $teams->count() === 1 ? $teams->first() : $teams->first(fn (Team $t) => $this->sameClub($t, (string) data_get($row, 'team.name')));
+        if ($team) {
+            $meta = $this->meta($team);
+            $meta['api_football_team_id'] = (int) data_get($row, 'team.id');
+            $team->update(['metadata' => $meta]);
         }
     }
 
@@ -202,7 +229,9 @@ class PlayerPhotos
         $this->calls++;
         Cache::put($usage, (int) Cache::get($usage, 0) + 1, now()->endOfDay());
         if (!$response->successful() || !empty($response->json('errors'))) {
-            Log::warning('API-Football '.$endpoint.' failed', ['errors' => $response->json('errors') ?: $response->status()]);
+            $errors = $response->json('errors') ?: 'HTTP '.$response->status();
+            $this->error = 'API-Football '.$endpoint.': '.(is_string($errors) ? $errors : json_encode($errors));
+            Log::warning($this->error);
 
             return null;
         }

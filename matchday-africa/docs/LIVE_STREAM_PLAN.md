@@ -46,7 +46,7 @@ simpler, so that design is dropped.
   about every 20 s, so viewers see goals roughly 20–40 s after they happen.
 
 ## Next phases
-2. **YouTube, automatic.** Authorise the channel once (OAuth; Google Cloud project with the YouTube
+2. **YouTube, automatic.** *Built 6 Nov: `/admin/youtube` (connect, stream key, matchday broadcasts, private tests) and `youtube:broadcasts`; see AGENTS.md.* Original plan: Authorise the channel once (OAuth; Google Cloud project with the YouTube
    Data API v3, and live streaming switched on in YouTube Studio). Then, before each matchday,
    create and start a broadcast and end it after the last match. The stream screen still has to be
    *sent* to YouTube by something that renders a web page. Options to decide: a computer left on

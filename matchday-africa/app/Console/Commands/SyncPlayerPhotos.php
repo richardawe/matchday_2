@@ -20,6 +20,9 @@ class SyncPlayerPhotos extends Command
         }
         $result = $photos->sync((int) $this->option('teams'));
         $this->info("Player photos: {$result['teams']} squads, {$result['photos']} photos, {$result['added']} players added, {$result['calls']} API calls.");
+        if ($result['error']) {
+            $this->warn($result['error']);
+        }
 
         return self::SUCCESS;
     }
