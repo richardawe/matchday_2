@@ -58,7 +58,13 @@ simpler, so that design is dropped.
    matches.
 4. **Licensed player photos** (see above) if the API-Football ones aren't good enough or allowed.
 
+## Owner's answers (6 Nov 2026, evening)
+- YouTube: a "Connect YouTube" button in admin (OAuth once), then automatic broadcasts. Still to settle
+  what renders and sends the picture (a computer with OBS, or a small cloud machine).
+- TikTok goal posts: as many as the platforms allow.
+
 ## Switching it on
-1. Deploy, then set `STREAM_PAGE=true` (and `STREAM_COMPETITIONS` if not just the Premier League).
+1. Deploy, then Server operations → `configure-stream` with the on/off switch (`home_v2`) on. That sets
+   `STREAM_PAGE=true` and fills the Premier League player photos once (`players:photos --teams=25`).
 2. Open `https://matchday.africa/stream?test=1` and watch a full loop.
 3. Open `https://matchday.africa/stream` on a matchday.
