@@ -64,6 +64,11 @@ return [
         'key' => env('API_FOOTBALL_KEY'),
         'url' => env('API_FOOTBALL_URL', 'https://v3.football.api-sports.io'),
         'daily_budget' => (int) env('API_FOOTBALL_DAILY_BUDGET', 95),
+        // Leagues whose squads get player photos: our league code => API-Football league id ("PL:39,PD:140").
+        'photo_leagues' => collect(explode(',', (string) env('API_FOOTBALL_PHOTO_LEAGUES', 'PL:39')))
+            ->map(fn ($pair) => array_map('trim', explode(':', $pair)))
+            ->filter(fn ($pair) => count($pair) === 2 && $pair[0] !== '' && is_numeric($pair[1]))
+            ->mapWithKeys(fn ($pair) => [$pair[0] => (int) $pair[1]])->all(),
     ],
 
     'clarity' => [

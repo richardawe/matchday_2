@@ -10,9 +10,10 @@ simpler, so that design is dropped.
   LIVE Studio), and a bot that logs in or presses Go LIVE breaks its terms and risks the account. So
   TikTok gets short vertical goal videos posted through Buffer. Anyone can still go LIVE by hand on a
   big day and show the same screen.
-- **Army art, not player photos, for now.** Player photos need a licence that covers social video
-  and live streams and allows cut-outs (Getty, PA, Shutterstock Editorial and so on). Until then,
-  goals and cards show the scoring side's crest-free army.
+- **Army art plus the API-Football player photo** (owner's choice, 6 Nov 2026). Goals and cards show
+  the scoring side's army with the player's photo in a round badge. The photos are small (about 150 px)
+  and come from API-Football, which doesn't license them for reuse, so check its terms before the first
+  public stream. Bigger, licensed cut-outs (Getty, PA, Shutterstock Editorial) can replace them later.
 - Mockup approved: https://claude.ai/artifact/H4LXF5BY7eGKqKAQvQeRni
 
 ## Phase 1, built: the stream screen `/stream`
@@ -55,7 +56,7 @@ simpler, so that design is dropped.
    the TikTok design from the mockup) and send it through `buffer:publish` to `BUFFER_CHANNEL_TIKTOK`.
    Check Buffer's and TikTok's daily post limits first. A busy Saturday may mean only the biggest
    matches.
-4. **Player photos** once licensed (see above). The goal and card screens already have the slot.
+4. **Licensed player photos** (see above) if the API-Football ones aren't good enough or allowed.
 
 ## Switching it on
 1. Deploy, then set `STREAM_PAGE=true` (and `STREAM_COMPETITIONS` if not just the Premier League).

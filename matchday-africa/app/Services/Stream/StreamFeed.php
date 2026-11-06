@@ -10,6 +10,7 @@ use App\Models\Team;
 use App\Services\Griot\GriotChallengeService;
 use App\Services\Griot\GriotTeller;
 use App\Services\Griot\GriotTimeline;
+use App\Services\PlayerPhotos;
 use App\Services\ReelService;
 use App\Support\Armies;
 use Carbon\Carbon;
@@ -87,6 +88,7 @@ class StreamFeed
                 'side' => $this->side($match, $e),
                 'minute' => $this->minute($e),
                 'player' => $this->name($e->player_name),
+                'photo' => PlayerPhotos::forName($e->team_id, $e->player_name),
             ])->values()->all(),
             'stats' => [
                 'possession' => $this->pair($match->home_possession, $match->away_possession),
@@ -117,6 +119,9 @@ class StreamFeed
                     'side' => $side,
                     'minute' => $event ? $this->minute($event) : null,
                     'scorer' => $event ? $this->name($event->player_name) : null,
+                    // An own goal is filed under the side it counts for, so look the scorer up in both squads.
+                    'photo' => $event ? (PlayerPhotos::forName($event->team_id, $event->player_name)
+                        ?? ($event->is_own_goal ? PlayerPhotos::forName($side === 'home' ? $match->away_team_id : $match->home_team_id, $event->player_name) : null)) : null,
                     'own_goal' => (bool) $event?->is_own_goal,
                     'penalty' => (bool) $event?->is_penalty,
                 ];

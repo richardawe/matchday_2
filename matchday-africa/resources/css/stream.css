@@ -120,8 +120,10 @@ html, body { margin: 0; height: 100%; background: var(--ink); overflow: hidden; 
 .st-pic { position: relative; width: 720px; height: 720px; border: 8px solid var(--ink); box-shadow: 14px 14px 0 var(--ink); display: flex; align-items: flex-end; justify-content: center; overflow: visible; }
 .red .st-pic { width: 700px; height: 680px; border-color: var(--paper); box-shadow: 14px 14px 0 var(--live); }
 .st-pic-inner { position: absolute; inset: 0; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; }
-.st-pic img { height: 96%; width: 94%; object-fit: contain; object-position: center bottom; }
-.red .st-pic img { filter: grayscale(1) contrast(1.1); }
+.st-pic-inner img { height: 96%; width: 94%; object-fit: contain; object-position: center bottom; }
+.red .st-pic-inner img { filter: grayscale(1) contrast(1.1); }
+.st-pic .st-face { position: absolute; right: -40px; bottom: 30px; width: 340px; height: 340px; border-radius: 50%; object-fit: cover; object-position: center top; background: var(--white); border: 10px solid var(--ink); box-shadow: 10px 10px 0 var(--ink); animation: st-in .4s .25s ease-out both; }
+.red .st-pic .st-face { border-color: var(--paper); box-shadow: 10px 10px 0 var(--live); filter: grayscale(1); }
 .st-pic .st-tile { width: 360px; height: 360px; font-size: 150px; margin-bottom: 160px; }
 .st-badge { position: absolute; top: 28px; font-family: var(--display); font-size: 64px; padding: 6px 24px; }
 .goal .st-badge { left: -24px; background: var(--ink); color: var(--sun); transform: rotate(-3deg); }

@@ -32,6 +32,8 @@ Schedule::command('alerts:scan')->everyMinute()->withoutOverlapping(5)->runInBac
 Schedule::command('sync:standings --all')->dailyAt('03:10')->withoutOverlapping(60)->name('standings-nightly');
 Schedule::command('sync:leagues --featured')->dailyAt('02:30')->withoutOverlapping(60)->name('leagues-daily');
 Schedule::command('sync:players --all --limit=20')->weeklyOn(1, '04:00')->withoutOverlapping(120)->name('players-weekly');
+// Player photos from API-Football squads (8 squads a day, each refreshed weekly), for player pages and the stream.
+Schedule::command('players:photos')->dailyAt('04:45')->withoutOverlapping(60)->runInBackground()->name('player-photos');
 Schedule::command('previews:generate-daily')->dailyAt('05:30')->withoutOverlapping(60)->name('previews-daily');
 Schedule::command('predictions:score')->everyFiveMinutes()->withoutOverlapping(10)->name('predictions-score');
 Schedule::command('news:publish-daily --limit=1')->dailyAt('07:30')->withoutOverlapping(30)->name('news-morning');

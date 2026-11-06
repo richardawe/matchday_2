@@ -17,6 +17,8 @@ const CHE = team('Chelsea', 'CHE', '#034694', '#ffffff', 'Ottoman Janissaries', 
 const NEW = { name: 'Newcastle', short: 'NEW', colour: '#241F20', ink: '#ffffff' };
 const TOT = { name: 'Tottenham', short: 'TOT', colour: '#FFFFFF', ink: '#0b0b0b' };
 const LOOP = 150;
+// A stand-in for a player photo, so test mode shows the round photo badge.
+const FACE = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150"><rect width="150" height="150" fill="#d9d4c7"/><circle cx="75" cy="58" r="30" fill="#4a443b"/><path d="M20 150c0-35 25-55 55-55s55 20 55 55z" fill="#4a443b"/></svg>')}`;
 
 function goals(id, list, t) {
     const out = { home: [], away: [] };
@@ -29,6 +31,7 @@ function goals(id, list, t) {
         out[side].forEach((g, i) => rows.push({
             id: `${id}:${side}:${i + 1}`, side, minute: g.minute,
             scorer: g.namedAt !== undefined && t < g.namedAt ? null : g.scorer, own_goal: false, penalty: false,
+            photo: g.photo && !(g.namedAt !== undefined && t < g.namedAt) ? FACE : null,
         }));
     }
     return rows;
@@ -60,12 +63,12 @@ export function fakeSnapshot(startedAt) {
     const g1 = goals(id1, [
         { side: 'home', at: -1, minute: "23′", scorer: 'Mohamed Salah' },
         { side: 'away', at: -1, minute: "41′", scorer: 'Erling Haaland' },
-        { side: 'home', at: 12, minute: "64′", scorer: 'Cody Gakpo', namedAt: 18 },
-        { side: 'home', at: 50, minute: "76′", scorer: 'Mohamed Salah' },
+        { side: 'home', at: 12, minute: "64′", scorer: 'Cody Gakpo', namedAt: 18, photo: true },
+        { side: 'home', at: 50, minute: "76′", scorer: 'Mohamed Salah', photo: true },
         { side: 'home', at: 75, until: 84, minute: "85′", scorer: 'Darwin Núñez' },
     ], t);
     const g2 = goals(id2, [{ side: 'home', at: 40, minute: "43′", scorer: 'Bukayo Saka' }], t);
-    const reds = t >= 30 ? [{ id: `${id1}:red:1`, side: 'away', minute: "70′", player: 'Rodri' }] : [];
+    const reds = t >= 30 ? [{ id: `${id1}:red:1`, side: 'away', minute: "70′", player: 'Rodri', photo: FACE }] : [];
     const lines = [
         [0, 'The Vikings smell blood', 'Three corners in five minutes, and the Horde is backing towards its own walls.'],
         [12, 'The walls are breached!', 'Gakpo finds the corner. 2–1.'],

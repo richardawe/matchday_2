@@ -114,7 +114,7 @@ class StreamPageTest extends TestCase
             'type' => 'red_card', 'minute' => 70, 'player_name' => 'Rodri']);
 
         $reds = $this->live()['reds'];
-        $this->assertSame([['id' => "{$this->match->id}:red:77", 'side' => 'away', 'minute' => '70′', 'player' => 'Rodri']], $reds);
+        $this->assertSame([['id' => "{$this->match->id}:red:77", 'side' => 'away', 'minute' => '70′', 'player' => 'Rodri', 'photo' => null]], $reds);
         $this->assertSame($reds, $this->live()['reds']);
     }
 

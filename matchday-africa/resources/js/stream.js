@@ -296,7 +296,7 @@ function strip(match, highlight) {
     return box;
 }
 
-function picture(team, minute) {
+function picture(team, minute, photo, name) {
     const box = el('div', 'st-pic');
     box.style.background = team.colour;
     const inner = el('div', 'st-pic-inner');
@@ -309,6 +309,14 @@ function picture(team, minute) {
         inner.append(tile(el('span', 'st-tile'), team));
     }
     box.append(inner);
+    if (photo) {
+        // The player's photo (API-Football, about 150 px) in a round badge over their army.
+        const face = el('img', 'st-face');
+        face.src = photo;
+        face.alt = name ?? '';
+        face.addEventListener('error', () => face.remove());
+        box.append(face);
+    }
     if (minute) box.append(el('span', 'st-badge', minute));
     return box;
 }
@@ -325,7 +333,7 @@ function renderMoment(m) {
         const griot = match.griot && match.griot.kind === 'goal' ? `“${match.griot.headline}”` : null;
         node.replaceChildren(
             el('div', 'st-moment-word', 'GOAL!'),
-            picture(team, goal.minute),
+            picture(team, goal.minute, goal.photo, goal.scorer),
             el('div', 'st-who', goal.scorer ?? `${team.name} score!`),
             el('div', 'st-sub', extras),
             strip(match, goal.side),
@@ -338,7 +346,7 @@ function renderMoment(m) {
         word.append(el('span', 'st-redcard'), el('span', null, 'RED CARD'));
         node.replaceChildren(
             word,
-            picture(team, red.minute),
+            picture(team, red.minute, red.photo, red.player),
             el('div', 'st-who', red.player ?? 'Red card'),
             el('div', 'st-sub', `${team.name} down to ten`),
             strip(match, null),
@@ -354,8 +362,8 @@ function playMoments() {
         if (showing.moment.type === 'goal') {
             const match = (snapshot?.live ?? []).find((x) => x.id === showing.moment.match.id);
             const goal = match?.goals?.find((g) => g.id === showing.moment.id);
-            if (goal && goal.scorer && !showing.named) {
-                showing.named = true;
+            if (goal && (goal.scorer || goal.photo) && showing.named !== `${goal.scorer}|${goal.photo}`) {
+                showing.named = `${goal.scorer}|${goal.photo}`;
                 renderMoment(showing.moment);
             }
         }
@@ -367,7 +375,7 @@ function playMoments() {
     }
     const m = queue.shift();
     if (!m) return;
-    showing = { moment: m, until: t + MOMENT, named: m.type === 'goal' && !!m.goal.scorer };
+    showing = { moment: m, until: t + MOMENT, named: m.type === 'goal' ? `${m.goal.scorer}|${m.goal.photo}` : null };
     pinned = { id: m.match.id, until: t + PIN };
     renderMoment(m);
     if (m.type === 'goal') sound.goal(); else sound.red();
