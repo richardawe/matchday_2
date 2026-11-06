@@ -931,3 +931,4 @@
 .md-banter-wa{display:flex;justify-content:center;align-items:center;min-height:3rem;padding:.75rem 1rem;background:#25d366;color:#06331a!important;font-weight:900;letter-spacing:.06em;text-transform:uppercase;font-size:.85rem}
 .md-banter-note{font-size:.8rem;color:var(--md-muted)}
 @media(max-width:640px){.md-banter-grid{grid-template-columns:1fr}.md-banter-preview{max-width:15rem;margin:0 auto}}
+.md-tl-face{border-radius:50%;object-fit:cover;object-position:center top}

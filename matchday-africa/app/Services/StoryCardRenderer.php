@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\File;
 /**
  * Draws a story chapter as a PNG with GD (built into PHP, so it runs on the cPanel host):
  * the clubs' crest-free armies under team-coloured light, the Griot's caption, the score
- * and a stripe band in team colours. Cards are cached on disk per chapter, voice and size.
+ * and a stripe band in team colours; goal and red-card chapters add the player's photo when we
+ * have one (public/generated/players). Cards are cached on disk per chapter, voice, size and photo.
  */
 class StoryCardRenderer
 {
@@ -26,7 +27,9 @@ class StoryCardRenderer
     /** Absolute path to the rendered PNG, drawing it on first request. */
     public function path(MatchMoment $moment, string $voice, string $format): string
     {
-        $file = storage_path("app/story-cards/{$moment->id}-{$voice}-{$format}-".($moment->updated_at?->timestamp ?? 0).'.png');
+        $photo = $this->photo($moment);
+        $stamp = $photo ? '-p'.substr(sha1($photo.filemtime($photo)), 0, 8) : '';
+        $file = storage_path("app/story-cards/{$moment->id}-{$voice}-{$format}-".($moment->updated_at?->timestamp ?? 0).$stamp.'.png');
         if (!is_file($file)) {
             File::ensureDirectoryExists(dirname($file));
             imagepng($this->draw($moment, $voice, $format), $file, 6);
@@ -75,6 +78,14 @@ class StoryCardRenderer
             $this->fade($img, 0, (int) ($h * 0.46), $w, (int) ($h * 0.54), 'down', 127, 8);
         }
 
+        // The scorer's (or sent-off player's) photo in a round badge beside their army. Owner's
+        // choice, 6 Nov 2026: player photos may show kit crests (an exception to AGENTS rule 6).
+        if ($file = $this->photo($moment)) {
+            $radius = (int) ($landscape ? $h * 0.17 : $w * 0.15);
+            [$cx, $cy] = $landscape ? [(int) ($w * 0.9), (int) ($h * 0.3)] : [(int) ($w * 0.8), (int) ($h * ($format === 'story' ? 0.32 : 0.36))];
+            $this->badge($img, $file, $cx, $cy, $radius, $hero['colours'][0] ?? '#d2a052', $moment->type === 'red_card');
+        }
+
         [$headline, $line] = $this->griot->tell($moment, $voice);
         $score = trim(preg_replace('/\s+FC$/i', '', (string) $match->homeTeam?->name)).'  '.$moment->home_score.'–'.$moment->away_score.'  '.trim(preg_replace('/\s+FC$/i', '', (string) $match->awayTeam?->name));
         $pad = $landscape ? 56 : 64;
@@ -118,6 +129,56 @@ class StoryCardRenderer
         }
 
         return $img;
+    }
+
+    /** The local photo file of the player a goal or red-card chapter is about, or null. */
+    protected function photo(MatchMoment $moment): ?string
+    {
+        if (!in_array($moment->type, ['goal', 'red_card'], true) || !$moment->player_name) {
+            return null;
+        }
+        try {
+            return PlayerPhotos::forMatch($moment->match, $moment->side, $moment->player_name)['path'] ?? null;
+        } catch (\Throwable) {
+            return null; // a card always draws, with or without the photo
+        }
+    }
+
+    /** Draws a photo cropped to a circle, with an ink ring and a ring in the side's colour. */
+    protected function badge(GdImage $img, string $file, int $cx, int $cy, int $radius, string $ring, bool $greyscale): void
+    {
+        $source = @imagecreatefromstring((string) file_get_contents($file));
+        if (!$source) {
+            return;
+        }
+        $size = 2 * $radius;
+        $face = imagecreatetruecolor($size, $size);
+        imagealphablending($face, false);
+        imagesavealpha($face, true);
+        imagefill($face, 0, 0, imagecolorallocatealpha($face, 0, 0, 0, 127));
+        // Cover the circle: crop the photo to a square from the top (faces sit high in headshots).
+        $sw = imagesx($source);
+        $sh = imagesy($source);
+        $side = min($sw, $sh);
+        imagecopyresampled($face, $source, 0, 0, (int) (($sw - $side) / 2), 0, $size, $size, $side, $side);
+        if ($greyscale) {
+            imagefilter($face, IMG_FILTER_GRAYSCALE);
+        }
+        $clear = imagecolorallocatealpha($face, 0, 0, 0, 127);
+        for ($y = 0; $y < $size; $y++) {
+            for ($x = 0; $x < $size; $x++) {
+                if (($x - $radius + 0.5) ** 2 + ($y - $radius + 0.5) ** 2 > $radius ** 2) {
+                    imagesetpixel($face, $x, $y, $clear);
+                }
+            }
+        }
+        $ringWidth = max(6, (int) ($radius * 0.07));
+        imagefilledellipse($img, $cx, $cy, 2 * ($radius + 2 * $ringWidth), 2 * ($radius + 2 * $ringWidth), $this->color($img, $this->rgb($ring)));
+        imagefilledellipse($img, $cx, $cy, 2 * ($radius + $ringWidth), 2 * ($radius + $ringWidth), $this->color($img, [7, 8, 7]));
+        imagefilledellipse($img, $cx, $cy, $size, $size, $this->color($img, [232, 225, 211]));
+        imagecopy($img, $face, $cx - $radius, $cy - $radius, 0, 0, $size, $size);
+        imagedestroy($face);
+        imagedestroy($source);
     }
 
     protected function army(GdImage $img, ?array $army, float $height, float $centerX, float $bottom, bool $flip = false, bool $ghost = false, bool $fallen = false): void

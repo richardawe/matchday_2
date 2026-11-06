@@ -40,7 +40,8 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
    `public/war/downloads/rights-safe/`, processed by `scripts/build-armies.mjs` into
    `public/war/army/*.webp` (web) and `resources/armies/*.webp` (server cut-outs). Never use
    `public/war/warriors/` (they show club crests) for anything automated. Second exception, the owner's choice on 6 Nov 2026: API-Football player photos
-   (`players:photos`, saved in `public/generated/players/`) on the stream's goal and red-card screens; they may show kit crests. One exception, approved by the owner on
+   (`players:photos`, saved in `public/generated/players/`) on the stream's goal and red-card screens, the goal and red-card
+   chapter cards (`StoryCardRenderer`, so also the live X/Instagram posts) and the Griot timeline's goal/red-card posts; they may show kit crests. One exception, approved by the owner on
    19 Oct 2026: Wolves' `wolf-warband` statue (from `warriors/wolves.png`, plinth text cropped) whose shield resembles the crest. Club → army mapping: `config/armies.php`.
 7. **Live data:** the ESPN feed is unofficial and its terms ban automated use. The owner accepted that as a
    stopgap. Keep the circuit breaker (`EspnClient`) and the football-data.org fallback working.

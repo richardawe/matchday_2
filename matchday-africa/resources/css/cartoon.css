@@ -312,6 +312,8 @@ body.md-cartoon .md-tl-post { grid-template-columns: 2.6rem auto minmax(0, 1fr);
 body.md-cartoon .md-tl-post p { color: var(--c-ink); }
 body.md-cartoon .md-tl-post.is-goal { background: var(--c-surface); border-color: var(--c-ink); }
 body.md-cartoon .md-tl-moods { display: flex; flex-direction: column; gap: .4rem; }
+body.md-cartoon .md-tl-face { border-radius: 50%; object-position: center top; background: var(--c-surface); }
+body.md-cartoon .md-tl-face.is-red { filter: grayscale(1); }
 @media (max-width: 420px) { body.md-cartoon .md-tl-mood { width: 60px; height: 60px; } }
 
 /* Reading text: Plex everywhere, never the classic serif. */

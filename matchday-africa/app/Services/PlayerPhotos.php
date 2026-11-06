@@ -116,13 +116,35 @@ class PlayerPhotos
     /** Our photo for a player named in a match feed, or null. Includes players who left the squad. */
     public static function forName(?int $teamId, ?string $name): ?string
     {
-        if (!$teamId || !$name) {
+        return self::player($teamId, $name)?->photo_url;
+    }
+
+    /**
+     * The photo of a player named in a match moment: ['url' => …, 'path' => local file or null].
+     * Looks in the side's squad first, then the other one (an own goal counts for the other side).
+     */
+    public static function forMatch(\App\Models\FootballMatch $match, ?string $side, ?string $name): ?array
+    {
+        $teams = $side === 'away' ? [$match->away_team_id, $match->home_team_id] : [$match->home_team_id, $match->away_team_id];
+        foreach ($teams as $teamId) {
+            if ($player = self::player($teamId, $name)) {
+                $file = public_path("generated/players/{$player->id}.png");
+
+                return ['url' => $player->photo_url, 'path' => is_file($file) ? $file : null, 'name' => $player->name];
+            }
+        }
+
+        return null;
+    }
+
+    private static function player(?int $teamId, ?string $name): ?Player
+    {
+        if (!$teamId || !$name || trim($name) === '') {
             return null;
         }
-        $player = Player::where('team_id', $teamId)->whereNotNull('photo_url')->get()
-            ->sortByDesc('is_active')->first(fn (Player $p) => PlayerNames::same($p->name, $name));
 
-        return $player?->photo_url;
+        return Player::where('team_id', $teamId)->whereNotNull('photo_url')->get()
+            ->sortByDesc('is_active')->first(fn (Player $p) => PlayerNames::same($p->name, $name));
     }
 
     /** Stores API-Football's team id on our teams (one call per league a week). */

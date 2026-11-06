@@ -100,4 +100,36 @@ class GriotStoryTest extends TestCase
         $this->get(route('matches.show', ['match' => $this->match, 'moment' => $goal->id]))
             ->assertSee(route('moments.card', ['moment' => $goal->id, 'voice' => 'en', 'format' => 'og']), false);
     }
+
+    public function test_goal_and_red_card_cards_show_the_players_photo_when_we_have_one(): void
+    {
+        app(MatchStoryService::class)->syncRecent();
+        $goal = MatchMoment::where('type', 'goal')->where('player_name', 'Bukayo Saka')->first();
+        $renderer = app(\App\Services\StoryCardRenderer::class);
+        $without = $renderer->path($goal, 'en', 'feed');
+
+        // A solid red "photo" for Saka, saved where players:photos saves them.
+        $saka = \App\Models\Player::create(['team_id' => $this->match->home_team_id, 'name' => 'Bukayo Saka']);
+        $file = public_path("generated/players/{$saka->id}.png");
+        \Illuminate\Support\Facades\File::ensureDirectoryExists(dirname($file));
+        $png = imagecreatetruecolor(150, 150);
+        imagefill($png, 0, 0, imagecolorallocate($png, 220, 20, 20));
+        imagepng($png, $file);
+        $saka->update(['photo_url' => url("generated/players/{$saka->id}.png")]);
+
+        try {
+            $with = $renderer->path($goal->fresh(), 'en', 'feed');
+            $this->assertNotSame($without, $with); // a photo that arrives later redraws the card
+            $card = imagecreatefrompng($with);
+            [$r, $g, $b] = array_values(imagecolorsforindex($card, imagecolorat($card, (int) (1080 * 0.8), (int) (1350 * 0.36))));
+            $this->assertGreaterThan(180, $r);
+            $this->assertLessThan(60, $g);
+
+            // Chapters about other players, and kick-off, have no badge.
+            $palmer = MatchMoment::where('player_name', 'Cole Palmer')->first();
+            $this->assertStringNotContainsString('-p', basename($renderer->path($palmer, 'en', 'feed')));
+        } finally {
+            \Illuminate\Support\Facades\File::delete($file);
+        }
+    }
 }
