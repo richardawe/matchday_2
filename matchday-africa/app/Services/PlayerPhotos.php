@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Player photos from API-Football: one call lists a league's teams, one call per team lists its
@@ -26,6 +27,7 @@ class PlayerPhotos
 {
     private int $calls = 0;
     private ?string $error = null;
+    private bool $outOfBudget = false;
 
     public function configured(): bool
     {
@@ -55,7 +57,10 @@ class PlayerPhotos
         foreach ($due as $team) {
             $squad = $this->fetch('players/squads', ['team' => data_get($this->meta($team), 'api_football_team_id')]);
             if ($squad === null) {
-                break; // out of budget for today
+                if ($this->outOfBudget) {
+                    break; // today's calls are spent; tomorrow's run carries on
+                }
+                continue; // this squad was refused; the others still go
             }
             [$photos, $added] = $this->storeSquad($team, data_get($squad, '0.players', []));
             $meta = $this->meta($team);
@@ -140,18 +145,35 @@ class PlayerPhotos
         // one); club search doesn't, so look up whoever is still unlinked by name instead.
         foreach ($unlinked->filter(fn (Team $t) => !data_get($this->meta($t->fresh()), 'api_football_team_id')) as $team) {
             $name = trim(preg_replace('/\b(a?fc)\b/i', '', (string) ($team->common_name ?: $team->name)));
-            $found = $this->fetch('teams', ['search' => mb_substr($name, 0, 40)]);
-            if ($found === null) {
-                break; // out of budget, or the API refused: try again tomorrow
-            }
-            // An exact name first: "Liverpool" also finds "Liverpool Montevideo".
-            $clubs = collect($found)->reject(fn ($r) => data_get($r, 'team.national'));
-            $row = $clubs->first(fn ($r) => $this->clubKey((string) data_get($r, 'team.name')) === $this->clubKey($name))
-                ?? $clubs->first(fn ($r) => $this->sameClub($team, (string) data_get($r, 'team.name')));
-            if ($row) {
-                $this->linkTeam(collect([$team]), $row);
+            foreach ($this->searchTerms($name) as $term) {
+                $found = $this->fetch('teams', ['search' => $term]);
+                if ($found === null && $this->outOfBudget) {
+                    return; // today's calls are spent; tomorrow's run carries on
+                }
+                // An exact name first: "Liverpool" also finds "Liverpool Montevideo".
+                $clubs = collect($found ?? [])->reject(fn ($r) => data_get($r, 'team.national'));
+                $row = $clubs->first(fn ($r) => $this->clubKey((string) data_get($r, 'team.name')) === $this->clubKey($name))
+                    ?? $clubs->first(fn ($r) => $this->sameClub($team, (string) data_get($r, 'team.name')));
+                if ($row) {
+                    $this->linkTeam(collect([$team]), $row);
+                    break;
+                }
             }
         }
+    }
+
+    /**
+     * What to search API-Football for: its search takes only letters, digits and spaces, so
+     * "Brighton & Hove Albion" becomes "Brighton Hove Albion", then just "Brighton" if that finds nothing.
+     *
+     * @return array<int, string>
+     */
+    private function searchTerms(string $name): array
+    {
+        $clean = trim(preg_replace('/\s+/', ' ', preg_replace('/[^A-Za-z0-9 ]+/', ' ', Str::ascii($name))));
+        $first = collect(explode(' ', $clean))->first(fn ($w) => strlen($w) >= 4);
+
+        return array_values(array_unique(array_filter([mb_substr($clean, 0, 40), $first], fn ($t) => $t && strlen($t) >= 3)));
     }
 
     private function clubKey(string $name): string
@@ -221,6 +243,8 @@ class PlayerPhotos
         }
         $usage = 'api-football:daily-calls:'.now()->toDateString();
         if ((int) Cache::get($usage, 0) >= (int) config('services.api_football.daily_budget', 95)) {
+            $this->outOfBudget = true;
+
             return null;
         }
         /** @var Response $response */

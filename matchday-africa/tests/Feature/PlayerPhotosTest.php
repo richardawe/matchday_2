@@ -116,6 +116,44 @@ class PlayerPhotosTest extends TestCase
         $this->artisan('players:photos')->assertSuccessful();
     }
 
+    public function test_club_names_with_symbols_are_searched_as_letters_and_one_refusal_does_not_stop_the_rest(): void
+    {
+        $brighton = Team::create(['name' => 'Brighton & Hove Albion FC', 'football_data_id' => 397]);
+        FootballMatch::create(['league_id' => $this->pl->id, 'home_team_id' => $brighton->id, 'away_team_id' => $this->liverpool->id,
+            'match_date' => '2026-11-09 15:00:00', 'status' => 'TIMED']);
+        $searches = [];
+        Http::fake(function (\Illuminate\Http\Client\Request $request) use (&$searches) {
+            if (str_contains($request->url(), 'teams?league')) {
+                return Http::response(['errors' => ['plan' => 'Free plans do not have access to this season.'], 'response' => []]);
+            }
+            if (str_contains($request->url(), 'search=')) {
+                $searches[] = $request['search'];
+                if (preg_match('/[^A-Za-z0-9 ]/', $request['search'])) {
+                    return Http::response(['errors' => ['search' => 'The Search field may only contain alpha-numeric characters and spaces.'], 'response' => []]);
+                }
+                return Http::response(['errors' => [], 'response' => match (true) {
+                    $request['search'] === 'Brighton Hove Albion' => [],
+                    $request['search'] === 'Brighton' => [['team' => ['id' => 51, 'name' => 'Brighton', 'national' => false]]],
+                    str_starts_with($request['search'], 'Liverpool') => [['team' => ['id' => 40, 'name' => 'Liverpool', 'national' => false]]],
+                    default => [['team' => ['id' => 50, 'name' => 'Manchester City', 'national' => false]]],
+                }]);
+            }
+            if (str_contains($request->url(), 'squads') && (int) $request['team'] === 50) {
+                return Http::response(['errors' => ['team' => 'refused'], 'response' => []]);
+            }
+
+            return Http::response(['errors' => [], 'response' => [['players' => []]]]);
+        });
+
+        $result = app(PlayerPhotos::class)->sync();
+
+        $this->assertSame(51, $brighton->fresh()->metadata['api_football_team_id']);
+        $this->assertContains('Brighton Hove Albion', $searches);
+        $this->assertSame([], array_filter($searches, fn ($s) => preg_match('/[^A-Za-z0-9 ]/', $s)));
+        // Man City's squad was refused; Liverpool's and Brighton's still went through.
+        $this->assertSame(2, $result['teams']);
+    }
+
     public function test_nothing_is_fetched_without_a_key(): void
     {
         config(['services.api_football.key' => '']);
