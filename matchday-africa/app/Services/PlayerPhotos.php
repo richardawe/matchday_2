@@ -28,6 +28,7 @@ class PlayerPhotos
     private int $calls = 0;
     private ?string $error = null;
     private bool $outOfBudget = false;
+    private ?float $lastCall = null;
 
     public function configured(): bool
     {
@@ -247,6 +248,12 @@ class PlayerPhotos
 
             return null;
         }
+        // The free plan allows about 10 calls a minute: space calls out (API_FOOTBALL_MIN_INTERVAL_MS).
+        $gap = (int) config('services.api_football.min_interval_ms', 6500) / 1000;
+        if ($this->lastCall !== null && ($wait = $this->lastCall + $gap - microtime(true)) > 0) {
+            usleep((int) ($wait * 1_000_000));
+        }
+        $this->lastCall = microtime(true);
         /** @var Response $response */
         $response = Http::timeout(35)->withHeaders(['x-apisports-key' => config('services.api_football.key')])
             ->get(rtrim(config('services.api_football.url'), '/').'/'.$endpoint, $query);
@@ -256,6 +263,9 @@ class PlayerPhotos
             $errors = $response->json('errors') ?: 'HTTP '.$response->status();
             $this->error = 'API-Football '.$endpoint.': '.(is_string($errors) ? $errors : json_encode($errors));
             Log::warning($this->error);
+            if (is_array($errors) && (isset($errors['rateLimit']) || isset($errors['requests']))) {
+                $this->outOfBudget = true; // told to slow down or out of requests: stop, tomorrow's run carries on
+            }
 
             return null;
         }

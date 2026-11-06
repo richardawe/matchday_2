@@ -31,5 +31,6 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="API_FOOTBALL_MIN_INTERVAL_MS" value="0"/>
     </php>
 </phpunit>

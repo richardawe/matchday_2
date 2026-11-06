@@ -64,6 +64,8 @@ return [
         'key' => env('API_FOOTBALL_KEY'),
         'url' => env('API_FOOTBALL_URL', 'https://v3.football.api-sports.io'),
         'daily_budget' => (int) env('API_FOOTBALL_DAILY_BUDGET', 95),
+        // Gap between photo calls; the free plan allows about 10 a minute.
+        'min_interval_ms' => (int) env('API_FOOTBALL_MIN_INTERVAL_MS', 6500),
         // Leagues whose squads get player photos: our league code => API-Football league id ("PL:39,PD:140").
         'photo_leagues' => collect(explode(',', (string) env('API_FOOTBALL_PHOTO_LEAGUES', 'PL:39')))
             ->map(fn ($pair) => array_map('trim', explode(':', $pair)))
