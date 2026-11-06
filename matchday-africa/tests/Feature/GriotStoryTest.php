@@ -132,4 +132,27 @@ class GriotStoryTest extends TestCase
             \Illuminate\Support\Facades\File::delete($file);
         }
     }
+
+    public function test_cards_follow_the_cartoon_look(): void
+    {
+        config(['site.style' => 'cartoon']);
+        app(MatchStoryService::class)->syncRecent();
+        $goal = MatchMoment::where('type', 'goal')->first();
+        $renderer = app(\App\Services\StoryCardRenderer::class);
+
+        $this->assertStringContainsString('look=cartoon', $goal->cardUrl('en', 'feed'));
+        $this->assertStringEndsWith('-cartoon.png', $renderer->path($goal, 'en', 'feed'));
+        foreach (['story' => [1080, 1920], 'feed' => [1080, 1350], 'og' => [1200, 630]] as $format => [$w, $h]) {
+            $card = imagecreatefrompng($renderer->path($goal, 'en', $format));
+            $this->assertSame([$w, $h], [imagesx($card), imagesy($card)]);
+            // Sun-yellow background in the corner (the dark look is near-black).
+            [$r, $g, $b] = array_values(imagecolorsforindex($card, imagecolorat($card, $w - 3, $h - 3)));
+            $this->assertGreaterThan(200, $r);
+            $this->assertGreaterThan(150, $g);
+        }
+        $this->get($goal->cardUrl('en', 'feed'))->assertOk()->assertHeader('Content-Type', 'image/png');
+
+        config(['site.style' => 'classic']);
+        $this->assertStringNotContainsString('look=', $goal->cardUrl('en', 'feed'));
+    }
 }

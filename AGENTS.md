@@ -201,7 +201,8 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 - Home reels hero is a swipeable strip (#46). All PRs through #49 are merged and deployed.
 - Branch protection requires PRs to be up to date with `main`: after each merge, update the next PR's branch and wait
   for its CI gate before merging. Don't deploy across 05:00/11:00/17:00 UTC (radio editions).
-- Still dark (not yet in the cartoon look): live goal and red-card story cards (`StoryCardRenderer`). The match chronicle
+- Story chapter cards (`StoryCardRenderer`, also the live X/Instagram goal and red-card posts) follow the cartoon look since 6 Nov
+  (`drawCartoonChapter`; `?look=cartoon` in the card URL and `-cartoon` in the cached file). The match chronicle
   endpoint (`/matches/{id}/chronicle`) is JSON, not a page.
 - Local review tooling used on 3 Nov: a demo SQLite database plus Playwright scripts that screenshot every page at
   phone width and flag elements still in the classic serif/beige/Tailwind colours. Re-create them if needed; they are not in the repo.
