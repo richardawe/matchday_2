@@ -52,8 +52,18 @@ class FootballMatch extends Model
         'espn_id',
         'data_source',
         'events_source',
-        'espn_synced_at'
+        'espn_synced_at',
+        'youtube_video_id',
+        'youtube_uploaded_at',
+        'youtube_status',
+        'youtube_attempts',
+        'youtube_next_at',
+        'youtube_error',
+        'youtube_upload_session',
     ];
+
+    // The resumable upload URL lets anyone finish that upload: kept out of JSON and encrypted at rest.
+    protected $hidden = ['youtube_upload_session'];
 
     protected $casts = [
         'football_data_id' => 'integer',
@@ -66,6 +76,10 @@ class FootballMatch extends Model
         'match_date' => 'datetime',
         'espn_id' => 'integer',
         'espn_synced_at' => 'datetime',
+        'youtube_uploaded_at' => 'datetime',
+        'youtube_next_at' => 'datetime',
+        'youtube_attempts' => 'integer',
+        'youtube_upload_session' => 'encrypted:array',
         'minute' => 'integer',
         'home_score' => 'integer',
         'away_score' => 'integer',

@@ -435,5 +435,13 @@ class ReelService
             unset($meta['reel']['error']);
         }
         $match->forceFill(['metadata' => $meta])->save();
+        if (($reel['status'] ?? null) === 'ready') {
+            // A new reel goes to YouTube as a Short (YOUTUBE_UPLOADS); never let that break a render.
+            try {
+                app(\App\Services\YouTube\ReelUploads::class)->reelReady($match);
+            } catch (Throwable $e) {
+                Log::warning('Could not queue the reel for YouTube', ['match_id' => $match->id, 'error' => $e->getMessage()]);
+            }
+        }
     }
 }

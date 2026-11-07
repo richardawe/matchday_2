@@ -231,6 +231,14 @@ jobs:
             **/releases/**
       - name: Install dependencies, migrate, cache, and restart workers
         working-directory: .
+        env:
+          # Written into the server .env (added or replaced, never printed) before the config cache is rebuilt.
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          # Optional: without it the app uses the Matchday Africa channel (config/youtube.php).
+          YOUTUBE_CHANNEL_ID: ${{ vars.YOUTUBE_CHANNEL_ID || secrets.YOUTUBE_CHANNEL_ID }}
+          # Automatic YouTube Shorts for new reels; set the variable to false to stop them.
+          YOUTUBE_UPLOADS: ${{ vars.YOUTUBE_UPLOADS || 'true' }}
         run: bash scripts/ci/deploy-ssh.sh deploy
       - name: Verify the public release and application routes
         env:

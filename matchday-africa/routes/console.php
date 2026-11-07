@@ -45,6 +45,8 @@ Schedule::command('radio:work')->everyMinute()->withoutOverlapping(30)->runInBac
 // Beat the Griot: plan the next round's three calls, remind, score and draw the winners (GRIOT_CHALLENGE).
 // YouTube LIVE: a broadcast per matchday (YOUTUBE_AUTO) and ending finished ones; quiet until /admin/youtube is connected.
 Schedule::command('youtube:broadcasts')->everyTenMinutes()->withoutOverlapping(10)->name('youtube-broadcasts');
+// YouTube Shorts: every new reel uploaded to the channel, at most YOUTUBE_DAILY_UPLOADS a quota day (YOUTUBE_UPLOADS).
+Schedule::command('youtube:uploads')->everyFiveMinutes()->withoutOverlapping(30)->runInBackground()->name('youtube-shorts');
 Schedule::command('griot:challenge')->everyTenMinutes()->withoutOverlapping(10)->name('griot-challenge');
 Schedule::command('twitter:engage')->everyTenMinutes()->withoutOverlapping(10)->name('x-timeline-planner');
 Schedule::command('matches:enrich-events')->everyThirtyMinutes()->withoutOverlapping(20)->name('match-event-enrichment');

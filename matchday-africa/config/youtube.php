@@ -16,6 +16,9 @@ return [
     'client_id' => env('YOUTUBE_CLIENT_ID'),
     'client_secret' => env('YOUTUBE_CLIENT_SECRET'),
 
+    // The Matchday Africa channel: connecting any other channel is refused and nothing is uploaded elsewhere.
+    'channel_id' => env('YOUTUBE_CHANNEL_ID') ?: 'UCJ9Asmir1hBOHHQs9qSCkHg',
+
     // Schedule a broadcast for every matchday automatically (otherwise only from the admin page).
     'auto' => (bool) env('YOUTUBE_AUTO', false),
 
@@ -29,5 +32,22 @@ return [
     // Broadcasts are made this far ahead.
     'ahead_hours' => 48,
 
-    'scopes' => ['https://www.googleapis.com/auth/youtube'],
+    // youtube covers live broadcasts (and uploads); youtube.upload is the uploader's own scope.
+    'scopes' => ['https://www.googleapis.com/auth/youtube', 'https://www.googleapis.com/auth/youtube.upload'],
+
+    /*
+    | Every new reel as a YouTube Short (youtube:uploads, App\Services\YouTube\ReelUploads). An upload
+    | costs 1,600 of the project's 10,000 daily quota units, so at most daily_uploads go up per
+    | YouTube day (it resets at midnight Pacific time); the rest wait for the next day.
+    */
+    'uploads' => [
+        'enabled' => (bool) env('YOUTUBE_UPLOADS', false),
+        'daily_uploads' => (int) env('YOUTUBE_DAILY_UPLOADS', 6),
+        'quota_timezone' => 'America/Los_Angeles',
+        // One try and three retries, waiting this many minutes before each retry.
+        'retry_minutes' => [5, 20, 60],
+        'privacy' => 'public',
+        'category' => '17', // Sports
+        'chunk_bytes' => 4 * 1024 * 1024, // a multiple of 256 KiB, as resumable uploads need
+    ],
 ];

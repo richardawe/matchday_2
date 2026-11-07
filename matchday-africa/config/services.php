@@ -166,6 +166,14 @@ return [
         'client_id' => env('LINKEDIN_CLIENT_ID'),
     ],
 
+    // YouTube Data API v3 (OAuth client "Matchday site"). The live and upload settings are in config/youtube.php,
+    // which reads the same keys; the refresh token is stored encrypted in youtube_accounts, never in .env.
+    'youtube' => [
+        'client_id' => env('YOUTUBE_CLIENT_ID'),
+        'client_secret' => env('YOUTUBE_CLIENT_SECRET'),
+        'channel_id' => env('YOUTUBE_CHANNEL_ID'),
+    ],
+
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),

@@ -3,7 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\UploadReelToYouTube;
+use App\Models\FootballMatch;
 use App\Models\YoutubeBroadcast;
+use App\Services\ReelService;
+use App\Services\YouTube\ReelUploads;
 use App\Services\YouTube\YouTubeBroadcasts;
 use App\Services\YouTube\YouTubeClient;
 use Illuminate\Http\Request;
@@ -38,6 +42,9 @@ class YouTubeController extends Controller
             'windows' => $ready ? $this->broadcasts->windows() : collect(),
             'broadcasts' => $ready ? YoutubeBroadcast::latest('starts_at')->limit(20)->get() : collect(),
             'streamPage' => (bool) config('stream.enabled'),
+            'canUpload' => $account ? YouTubeClient::canUpload($account) : false,
+            'wrongChannel' => $account && config('youtube.channel_id') && $account->channel_id !== config('youtube.channel_id'),
+            'uploadsOn' => (bool) config('youtube.uploads.enabled'),
         ]);
     }
 
@@ -111,5 +118,47 @@ class YouTubeController extends Controller
         }
 
         return back()->with('success', "Private test broadcast ready for 30 minutes: start streaming to the key below, then open it in YouTube Studio ({$broadcast->studioUrl()}).");
+    }
+
+    /** /admin/youtube/uploads: recent reels and their YouTube Shorts. */
+    public function uploads(ReelUploads $uploads, ReelService $reels)
+    {
+        $ready = ReelUploads::ready();
+        $matches = $ready
+            ? FootballMatch::with(['league', 'homeTeam', 'awayTeam'])
+                ->where(fn ($q) => $q->where('match_date', '>=', now('UTC')->subDays(14))->orWhereIn('youtube_status', ['pending', 'uploading', 'failed']))
+                ->where(fn ($q) => $q->where('metadata->reel->status', 'ready')->orWhereNotNull('youtube_status'))
+                ->orderByDesc('match_date')->limit(100)->get()
+            : collect();
+
+        return view('admin.youtube.uploads', [
+            'ready' => $ready,
+            'enabled' => $uploads->enabled(),
+            'switchedOn' => (bool) config('youtube.uploads.enabled'),
+            'account' => $uploads->account(),
+            'matches' => $matches,
+            'hasReel' => fn (FootballMatch $m) => $reels->path($m) !== null,
+            'used' => $uploads->usedToday(),
+            'left' => $uploads->left(),
+            'daily' => (int) config('youtube.uploads.daily_uploads'),
+            'reset' => $uploads->quotaReset(),
+        ]);
+    }
+
+    /** Queues one reel again (attempts reset) and sends the upload job. */
+    public function retry(FootballMatch $match, ReelUploads $uploads)
+    {
+        abort_unless(ReelUploads::ready(), 404);
+        if (!$uploads->enabled()) {
+            return back()->with('error', 'Uploads are off (YOUTUBE_UPLOADS) or no channel that may upload is connected.');
+        }
+        if (!$uploads->queue($match)) {
+            return back()->with('error', $match->youtube_video_id ? 'That reel is already on YouTube.' : 'That match has no ready reel.');
+        }
+        UploadReelToYouTube::dispatch($match->id);
+
+        return back()->with('success', $uploads->left() > 0
+            ? 'Queued: it uploads within five minutes.'
+            : 'Queued: today\'s upload quota is used, so it goes up after '.$uploads->quotaReset()->setTimezone('Africa/Lagos')->format('D H:i').' Lagos.');
     }
 }

@@ -27,9 +27,6 @@ if (!is_file($file) || !is_writable($file)) {
     exit(1);
 }
 $original = file_get_contents($file);
-$backup = $file.'.backup-'.date('Ymd-His');
-file_put_contents($backup, $original);
-chmod($backup, 0600);
 
 $lines = preg_split('/\r?\n/', rtrim($original, "\r\n"));
 $changed = [];
@@ -53,9 +50,20 @@ foreach ($values as $key => $value) {
     }
 }
 
+// Nothing to change (the deploy writes the same settings every time): no rewrite, no backup.
+$changed = array_values(array_unique($changed));
+$duplicates = count(array_filter($lines, fn ($l) => $l === null)) > 0;
+if ($changed === [] && !$duplicates) {
+    echo "No .env changes needed.\n";
+    exit(0);
+}
+$backup = $file.'.backup-'.date('Ymd-His');
+file_put_contents($backup, $original);
+chmod($backup, 0600);
+
 $tmp = $file.'.tmp-'.getmypid();
 file_put_contents($tmp, implode("\n", array_filter($lines, fn ($l) => $l !== null))."\n");
 chmod($tmp, fileperms($file) & 0777);
 rename($tmp, $file);
 
-echo $changed ? 'Updated .env: '.implode(', ', array_unique($changed)).' (backup '.basename($backup).")\n" : "No .env changes needed.\n";
+echo 'Updated .env: '.($changed ? implode(', ', $changed) : 'duplicate lines removed').' (backup '.basename($backup).")\n";

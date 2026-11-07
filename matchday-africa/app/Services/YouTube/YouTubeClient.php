@@ -5,6 +5,7 @@ namespace App\Services\YouTube;
 use App\Models\YoutubeAccount;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
@@ -33,6 +34,20 @@ class YouTubeClient
     public static function account(): ?YoutubeAccount
     {
         return self::ready() ? YoutubeAccount::latest('id')->first() : null;
+    }
+
+    /**
+     * Whether the connection may upload videos: a youtube, youtube.upload or youtube.force-ssl grant
+     * (connections made before scopes were recorded had the full youtube scope).
+     */
+    public static function canUpload(YoutubeAccount $account): bool
+    {
+        $scopes = (string) ($account->scopes ?? '');
+        if ($scopes === '') {
+            return true;
+        }
+
+        return (bool) preg_match('~/auth/youtube(\.upload|\.force-ssl)?(\s|$)~', $scopes);
     }
 
     /** Google's consent page: offline access and a forced consent screen, so a refresh token comes back. */
@@ -69,17 +84,31 @@ class YouTubeClient
             throw new RuntimeException('This Google account has no YouTube channel. Sign in with the account that owns the Matchday Africa channel.');
         }
 
+        $wanted = (string) config('youtube.channel_id');
+        if ($wanted !== '' && $channel['id'] !== $wanted) {
+            throw new RuntimeException('That is the channel "'.data_get($channel, 'snippet.title').'" ('.$channel['id'].'), not the Matchday Africa channel ('.$wanted.'). Connect again and pick the Matchday Africa channel.');
+        }
+
         $account = new YoutubeAccount([
             'channel_id' => $channel['id'], 'channel_title' => data_get($channel, 'snippet.title'),
             'refresh_token' => $token['refresh_token'], 'access_token' => $access,
             'expires_at' => now()->addSeconds((int) ($token['expires_in'] ?? 3600) - 60), 'connected_by' => $userId,
         ]);
-        $stream = $this->stream($access);
-        $account->fill([
-            'stream_id' => $stream['id'],
-            'stream_key' => data_get($stream, 'cdn.ingestionInfo.streamName'),
-            'ingest_url' => data_get($stream, 'cdn.ingestionInfo.ingestionAddress'),
-        ]);
+        if (Schema::hasColumn('youtube_accounts', 'scopes')) {
+            $account->scopes = (string) ($token['scope'] ?? '');
+        }
+        // The live stream key needs live streaming switched on for the channel; uploads don't, so a
+        // channel without it still connects (the live page then says the key is missing).
+        try {
+            $stream = $this->stream($access);
+            $account->fill([
+                'stream_id' => $stream['id'],
+                'stream_key' => data_get($stream, 'cdn.ingestionInfo.streamName'),
+                'ingest_url' => data_get($stream, 'cdn.ingestionInfo.ingestionAddress'),
+            ]);
+        } catch (RuntimeException $e) {
+            Log::warning('YouTube connected without a live stream key', ['error' => $e->getMessage()]);
+        }
         YoutubeAccount::query()->delete();
         $account->save();
 
@@ -172,7 +201,7 @@ class YouTubeClient
         return $this->check($response, $path);
     }
 
-    private function accessToken(YoutubeAccount $account): string
+    public function accessToken(YoutubeAccount $account): string
     {
         if ($account->access_token && $account->expires_at?->isFuture()) {
             return $account->access_token;
@@ -187,7 +216,7 @@ class YouTubeClient
     }
 
     /** The JSON body of a successful response, or an exception with Google's own reason (never a token). */
-    private function check(Response $response, string $what): array
+    public function check(Response $response, string $what): array
     {
         if ($response->successful()) {
             return $response->json() ?? [];
