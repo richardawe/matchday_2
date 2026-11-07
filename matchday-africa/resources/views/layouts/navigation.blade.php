@@ -105,6 +105,9 @@
                             <x-dropdown-link :href="route('admin.youtube.uploads')">
                                 {{ __('🎬 YouTube Shorts') }}
                             </x-dropdown-link>
+                            <x-dropdown-link :href="route('admin.social-media.index')">
+                                {{ __('📣 Social media') }}
+                            </x-dropdown-link>
                             <x-dropdown-link :href="route('admin.blogs.index')">
                                 {{ __('📝 Manage Blog') }}
                             </x-dropdown-link>
@@ -237,6 +240,9 @@
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.youtube.uploads')">
                         {{ __('🎬 YouTube Shorts') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('admin.social-media.index')">
+                        {{ __('📣 Social media') }}
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.match-previews.index')">
                         {{ __('🔮 Match Previews') }}
