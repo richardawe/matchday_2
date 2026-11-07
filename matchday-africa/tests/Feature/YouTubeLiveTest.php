@@ -28,7 +28,7 @@ class YouTubeLiveTest extends TestCase
         parent::setUp();
         // Saturday 7 Nov 2026, 09:00 UTC.
         $this->travelTo(Carbon::parse('2026-11-07 09:00:00', 'UTC'));
-        config(['youtube.client_id' => 'client-123', 'youtube.client_secret' => 'secret-456', 'stream.competitions' => ['PL'], 'youtube.privacy' => 'unlisted']);
+        config(['youtube.client_id' => 'client-123', 'youtube.client_secret' => 'secret-456', 'youtube.channel_id' => 'UC123', 'stream.competitions' => ['PL'], 'youtube.privacy' => 'unlisted']);
         $this->admin = User::factory()->create(['is_admin' => true]);
         $pl = League::create(['football_data_id' => 2021, 'short_code' => 'PL', 'name' => 'Premier League']);
         // Saturday 12:30, 15:00, 17:30 UTC and Sunday 14:00 UTC (match_date is UTC wall-clock).

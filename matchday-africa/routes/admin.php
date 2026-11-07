@@ -26,6 +26,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/youtube/disconnect', [\App\Http\Controllers\Admin\YouTubeController::class, 'disconnect'])->name('youtube.disconnect');
     Route::post('/youtube/schedule', [\App\Http\Controllers\Admin\YouTubeController::class, 'schedule'])->name('youtube.schedule');
     Route::post('/youtube/test', [\App\Http\Controllers\Admin\YouTubeController::class, 'test'])->name('youtube.test');
+    Route::get('/youtube/uploads', [\App\Http\Controllers\Admin\YouTubeController::class, 'uploads'])->name('youtube.uploads');
+    Route::post('/youtube/uploads/{match}/retry', [\App\Http\Controllers\Admin\YouTubeController::class, 'retry'])->name('youtube.uploads.retry');
     Route::post('/griot/message', [\App\Http\Controllers\Admin\GriotChallengeController::class, 'message'])->name('griot.message');
     Route::post('/griot/{challenge}/message', [\App\Http\Controllers\Admin\GriotChallengeController::class, 'message'])->name('griot.message.round');
     Route::get('/commerce', [CommerceController::class, 'index'])->name('commerce.index');

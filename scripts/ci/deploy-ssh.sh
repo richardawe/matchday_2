@@ -343,6 +343,22 @@ elif [[ "$mode" == configure-growth ]]; then
     printf '{"WHATSAPP_CHANNEL_URL":"%s"}' "$url" | ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/set-env.php && php artisan config:cache --no-ansi"
 else
     [[ "${GITHUB_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || { echo "Missing release commit SHA."; exit 1; }
+    # YouTube settings from GitHub (secrets YOUTUBE_CLIENT_ID/SECRET, variables YOUTUBE_CHANNEL_ID and
+    # YOUTUBE_UPLOADS) into the server .env before deploy-production.sh rebuilds the config cache.
+    # Keys are added or replaced in place (never duplicated); blank ones leave the server's value alone.
+    # Values travel as JSON on stdin, so they never appear in a command line or the log.
+    # shellcheck disable=SC2016 # the single-quoted program is PHP, not shell
+    youtube_json=$(php -r '
+$set = [];
+foreach (["YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "YOUTUBE_CHANNEL_ID"] as $k) { $v = trim((string) getenv($k)); if ($v !== "") { $set[$k] = $v; } }
+$uploads = strtolower(trim((string) getenv("YOUTUBE_UPLOADS")));
+if (in_array($uploads, ["true", "false"], true)) { $set["YOUTUBE_UPLOADS"] = $uploads; }
+elseif ($uploads !== "") { fwrite(STDERR, "YOUTUBE_UPLOADS must be true or false.\n"); exit(1); }
+if (isset($set["YOUTUBE_CHANNEL_ID"]) && !preg_match("/^UC[A-Za-z0-9_-]{22}$/", $set["YOUTUBE_CHANNEL_ID"])) { fwrite(STDERR, "YOUTUBE_CHANNEL_ID does not look like a channel ID (UC...).\n"); exit(1); }
+echo $set === [] ? "" : json_encode($set);')
+    if [[ -n "$youtube_json" ]]; then
+        printf '%s' "$youtube_json" | ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/set-env.php"
+    fi
     ssh "${ssh_options[@]}" "$target" "bash -s -- $root $GITHUB_SHA" <<'REMOTE'
 set -Eeuo pipefail
 cd "$1"

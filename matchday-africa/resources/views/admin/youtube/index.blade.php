@@ -17,7 +17,7 @@
     <li>In <a href="https://studio.youtube.com" target="_blank" rel="noopener">YouTube Studio</a>, open Create → Go live once and turn live streaming on (phone check; the first time can take up to 24 hours).</li>
     <li>In <a href="https://console.cloud.google.com" target="_blank" rel="noopener">Google Cloud</a>: make a project, enable <b>YouTube Data API v3</b>, set up the OAuth consent screen (External) and set it to <b>In production</b> (in "Testing" the connection expires after 7 days).</li>
     <li>Create an OAuth client ID of type <b>Web application</b> with this redirect URI: <code>{{ $redirect }}</code></li>
-    <li>Add the client ID and secret as GitHub production secrets <code>YOUTUBE_CLIENT_ID</code> and <code>YOUTUBE_CLIENT_SECRET</code>, then run Server operations → <code>configure-youtube</code>.</li>
+    <li>Add the client ID and secret as GitHub production secrets <code>YOUTUBE_CLIENT_ID</code> and <code>YOUTUBE_CLIENT_SECRET</code>, then deploy (the deploy writes them into the server .env) or run Server operations → <code>configure-youtube</code>.</li>
    </ol>
   </section>
  @elseif(!$account)
@@ -30,6 +30,8 @@
    <form method="POST" action="{{ route('admin.youtube.disconnect') }}" onsubmit="return confirm('Disconnect YouTube? Scheduled broadcasts stay on the channel but nothing new is made.')">@csrf<button type="submit">Disconnect</button></form>
   </header>
   <table class="md-signup-table"><tbody>
+   @if($wrongChannel)<tr><th>Wrong channel</th><td><b>This is not the Matchday Africa channel ({{ config('youtube.channel_id') }}).</b> Nothing is uploaded here: <a href="{{ route('admin.youtube.connect') }}">connect again</a> and pick the Matchday Africa channel.</td></tr>@endif
+   <tr><th>Shorts</th><td>@if(!$canUpload)This connection can't upload videos: <a href="{{ route('admin.youtube.connect') }}">connect again</a> to grant uploads.@elseif($uploadsOn)Every new reel is uploaded as a Short. <a href="{{ route('admin.youtube.uploads') }}">Reels on YouTube</a>@else Off (<code>YOUTUBE_UPLOADS</code>). <a href="{{ route('admin.youtube.uploads') }}">Reels on YouTube</a>@endif</td></tr>
    <tr><th>Channel</th><td><a href="https://www.youtube.com/channel/{{ $account->channel_id }}" target="_blank" rel="noopener">{{ $account->channel_id }}</a>@if($account->connectedBy) · connected by {{ $account->connectedBy->name }} {{ $account->created_at->diffForHumans() }}@endif</td></tr>
    <tr><th>Stream</th><td>{{ $health ? ucfirst($health) : 'Unknown' }} <small>(active = YouTube is receiving the picture)</small></td></tr>
    <tr><th>Server URL</th><td><code>{{ $account->ingest_url }}</code></td></tr>

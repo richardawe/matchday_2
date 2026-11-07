@@ -76,6 +76,7 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Player photos (API-Football squads, one call per team, each squad refreshed weekly; also from match ratings after full time) | `App\Services\PlayerPhotos` (saves `public/generated/players/{id}.png`, adds players our squads lack), `App\Support\PlayerNames` ("M. Salah" = "Mohamed Salah"), `players:photos`; `PlayerService` updates squads in place (no more delete-and-recreate, so photos and `/players/{id}` links survive); `ApiFootballEnrichmentService` spends two calls on ESPN-covered matches (line-ups, ratings + photos) | `players:photos` daily 04:45 | `API_FOOTBALL_KEY`, `API_FOOTBALL_PHOTO_LEAGUES` (default `PL:39`) |
 | Matchday Live stream screen (`/stream`, 1080×1920 for YouTube LIVE; goals and red cards with army art and drum calls, Griot lines, countdown between matches; `?test=1` fake match day) | `StreamController`, `App\Services\Stream\StreamFeed` (`/stream/feed` snapshot, stable goal ids per side), `resources/views/stream.blade.php`, `resources/js/stream.js` + `resources/js/stream/*`, `resources/css/stream.css`, `config/stream.php`; plan and next phases in `docs/LIVE_STREAM_PLAN.md` | n/a | `STREAM_PAGE`, `STREAM_COMPETITIONS` |
 | YouTube LIVE (connect the channel once; one broadcast per matchday window on a reusable stream key, auto-start when the picture arrives, ended after the last match; private 30-min test broadcasts) | `Admin\YouTubeController` (`/admin/youtube`, OAuth callback `/admin/youtube/callback`), `App\Services\YouTube\YouTubeClient` (OAuth, token refresh, liveStreams/liveBroadcasts), `YouTubeBroadcasts` (windows from `stream.competitions`, title/description), `youtube:broadcasts`, tables `youtube_accounts` (tokens and stream key encrypted with APP_KEY), `youtube_broadcasts`, `config/youtube.php` | `youtube:broadcasts` 10m | `YOUTUBE_CLIENT_ID/SECRET` (Server operations `configure-youtube`), `YOUTUBE_AUTO`, `YOUTUBE_PRIVACY` (+ migration) |
+| YouTube Shorts (every new reel uploaded as a public Short; title "Home h-a Away \| hook #Shorts", factual one-line summary, match link with UTM; at most `YOUTUBE_DAILY_UPLOADS` a quota day, the rest wait; resumable, 3 retries) | `App\Services\YouTube\ReelUploads` (queued from `ReelService::mark` when a reel becomes ready), job `UploadReelToYouTube`, `youtube:uploads`, `youtube:backfill {--days=7}`, admin `/admin/youtube/uploads` (status, Retry upload); columns `matches.youtube_*`; uses the channel connected at `/admin/youtube` (refresh token encrypted in `youtube_accounts`), refuses any channel but `YOUTUBE_CHANNEL_ID` | `youtube:uploads` 5m | `YOUTUBE_UPLOADS` (the deploy writes it from the GitHub variable, default true) + migration |
 | Home arena | `resources/views/partials/home-arena.blade.php`, `resources/js/arena.js` (GSAP), `arena3d.js` (three.js, desktop only) | rides the home pulse refresh | always on when a Premier League match qualifies |
 
 ## 4. CI/CD
@@ -173,6 +174,7 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `BANTER_CARDS` | false | Full-time banter cards on match pages |
 | `STREAM_PAGE` / `STREAM_COMPETITIONS` | false / PL,eng.1 | The `/stream` screen for live streams; competitions by league short code or ESPN slug |
 | `YOUTUBE_CLIENT_ID` / `_SECRET` / `YOUTUBE_AUTO` / `YOUTUBE_PRIVACY` | empty / empty / false / unlisted | YouTube LIVE: OAuth client, automatic matchday broadcasts, their privacy |
+| `YOUTUBE_CHANNEL_ID` / `YOUTUBE_UPLOADS` / `YOUTUBE_DAILY_UPLOADS` | Matchday Africa channel / false / 6 | YouTube Shorts: the only channel allowed, automatic reel uploads, uploads per quota day (1,600 of 10,000 units each). **Every deploy writes** `YOUTUBE_CLIENT_ID`/`_SECRET` (secrets), `YOUTUBE_CHANNEL_ID` and `YOUTUBE_UPLOADS` (repository variables; the channel defaults to `UCJ9Asmir1hBOHHQs9qSCkHg` in `config/youtube.php`, uploads to `true`) into the server `.env` (`scripts/ci/deploy-ssh.sh`, via `set-env.php`; blank secrets leave the server value alone) |
 
 ## 7. Open items and known issues
 ### State on 3 Nov 2026 (end of session)
@@ -204,6 +206,14 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   endpoint (`/matches/{id}/chronicle`) is JSON, not a page.
 - Local review tooling used on 3 Nov: a demo SQLite database plus Playwright scripts that screenshot every page at
   phone width and flag elements still in the classic serif/beige/Tailwind colours. Re-create them if needed; they are not in the repo.
+
+### YouTube Shorts (7 Nov 2026)
+- Google Cloud project "Matchday YouTube Uploader" (`matchday-youtube-uploader`), OAuth web client "Matchday site", app In production
+  (unverified). Channel `UCJ9Asmir1hBOHHQs9qSCkHg`. Connect once at `/admin/youtube/connect` (same connection as YouTube LIVE).
+- Videos uploaded through an API project that has not passed YouTube's API compliance audit are locked to private by YouTube;
+  the admin page flags such uploads. Fix: the audit form for the project, not code.
+- 12 reels uploaded by hand before this (matches 4877–5085) are recorded by the migration so they are never uploaded again.
+- Built on the existing `YouTubeClient` (Laravel HTTP) rather than google/apiclient, which would add a very large dependency for two calls.
 
 ### Beat the Griot and banter cards (4 Nov 2026)
 - Old prediction engine removed on 4 Nov (owner's decision): hand-made admin rounds, prediction seasons, goalscorer and
