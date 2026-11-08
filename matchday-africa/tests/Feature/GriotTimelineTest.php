@@ -160,6 +160,18 @@ class GriotTimelineTest extends TestCase
         $this->assertGreaterThan(count((new MomentPicker())->pick($plays, true)), count($eager->pick($plays, true)));
     }
 
+    public function test_timeline_goal_posts_show_the_scorers_photo(): void
+    {
+        config(['site.style' => 'cartoon']);
+        \App\Models\Player::create(['team_id' => $this->match->home_team_id, 'name' => 'Alexander Isak', 'photo_url' => 'https://matchday.africa/generated/players/9.png?v=abc']);
+        app(GriotTimeline::class)->savePlays($this->match, $this->plays('summary-liverpool-brighton'));
+        app(GriotTimeline::class)->build($this->match);
+
+        $this->get(route('matches.show', $this->match))->assertOk()
+            ->assertSee('https://matchday.africa/generated/players/9.png?v=abc', false)
+            ->assertSee('md-tl-face', false)->assertSee('alt="Alexander Isak"', false);
+    }
+
     public function test_picker_matches_the_training_code_on_the_shared_fixture(): void
     {
         $fixture = json_decode(file_get_contents(base_path('tests/Fixtures/griot/picker-parity.json')), true);

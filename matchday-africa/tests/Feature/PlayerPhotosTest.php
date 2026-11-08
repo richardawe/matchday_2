@@ -169,6 +169,28 @@ class PlayerPhotosTest extends TestCase
         $this->assertArrayNotHasKey('api_football_photos_at', $this->liverpool->fresh()->metadata);
     }
 
+    public function test_admin_sees_which_clubs_and_players_have_photos(): void
+    {
+        $city = Team::where('name', 'Manchester City FC')->first();
+        $this->liverpool->update(['metadata' => ['api_football_team_id' => 40, 'api_football_photos_at' => '2026-11-06T20:00:00+00:00']]);
+        Player::create(['team_id' => $this->liverpool->id, 'name' => 'Mohamed Salah', 'photo_url' => 'https://matchday.africa/generated/players/1.png', 'metadata' => ['api_football_player_id' => 306]]);
+        Player::create(['team_id' => $this->liverpool->id, 'name' => 'Hugo Ekitike', 'metadata' => ['api_football_player_id' => 400]]);
+        Player::create(['team_id' => $this->liverpool->id, 'name' => 'Mystery Man']);
+        Player::create(['team_id' => $city->id, 'name' => 'Erling Haaland']);
+        $admin = \App\Models\User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)->get('/admin/player-photos')->assertOk()
+            ->assertSee('1 of 2 clubs have photos')->assertSee('Liverpool FC')->assertSee('1 of 3')
+            ->assertSee('Manchester City FC')->assertSee('0 of 1')->assertSee('Not linked yet');
+
+        $this->actingAs($admin)->get('/admin/player-photos?team='.$this->liverpool->id)->assertOk()
+            ->assertSee('Liverpool FC: 1 of 3 with a photo')
+            ->assertSee('https://matchday.africa/generated/players/1.png', false)
+            ->assertSee('No photo · Not matched')->assertSee('Mystery Man');
+
+        $this->actingAs(\App\Models\User::factory()->create())->get('/admin/player-photos')->assertForbidden();
+    }
+
     public function test_nothing_is_fetched_without_a_key(): void
     {
         config(['services.api_football.key' => '']);

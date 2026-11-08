@@ -30,6 +30,8 @@ class MatchMoment extends Model
 
     public function cardUrl(string $voice = 'en', string $format = 'feed'): string
     {
-        return route('moments.card', ['moment' => $this->id, 'voice' => $voice, 'format' => $format, 'v' => $this->updated_at?->timestamp]);
+        // The look is in the URL so a change of SITE_STYLE isn't hidden by the day-long image cache.
+        return route('moments.card', array_filter(['moment' => $this->id, 'voice' => $voice, 'format' => $format, 'v' => $this->updated_at?->timestamp,
+            'look' => \App\Services\StoryCardRenderer::cartoonLook() ? 'cartoon' : null], fn ($v) => $v !== null));
     }
 }
