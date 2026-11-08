@@ -1,7 +1,7 @@
 # Matchday Africa: agent guide
 
 Read this first. It is the project memory for coding agents (Codex reads `AGENTS.md`; Claude Code
-reads `CLAUDE.md`, which points here). Last updated 8 Nov 2026, after Beat the Griot, the stream screen, YouTube LIVE
+reads `CLAUDE.md`, which points here). Last updated 8 Nov 2026, after the social queue for the posting bot (social autopost off), Beat the Griot, the stream screen, YouTube LIVE
 and Shorts, player photos, social media uploads (PRs #55–#66), and club and player names in the Griot's words with a
 20-second commentary reel (see section 7 "Griot names and the commentary reel").
 
@@ -61,6 +61,7 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Bright v2 reel (comic panels, army moods, always 20 s, Griot timeline moments; opening frame shows club names and scorers) | `reel/src/ReelV2.jsx`, moods and the 20 s running order in `reel/src/timeline.js` (checked by `node reel/test-timeline.mjs`, run from `ReelTimelineTest`), `ReelService::timelineBeats()`, solid cut-outs `public/war/army/*-solid.webp` and poses `public/war/army/poses/` from `scripts/build-armies.mjs`, approved poses in `config/armies.php` `poses`; `node reel/preview.mjs` renders one still per scene | as above | `REEL_STYLE=v2` |
 | Match alerts + inbox ("Alert me" on any match, accounts only; kick-off reminder, kick-off, goals, red cards, HT, FT, reel) and messages to users | `app/Services/Alerts/*` (`WebPush` = RFC 8291/8292 with OpenSSL only, `MatchAlerts`, `Alerts`), `AlertController`, `Admin/AnnouncementController` (`/admin/messages`), `public/sw.js`, `public/manifest.webmanifest`, `resources/js/alerts.js`, tables `notifications`, `push_subscriptions`, `match_alerts`, `match_alert_log`, `announcements` | `alerts:scan` 1m | `PUSH_ENABLED` + VAPID keys (`push:keys --write`); inbox needs the migration |
 | Buffer → X, Instagram (live goal and red-card cards; reels go through growth_posts) | `app/Services/BufferPublisher.php`, `BufferClient.php` (ported from ngr.ltd), `buffer:publish`, `config/buffer.php`, table `social_posts` | `buffer:publish` 1m | `BUFFER_API_KEY` + `BUFFER_CHANNEL_*` |
+| Social queue for the posting bot (the site's own social posting is off by default; a separate bot posts through Buffer) | `App\Support\SocialAutopost` (the one switch, checked in `BufferClient` mutations/`createPost`, `BufferPublisher`, `buffer:publish`, `TwitterService::postTweet`, the Twitter commands, `GrowthPostGenerator` queueing and redraw reposts, `ReelService::queue` repost flag, admin `/admin/twitter` queue), `App\Services\SocialQueue` (items `reel:<match_id>` for PL reels and `growth:<id>` for previews, fixtures, results, griot, banter and news; last 14 days, newest first; static mp4 under `public/generated/reels`, length from the mp4 header, YouTube Short, card image, caption without emoji or arrows, posted state per channel x/instagram/tiktok/youtube), admin `/admin/social-queue` (Mark posted / Undo), API `GET /api/social-queue`, `POST /api/social-queue/{id}/posted` (`routes/api.php`, bearer token middleware `SocialQueueToken`, 60/30 requests a minute per IP), table `social_queue_posts` | n/a (`buffer:publish` stays scheduled and prints "Social autopost is off; nothing sent.") | `SOCIAL_AUTOPOST_ENABLED` (default false), `SOCIAL_QUEUE_TOKEN` (+ migration) |
 | Planned social posts (reels, news, fixture previews with a GD fixture card, morning fixtures, night results, "New look!" reposts of redrawn reels; X all, Instagram image/video, TikTok reels) | `GrowthPostGenerator.php` (`twitter:engage`), `FixtureCardRenderer.php` (route `matches.card`; `drawCartoon` in the cartoon look; always link it with `FixtureCardRenderer::url()`, which is versioned by look and result), table `growth_posts` (per channel), admin `/admin/twitter` | `twitter:engage` 10m plans; `buffer:publish` 1m sends when a channel's slot is free | `BUFFER_AUTO` + `BUFFER_CHANNEL_*` |
 | Homepage top (both homes) | radio as a slim bar `partials/home/radio-bar` (plays in place via `resources/js/radio.js`), then live scores `partials/home/live-now` while a match is credibly live (refilled by the pulse JSON `live` key every 30 s), then the Watch live strip `partials/home/watch-live` (`App\Support\StreamLink`: the live YouTube matchday broadcast, public or unlisted and never a `test-` one, else `/stream`; hidden while `STREAM_PAGE` is off) | n/a | radio needs `RADIO_ENABLED` |
 | Reels-first homepage | `resources/views/home-v2.blade.php`, `HomeShowcase::rolling()` (every reel of the last 7 days, newest match first; `rollingKey()`), `partials/home/reels-strip` (one row of reel cards, no headline panel; each card links to its match page; fixture cards 16:9 when there are no reels), `resources/js/home-reels.js` (the first reel fully on screen plays muted and hands over to the next when it ends, back to the newest after the last; Sound on/off; arrows on desktop). The pulse refresh (`/home/pulse?reels=<key>`) sends `reels_html` when a reel arrives or turns a week old, and `app.js` swaps the strip unless the viewer has the sound on, shared blocks in `resources/views/partials/home/`; arena at `/war/arena` (`ArenaService.php`) | n/a | `HOME_V2` (preview `/?home=v2`) |
@@ -156,6 +157,8 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `REEL_NARRATION` / `REEL_NARRATION_VOICE` | false / bm_george | Kokoro commentary over new reels: one commentator's call from kick-off to the final whistle, written by `App\Services\ReelCommentary` (`radio/speak.mjs`, server renderer only; a failure renders without it) |
 | `REEL_DELAY_MINUTES` | 3 | Wait after full time before rendering |
 | `REEL_GITHUB_REPO` / `REEL_GITHUB_TOKEN` | this repo / empty | For the GitHub fallback |
+| `SOCIAL_AUTOPOST_ENABLED` | false | The site posts to Buffer/X/Instagram/TikTok itself. Off: nothing is sent (listing Buffer channels still works), planned posts stay drafts, reels and YouTube are unaffected |
+| `SOCIAL_QUEUE_TOKEN` | empty | Bearer token for `/api/social-queue` (the posting bot). Empty: the API answers 401 to everyone |
 | `BUFFER_API_KEY` | empty | Buffer API key |
 | `BUFFER_MODE` | shareNow | Or `addToQueue` to use the Buffer schedule |
 | `BUFFER_CHANNEL_X` / `_INSTAGRAM` / `_TIKTOK` | empty | Buffer channel IDs |
@@ -210,6 +213,18 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   endpoint (`/matches/{id}/chronicle`) is JSON, not a page.
 - Local review tooling used on 3 Nov: a demo SQLite database plus Playwright scripts that screenshot every page at
   phone width and flag elements still in the classic serif/beige/Tailwind colours. Re-create them if needed; they are not in the repo.
+
+### Social posting moved to a bot (8 Nov 2026)
+- Owner's decision: the site no longer posts to social media by itself. Reels are still rendered, served from
+  `public/generated/reels/<id>/<id>.mp4` and uploaded as YouTube Shorts; YouTube LIVE is unchanged. A separate bot
+  posts through Buffer from `GET /api/social-queue` and reports back with `POST /api/social-queue/{id}/posted`
+  (`{channel, external_post_id, url}`); admins can mark posts by hand at `/admin/social-queue`.
+- Production: set `SOCIAL_AUTOPOST_ENABLED=false` and `SOCIAL_QUEUE_TOKEN` to a long random value
+  (`php -r "echo bin2hex(random_bytes(32));"`), then `php artisan migrate --force` and `php artisan config:clear`
+  (and `php artisan config:cache` if the server caches config). Keep the token private: never paste it in chat,
+  tickets, commits or screenshots; give it to the bot only through a secure setting.
+- Turning `SOCIAL_AUTOPOST_ENABLED=true` brings back the old Buffer posting (with `BUFFER_AUTO` etc.). Don't run both
+  that and the bot, or posts go out twice.
 
 ### Griot names and the commentary reel (8 Nov 2026)
 - Owner (8 Nov): YouTube posts work. "The army names are not resonating": the Griot's words now use **club and player names**

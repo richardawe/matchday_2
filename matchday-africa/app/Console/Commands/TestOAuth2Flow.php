@@ -33,7 +33,9 @@ class TestOAuth2Flow extends Command
         $this->line('');
 
         // Test 2: Test posting with simulated access token
-        if ($this->option('tweet')) {
+        if ($this->option('tweet') && !\App\Support\SocialAutopost::enabled()) {
+            $this->info('2. '.TwitterService::DISABLED_MESSAGE);
+        } elseif ($this->option('tweet')) {
             $this->info('2. Testing tweet posting with simulated access token...');
             
             // Simulate having an access token in session

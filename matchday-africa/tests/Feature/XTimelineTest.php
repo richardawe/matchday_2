@@ -24,6 +24,8 @@ class XTimelineTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // These tests are about the site posting through Buffer itself (SOCIAL_AUTOPOST_ENABLED).
+        config(['social.autopost_enabled' => true]);
         // Saturday 09:00 in Lagos (08:00 UTC).
         $this->travelTo(now('Africa/Lagos')->setDate(2026, 10, 24)->setTime(9, 0));
         config(['buffer.key' => 'key', 'buffer.channels' => ['x' => 'chan-x', 'instagram' => null, 'tiktok' => null], 'buffer.x.auto' => true]);

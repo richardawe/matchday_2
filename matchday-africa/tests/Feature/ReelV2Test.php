@@ -27,6 +27,8 @@ class ReelV2Test extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // These tests are about the site posting through Buffer itself (SOCIAL_AUTOPOST_ENABLED).
+        config(['social.autopost_enabled' => true]);
         $this->travelTo('2026-10-19 18:00:00');
         $league = League::create(['football_data_id' => 2021, 'short_code' => 'PL', 'name' => 'Premier League']);
         $this->match = FootballMatch::create([

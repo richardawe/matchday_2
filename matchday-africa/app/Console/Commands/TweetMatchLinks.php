@@ -47,6 +47,12 @@ class TweetMatchLinks extends Command
             $summary = true;
         }
 
+        if (!\App\Support\SocialAutopost::enabled()) {
+            $this->info(TwitterService::DISABLED_MESSAGE);
+
+            return 0;
+        }
+
         $this->info("🐦 Tweeting match links for {$date}");
 
         // Test Twitter API connection first

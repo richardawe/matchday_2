@@ -296,6 +296,8 @@ class ReelService
         }
         $this->stories->sync($match);
         MatchMoment::where('match_id', $match->id)->where('type', 'full_time')->update(['created_at' => now()->subMinutes(config('reel.delay_minutes') + 1)]);
+        // A redraw is only reposted by the site while it posts to social itself (SOCIAL_AUTOPOST_ENABLED).
+        $repost = $repost && \App\Support\SocialAutopost::enabled();
         $this->mark($match, ['status' => 'queued', 'attempts' => 0, 'queued_at' => now()->toIso8601String()] + ($repost ? ['repost' => true] : []));
 
         return true;

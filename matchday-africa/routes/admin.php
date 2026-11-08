@@ -29,6 +29,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/youtube/test', [\App\Http\Controllers\Admin\YouTubeController::class, 'test'])->name('youtube.test');
     Route::get('/social-media', [\App\Http\Controllers\Admin\SocialMediaController::class, 'index'])->name('social-media.index');
     Route::post('/social-media', [\App\Http\Controllers\Admin\SocialMediaController::class, 'store'])->name('social-media.store');
+    Route::get('/social-queue', [\App\Http\Controllers\Admin\SocialQueueController::class, 'index'])->name('social-queue.index');
+    Route::post('/social-queue/posted', [\App\Http\Controllers\Admin\SocialQueueController::class, 'posted'])->name('social-queue.posted');
+    Route::post('/social-queue/undo', [\App\Http\Controllers\Admin\SocialQueueController::class, 'undo'])->name('social-queue.undo');
     Route::get('/youtube/uploads', [\App\Http\Controllers\Admin\YouTubeController::class, 'uploads'])->name('youtube.uploads');
     Route::post('/youtube/uploads/{match}/retry', [\App\Http\Controllers\Admin\YouTubeController::class, 'retry'])->name('youtube.uploads.retry');
     Route::post('/griot/message', [\App\Http\Controllers\Admin\GriotChallengeController::class, 'message'])->name('griot.message');
