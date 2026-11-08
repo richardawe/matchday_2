@@ -312,6 +312,8 @@ body.md-cartoon .md-tl-post { grid-template-columns: 2.6rem auto minmax(0, 1fr);
 body.md-cartoon .md-tl-post p { color: var(--c-ink); }
 body.md-cartoon .md-tl-post.is-goal { background: var(--c-surface); border-color: var(--c-ink); }
 body.md-cartoon .md-tl-moods { display: flex; flex-direction: column; gap: .4rem; }
+body.md-cartoon .md-tl-face { border-radius: 50%; object-position: center top; background: var(--c-surface); }
+body.md-cartoon .md-tl-face.is-red { filter: grayscale(1); }
 @media (max-width: 420px) { body.md-cartoon .md-tl-mood { width: 60px; height: 60px; } }
 
 /* Reading text: Plex everywhere, never the classic serif. */
@@ -509,3 +511,21 @@ body.md-cartoon .md-banter-preview img { border: 4px solid var(--c-ink); box-sha
 body.md-cartoon .md-banter-choice button { border: 2px solid var(--c-ink); background: var(--c-surface); color: var(--c-ink); font-family: var(--c-mono); }
 body.md-cartoon .md-banter-choice button[aria-pressed="true"] { background: var(--c-ink); color: var(--c-sun); }
 body.md-cartoon .md-banter-wa { border: 3px solid var(--c-ink); box-shadow: 5px 5px 0 var(--c-ink); font-family: var(--c-display); font-weight: 400; font-size: 1.15rem; }
+
+/* Watch live (STREAM_PAGE) */
+body.md-cartoon .md-watch-live { background: var(--c-ink); border-bottom: 5px solid var(--c-ink); }
+body.md-cartoon .md-watch-live a { color: var(--c-paper) !important; text-decoration: none; }
+body.md-cartoon .md-watch-live-tag { color: var(--c-sun); font-family: var(--c-mono); }
+body.md-cartoon .md-watch-live strong { font-family: var(--c-display); font-weight: 400; font-size: 1.35rem; letter-spacing: .02em; text-transform: uppercase; }
+body.md-cartoon .md-watch-live b { background: var(--c-live); color: var(--c-ink); border: 3px solid var(--c-paper); box-shadow: 4px 4px 0 var(--c-sun); font-family: var(--c-display); font-weight: 400; font-size: 1.05rem; letter-spacing: .04em; }
+body.md-cartoon .md-feature-live { background: var(--c-live); }
+body.md-cartoon .md-nav-live { color: var(--c-live) !important; font-weight: 700; }
+
+/* Homepage reels strip */
+body.md-cartoon .md-reels-strip .md-eyebrow { display: inline-block; padding: .2rem .6rem; background: var(--c-ink); color: var(--c-sun); font-family: var(--c-mono); }
+body.md-cartoon .md-reels-strip .md-reel-card { border: 4px solid var(--c-ink); border-radius: 0; box-shadow: 6px 6px 0 var(--c-ink); background: var(--c-ink); color: var(--c-paper) !important; margin: 0 6px 6px 0; }
+body.md-cartoon .md-reel-card.is-on { box-shadow: 6px 6px 0 var(--c-sun); }
+body.md-cartoon .md-reels-strip .md-reel-card .md-reel-card-title { background: var(--c-ink) !important; color: var(--c-paper) !important; }
+body.md-cartoon .md-reels-strip .md-reel-card-title b { color: var(--c-paper) !important; font-family: var(--c-display); font-weight: 400; font-size: 1.05rem; letter-spacing: .02em; text-transform: uppercase; }
+body.md-cartoon .md-reels-strip .md-reel-card-title small { font-family: var(--c-mono); color: var(--c-sun) !important; opacity: 1; }
+body.md-cartoon .md-reels-strip .md-reels-nav { background: var(--c-sun); color: var(--c-ink); border: 3px solid var(--c-ink); border-radius: 0; box-shadow: 3px 3px 0 var(--c-ink); }

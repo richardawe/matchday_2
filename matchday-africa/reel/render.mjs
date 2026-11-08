@@ -43,6 +43,21 @@ export async function stageReel(props) {
             delete inputProps[side].pose_paths;
             delete inputProps[side].pose_urls;
         }
+        // The named player's photo for each moment: { photo_path | photo_url } → beat.photo (a staged file).
+        for (const [i, beat] of (inputProps.beats ?? []).entries()) {
+            const source = beat.photo_path || beat.photo_url;
+            delete beat.photo_path;
+            delete beat.photo_url;
+            if (!source) continue;
+            const name = `face-${i}.png`;
+            try {
+                if (/^https?:/.test(source)) await writeFile(path.join(stage, name), Buffer.from(await (await fetch(source)).arrayBuffer()));
+                else await copyFile(source, path.join(stage, name));
+                beat.photo = name;
+            } catch {
+                // A missing photo never stops a reel: the moment shows without it.
+            }
+        }
         // Commentary lines from radio/speak.mjs, when the site spoke them (REEL_NARRATION).
         const voices = [];
         for (const { at, file } of inputProps.narration ?? []) {

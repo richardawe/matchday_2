@@ -41,8 +41,10 @@
 
             <div class="st-griot" id="m-griot" hidden>
                 <div class="st-griot-top"><span>THE GRIOT SAYS</span><span id="m-griot-clock"></span></div>
-                <div class="st-griot-head" id="m-griot-head"></div>
-                <div class="st-griot-line" id="m-griot-line"></div>
+                <div class="st-griot-body">
+                    <img class="st-griot-face" id="m-griot-face" alt="" hidden>
+                    <div><div class="st-griot-head" id="m-griot-head"></div><div class="st-griot-line" id="m-griot-line"></div></div>
+                </div>
             </div>
 
             <div class="st-card st-stats" id="m-stats" hidden></div>
@@ -52,6 +54,20 @@
                 <span class="st-url">matchday.africa</span>
             </div>
             <div class="st-dots" id="m-dots"></div>
+        </section>
+
+        {{-- Two or more matches live: every score on one board, and one feed of what just happened across them all. --}}
+        <section class="st-view st-view-board" id="view-board" hidden>
+            <div class="st-board-head"><span id="b-count"></span><span id="b-competition"></span></div>
+            <div class="st-board" id="b-rows"></div>
+            <div class="st-feed">
+                <div class="st-feed-head">AS IT HAPPENS</div>
+                <div class="st-feed-list" id="b-feed"></div>
+            </div>
+            <div class="st-cta">
+                <div><div class="st-cta-head">EVERY MATCH, LIVE</div><div class="st-cta-line">Scores, the Griot and full-time reels.</div></div>
+                <span class="st-url">matchday.africa</span>
+            </div>
         </section>
 
         <section class="st-view st-view-idle" id="view-idle" hidden>

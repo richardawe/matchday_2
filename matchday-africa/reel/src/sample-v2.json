@@ -1,135 +1,211 @@
 {
-  "style": "v2",
-  "format": "story",
-  "competition": "PREMIER LEAGUE",
-  "title": {
-    "headline": "Arsenal – The Roman Legion v Chelsea – The Ottoman Janissaries",
-    "line": "Arsenal v Chelsea"
-  },
-  "home": {
-    "club": "Arsenal",
-    "army": "Roman Legion",
-    "colours": [
-      "#EF0107",
-      "#FFFFFF"
+    "style": "v2",
+    "format": "story",
+    "competition": "PREMIER LEAGUE",
+    "title": {
+        "headline": "Arsenal v Chelsea",
+        "line": "Full time: Arsenal 2–1 Chelsea",
+        "say": [
+            "Arsenal against Chelsea. Here's how it went!",
+            "Arsenal against Chelsea. Here we go!",
+            "Arsenal, Chelsea. Here we go!",
+            "Arsenal, Chelsea."
+        ]
+    },
+    "home": {
+        "club": "Arsenal",
+        "army": "Roman Legion",
+        "colours": [
+            "#EF0107",
+            "#FFFFFF"
+        ],
+        "art": "home.webp",
+        "score": 2
+    },
+    "away": {
+        "club": "Chelsea",
+        "army": "Ottoman Janissaries",
+        "colours": [
+            "#034694",
+            "#DBA111"
+        ],
+        "art": "away.webp",
+        "score": 1
+    },
+    "beats": [
+        {
+            "type": "kickoff",
+            "tag": "KICK-OFF",
+            "side": null,
+            "home_score": 0,
+            "away_score": 0,
+            "headline": "Kick-off: Arsenal v Chelsea",
+            "line": "Hear me: Arsenal and Chelsea are under way. Let the drums speak.",
+            "player": null,
+            "clock": null,
+            "say": [
+                "We're under way! Arsenal against Chelsea.",
+                "We're under way!"
+            ]
+        },
+        {
+            "type": "woodwork",
+            "tag": "OFF THE POST · 12′",
+            "side": "away",
+            "home_score": 0,
+            "away_score": 0,
+            "headline": "OFF THE POST! Cole Palmer so close",
+            "line": "Cole Palmer hits the woodwork from distance for Chelsea in the 12th minute. Still 0–0.",
+            "player": "Cole Palmer",
+            "clock": "12′",
+            "say": [
+                "Off the post! Palmer so close for Chelsea!",
+                "Off the post, Palmer!",
+                "Off the post!"
+            ]
+        },
+        {
+            "type": "goal",
+            "tag": "GOAL · ARSENAL · 41′",
+            "side": "home",
+            "home_score": 1,
+            "away_score": 0,
+            "headline": "GOAL! Bukayo Saka scores for Arsenal",
+            "line": "First goal of the match in the 41st minute. Arsenal 1–0 Chelsea.",
+            "player": "Bukayo Saka",
+            "clock": "41′",
+            "say": [
+                "Saka scores for Arsenal, 41 minutes! It's one nil to Arsenal.",
+                "Saka scores for Arsenal! It's one nil to Arsenal.",
+                "Goal, Saka! It's one nil to Arsenal.",
+                "Goal! It's one nil to Arsenal."
+            ]
+        },
+        {
+            "type": "half_time",
+            "tag": "HALF-TIME",
+            "side": null,
+            "home_score": 1,
+            "away_score": 0,
+            "headline": "Half-time: Arsenal 1–0 Chelsea",
+            "line": "Arsenal 1–0 Chelsea at the break. Shots 7 to 4.",
+            "player": null,
+            "clock": null,
+            "say": [
+                "Half-time, and it's one nil to Arsenal.",
+                "Half-time: it's one nil to Arsenal.",
+                "Half-time."
+            ]
+        },
+        {
+            "type": "goal",
+            "tag": "GOAL · CHELSEA · 55′",
+            "side": "away",
+            "home_score": 1,
+            "away_score": 1,
+            "headline": "GOAL! Cole Palmer equalises for Chelsea",
+            "line": "All square in the 55th minute. Arsenal 1–1 Chelsea.",
+            "player": "Cole Palmer",
+            "clock": "55′",
+            "say": [
+                "Palmer levels it for Chelsea, 55 minutes! One all.",
+                "Palmer levels it for Chelsea! One all.",
+                "Goal, Palmer! One all.",
+                "Goal! One all."
+            ]
+        },
+        {
+            "type": "red_card",
+            "tag": "RED CARD · CHELSEA · 63′",
+            "side": "away",
+            "home_score": 1,
+            "away_score": 1,
+            "headline": "RED CARD! Moisés Caicedo is sent off",
+            "line": "Chelsea are down to ten in the 63rd minute. Still 1–1.",
+            "player": "Moisés Caicedo",
+            "clock": "63′",
+            "say": [
+                "Red card! Caicedo is sent off for Chelsea, 63 minutes. Down to ten!",
+                "Red card! Caicedo is off for Chelsea!",
+                "Red card, Caicedo!",
+                "Red card!"
+            ]
+        },
+        {
+            "type": "big_chance",
+            "tag": "BIG CHANCE · 79′",
+            "side": "home",
+            "home_score": 1,
+            "away_score": 1,
+            "headline": "SAVED! Kai Havertz is denied",
+            "line": "Kai Havertz shoots from six yards for Arsenal in the 79th minute, but the keeper saves. Still 1–1.",
+            "player": "Kai Havertz",
+            "clock": "79′",
+            "say": [
+                "Great save! Havertz denied for Arsenal.",
+                "Saved! Havertz denied.",
+                "Great save!"
+            ]
+        },
+        {
+            "type": "var",
+            "tag": "VAR · 84′",
+            "side": "away",
+            "home_score": 1,
+            "away_score": 1,
+            "headline": "VAR: no goal for Chelsea",
+            "line": "Nicolas Jackson thought he had scored in the 84th minute. The screen says no. Still 1–1.",
+            "player": "Nicolas Jackson",
+            "clock": "84′",
+            "say": [
+                "But VAR says no! Chelsea's goal is ruled out.",
+                "VAR says no goal!",
+                "No goal!"
+            ]
+        },
+        {
+            "type": "goal",
+            "tag": "GOAL · ARSENAL · 88′",
+            "side": "home",
+            "home_score": 2,
+            "away_score": 1,
+            "headline": "LATE GOAL! Gabriel Martinelli for Arsenal",
+            "line": "Drama in the 88th minute! Arsenal 2–1 Chelsea.",
+            "player": "Gabriel Martinelli",
+            "clock": "88′",
+            "say": [
+                "Late drama! Martinelli for Arsenal, 88 minutes! It's two one to Arsenal.",
+                "Late drama! Martinelli for Arsenal! It's two one to Arsenal.",
+                "Goal, Martinelli! It's two one to Arsenal.",
+                "Goal! It's two one to Arsenal."
+            ]
+        }
     ],
-    "art": "home.webp",
-    "score": 2,
-    "title": "The Roman Legion"
-  },
-  "away": {
-    "club": "Chelsea",
-    "army": "Ottoman Janissaries",
-    "colours": [
-      "#034694",
-      "#DBA111"
+    "stats": [
+        {
+            "label": "POSSESSION %",
+            "home": 58,
+            "away": 42
+        },
+        {
+            "label": "SHOTS",
+            "home": 14,
+            "away": 9
+        },
+        {
+            "label": "ON TARGET",
+            "home": 6,
+            "away": 3
+        }
     ],
-    "art": "away.webp",
-    "score": 1,
-    "title": "The Ottoman Janissaries"
-  },
-  "beats": [
-    {
-      "type": "kickoff",
-      "tag": "KICK-OFF",
-      "side": null,
-      "home_score": 0,
-      "away_score": 0,
-      "headline": "The drums sound",
-      "line": "Arsenal's Roman Legion meet Chelsea's Ottoman Janissaries."
-    },
-    {
-      "type": "woodwork",
-      "tag": "OFF THE POST · 12′",
-      "side": "away",
-      "home_score": 0,
-      "away_score": 0,
-      "headline": "The post says no",
-      "line": "Cole Palmer strikes the woodwork for Chelsea's Janissaries."
-    },
-    {
-      "type": "goal",
-      "tag": "GOAL · ARSENAL · 41′",
-      "side": "home",
-      "home_score": 1,
-      "away_score": 0,
-      "headline": "First blood",
-      "line": "Bukayo Saka strikes for Arsenal's Roman Legion."
-    },
-    {
-      "type": "half_time",
-      "tag": "HALF-TIME",
-      "side": null,
-      "home_score": 1,
-      "away_score": 0,
-      "headline": "Arsenal lead at the break",
-      "line": "The Roman Legion hold the field: Arsenal 1–0 Chelsea."
-    },
-    {
-      "type": "goal",
-      "tag": "GOAL · CHELSEA · 55′",
-      "side": "away",
-      "home_score": 1,
-      "away_score": 1,
-      "headline": "Chelsea answer",
-      "line": "Cole Palmer levels it for the Ottoman Janissaries. All square."
-    },
-    {
-      "type": "red_card",
-      "tag": "RED CARD · CHELSEA · 63′",
-      "side": "away",
-      "home_score": 1,
-      "away_score": 1,
-      "headline": "A warrior falls",
-      "line": "Moisés Caicedo is sent off. Chelsea's Janissaries fight on with ten."
-    },
-    {
-      "type": "big_chance",
-      "tag": "BIG CHANCE · 79′",
-      "side": "home",
-      "home_score": 1,
-      "away_score": 1,
-      "headline": "So close",
-      "line": "Kai Havertz, six yards out, and the keeper saves. Arsenal's Legion groan."
-    },
-    {
-      "type": "var",
-      "tag": "VAR · 84′",
-      "side": "away",
-      "home_score": 1,
-      "away_score": 1,
-      "headline": "VAR takes it away",
-      "line": "Nicolas Jackson's goal is ruled out. Chelsea's Janissaries are denied."
-    },
-    {
-      "type": "goal",
-      "tag": "GOAL · ARSENAL · 88′",
-      "side": "home",
-      "home_score": 2,
-      "away_score": 1,
-      "headline": "A late blow",
-      "line": "Gabriel Martinelli at 88′. Arsenal's Roman Legion strike late."
+    "final": {
+        "headline": "Full time: Arsenal win",
+        "line": "Arsenal 2–1 Chelsea. Shots 14 to 9.",
+        "say": [
+            "And there's the final whistle! Arsenal two, Chelsea one. Arsenal take the points!",
+            "Full time! Arsenal win it, two one!",
+            "Full time! Arsenal win, two one!",
+            "Full time!"
+        ]
     }
-  ],
-  "stats": [
-    {
-      "label": "POSSESSION %",
-      "home": 58,
-      "away": 42
-    },
-    {
-      "label": "SHOTS",
-      "home": 14,
-      "away": 9
-    },
-    {
-      "label": "ON TARGET",
-      "home": 6,
-      "away": 3
-    }
-  ],
-  "final": {
-    "headline": "Arsenal's Roman Legion prevail",
-    "line": "Full time: Arsenal 2–1 Chelsea."
-  }
 }

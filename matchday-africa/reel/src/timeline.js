@@ -57,27 +57,48 @@ export function buildTimeline(beats) {
 //   victory   a goal, leading at half-time, winning at full time
 //   dejected  conceding, hitting the woodwork, a big chance gone, a red card, a goal ruled out
 //   defeated  losing at full time
-// Length follows the story: 2.5 s face-off, a beat per moment (goals longer), 2.5 s numbers,
-// 3 s verdict; between 20 and 45 seconds.
-export const V2 = { title: 75, stats: 75, final: 90, min: 20 * FPS, max: 45 * FPS };
+// Always 20 seconds, told like one commentator calling the match end to end: 2 s opening (final
+// score), 14 s of moments in match order, 1.5 s numbers, 2.5 s final whistle. Moments share the
+// 14 s by weight (a goal gets more than a chance); a quiet match's spare time goes to the numbers
+// and the final whistle.
+export const V2 = { title: 60, stats: 45, final: 75, min: 20 * FPS, max: 20 * FPS };
 const BEAT_FRAMES = { goal: 96, red_card: 84, var: 78, woodwork: 72, big_chance: 72, injury: 66, pressure: 66, kickoff: 60, half_time: 66 };
-// Lowest first: what goes when a busy match has more moments than fit in 45 seconds.
+// Lowest first: what goes when a busy match has more moments than fit.
 const DROP_ORDER = ['pressure', 'injury', 'kickoff', 'big_chance', 'half_time', 'woodwork', 'var', 'red_card'];
+const ROOM = V2.max - V2.title - V2.stats - V2.final;
+const SQUEEZE = 0.75; // moments may run this much faster than their natural length
+const STRETCH = 2; // or this much slower in a quiet match
+const SHORTEST = 48; // 1.6 s: long enough to call a goal ("Saka! Two one!")
 
 export function pickBeatsV2(beats) {
     let chosen = beats.filter((b) => b.type in BEAT_FRAMES);
     const span = () => chosen.reduce((sum, b) => sum + BEAT_FRAMES[b.type], 0);
-    const room = V2.max - V2.title - V2.stats - V2.final;
     for (const kind of DROP_ORDER) {
         // Drop the least important kind, earliest first, until the moments fit.
-        while (span() > room && chosen.some((b) => b.type === kind)) {
+        while (span() * SQUEEZE > ROOM && chosen.some((b) => b.type === kind)) {
             const i = chosen.findIndex((b) => b.type === kind);
             chosen = [...chosen.slice(0, i), ...chosen.slice(i + 1)];
         }
     }
-    // Still too long (a goal-fest): keep the last goals, as the 20-second reel does.
-    while (span() > room) chosen = chosen.slice(1);
+    // Still too many (a goal-fest): keep the last goals, as the classic reel does.
+    while (chosen.length * SHORTEST > ROOM) chosen = chosen.slice(1);
     return chosen;
+}
+
+// Frames per picked moment: their natural lengths scaled to fill the 14 s (within SQUEEZE/STRETCH).
+function beatFramesV2(picked) {
+    const natural = picked.reduce((sum, b) => sum + BEAT_FRAMES[b.type], 0);
+    if (!natural) return [];
+    const scale = Math.min(STRETCH, ROOM / natural);
+    const frames = picked.map((b) => Math.max(SHORTEST, Math.floor(BEAT_FRAMES[b.type] * scale)));
+    // Rounding (and the SHORTEST floor) can overshoot: take the extra from the longest moments.
+    let over = frames.reduce((a, b) => a + b, 0) - ROOM;
+    while (over > 0) {
+        const i = frames.indexOf(Math.max(...frames));
+        frames[i]--;
+        over--;
+    }
+    return frames;
 }
 
 const lead = (beat) => (beat ? beat.home_score - beat.away_score : 0);
@@ -114,16 +135,18 @@ export function focus(beat) {
 
 function buildTimelineV2(beats) {
     const picked = pickBeatsV2(beats);
+    const frames = beatFramesV2(picked);
     const scenes = [{ kind: 'title', from: 0, duration: V2.title }];
     let at = V2.title;
-    for (const beat of picked) {
-        scenes.push({ kind: 'beat', beat, from: at, duration: BEAT_FRAMES[beat.type] });
-        at += BEAT_FRAMES[beat.type];
-    }
-    // A quiet match still lasts 20 seconds: the numbers get the spare time.
-    const stats = Math.max(V2.stats, V2.min - at - V2.final);
+    picked.forEach((beat, i) => {
+        scenes.push({ kind: 'beat', beat, from: at, duration: frames[i] });
+        at += frames[i];
+    });
+    // A quiet match still lasts 20 seconds: the numbers get the spare time, up to 4 s, then the final whistle.
+    const spare = V2.min - at - V2.stats - V2.final;
+    const stats = V2.stats + Math.min(spare, 75);
     scenes.push({ kind: 'stats', from: at, duration: stats });
-    scenes.push({ kind: 'final', from: at + stats, duration: V2.final });
+    scenes.push({ kind: 'final', from: at + stats, duration: V2.min - at - stats });
     return scenes;
 }
 

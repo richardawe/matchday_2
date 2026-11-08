@@ -186,7 +186,7 @@ const Stats = ({ home, away, stats }) => {
                     );
                 })}
             </div>
-            <Caption headline={`${home.army} v ${away.army}`} line="" />
+            <Caption headline={`${home.club} v ${away.club}`} line="" />
             <Footer colours={home.colours} />
         </AbsoluteFill>
     );

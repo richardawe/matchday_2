@@ -74,13 +74,14 @@ class GriotStoryTest extends TestCase
         app(MatchStoryService::class)->syncRecent();
         $opener = MatchMoment::where('angle', 'opener')->first();
 
-        $this->assertSame(['First blood', 'Bukayo Saka strikes for the Roman Legion.'], app(Griot::class)->tell($opener, 'en'));
-        $this->assertSame('Goal don enter!', app(Griot::class)->tell($opener, 'pcm')[0]);
-        $this->assertSame('Bao la kwanza!', app(Griot::class)->tell($opener, 'sw')[0]);
-        $this->assertSame('Eish, what a strike!', app(Griot::class)->tell($opener, 'za')[0]);
+        $this->assertSame(['GOAL! Bukayo Saka scores for Arsenal', 'First goal of the match in the 41st minute. Arsenal 1–0 Chelsea.'], app(Griot::class)->tell($opener, 'en'));
+        $this->assertSame('Goal! Bukayo Saka don score for Arsenal', app(Griot::class)->tell($opener, 'pcm')[0]);
+        $this->assertSame('Goli! Bukayo Saka afungia Arsenal', app(Griot::class)->tell($opener, 'sw')[0]);
+        $this->assertSame('GOAL! Bukayo Saka scores for Arsenal', app(Griot::class)->tell($opener, 'za')[0]);
         $this->assertSame('GOAL · 41′', app(Griot::class)->tag($opener));
         $final = MatchMoment::where('type', 'full_time')->first();
-        $this->assertSame(['The Roman Legion prevail', 'Full time: Arsenal 2–1 Chelsea.'], app(Griot::class)->tell($final, 'en'));
+        $this->assertSame(['Full time: Arsenal win', 'Arsenal 2–1 Chelsea.'], app(Griot::class)->tell($final, 'en'));
+        $this->assertStringNotContainsString('Roman Legion', implode(' ', app(Griot::class)->tell($opener, 'en')), 'clubs, not army names');
     }
 
     public function test_cards_render_as_png_in_every_size_and_show_on_the_match_page(): void
@@ -95,9 +96,64 @@ class GriotStoryTest extends TestCase
         }
 
         $this->get(route('matches.show', ['match' => $this->match, 'voice' => 'sw']))->assertOk()
-            ->assertSee('THE STORY SO FAR')->assertSee('Bao la kwanza!')->assertSee('wa.me/?text=', false)
+            ->assertSee('THE STORY SO FAR')->assertSee('Goli! Bukayo Saka afungia Arsenal')->assertSee('wa.me/?text=', false)
             ->assertCookie('griot_voice', 'sw');
         $this->get(route('matches.show', ['match' => $this->match, 'moment' => $goal->id]))
             ->assertSee(route('moments.card', ['moment' => $goal->id, 'voice' => 'en', 'format' => 'og']), false);
+    }
+
+    public function test_goal_and_red_card_cards_show_the_players_photo_when_we_have_one(): void
+    {
+        app(MatchStoryService::class)->syncRecent();
+        $goal = MatchMoment::where('type', 'goal')->where('player_name', 'Bukayo Saka')->first();
+        $renderer = app(\App\Services\StoryCardRenderer::class);
+        $without = $renderer->path($goal, 'en', 'feed');
+
+        // A solid red "photo" for Saka, saved where players:photos saves them.
+        $saka = \App\Models\Player::create(['team_id' => $this->match->home_team_id, 'name' => 'Bukayo Saka']);
+        $file = public_path("generated/players/{$saka->id}.png");
+        \Illuminate\Support\Facades\File::ensureDirectoryExists(dirname($file));
+        $png = imagecreatetruecolor(150, 150);
+        imagefill($png, 0, 0, imagecolorallocate($png, 220, 20, 20));
+        imagepng($png, $file);
+        $saka->update(['photo_url' => url("generated/players/{$saka->id}.png")]);
+
+        try {
+            $with = $renderer->path($goal->fresh(), 'en', 'feed');
+            $this->assertNotSame($without, $with); // a photo that arrives later redraws the card
+            $card = imagecreatefrompng($with);
+            [$r, $g, $b] = array_values(imagecolorsforindex($card, imagecolorat($card, (int) (1080 * 0.8), (int) (1350 * 0.36))));
+            $this->assertGreaterThan(180, $r);
+            $this->assertLessThan(60, $g);
+
+            // Chapters about other players, and kick-off, have no badge.
+            $palmer = MatchMoment::where('player_name', 'Cole Palmer')->first();
+            $this->assertStringNotContainsString('-p', basename($renderer->path($palmer, 'en', 'feed')));
+        } finally {
+            \Illuminate\Support\Facades\File::delete($file);
+        }
+    }
+
+    public function test_cards_follow_the_cartoon_look(): void
+    {
+        config(['site.style' => 'cartoon']);
+        app(MatchStoryService::class)->syncRecent();
+        $goal = MatchMoment::where('type', 'goal')->first();
+        $renderer = app(\App\Services\StoryCardRenderer::class);
+
+        $this->assertStringContainsString('look=cartoon', $goal->cardUrl('en', 'feed'));
+        $this->assertStringEndsWith('-cartoon.png', $renderer->path($goal, 'en', 'feed'));
+        foreach (['story' => [1080, 1920], 'feed' => [1080, 1350], 'og' => [1200, 630]] as $format => [$w, $h]) {
+            $card = imagecreatefrompng($renderer->path($goal, 'en', $format));
+            $this->assertSame([$w, $h], [imagesx($card), imagesy($card)]);
+            // Sun-yellow background in the corner (the dark look is near-black).
+            [$r, $g, $b] = array_values(imagecolorsforindex($card, imagecolorat($card, $w - 3, $h - 3)));
+            $this->assertGreaterThan(200, $r);
+            $this->assertGreaterThan(150, $g);
+        }
+        $this->get($goal->cardUrl('en', 'feed'))->assertOk()->assertHeader('Content-Type', 'image/png');
+
+        config(['site.style' => 'classic']);
+        $this->assertStringNotContainsString('look=', $goal->cardUrl('en', 'feed'));
     }
 }

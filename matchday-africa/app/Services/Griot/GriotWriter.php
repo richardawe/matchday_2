@@ -4,7 +4,6 @@ namespace App\Services\Griot;
 
 use App\Models\FootballMatch;
 use App\Models\GriotPost;
-use App\Support\Armies;
 
 /**
  * The small writer model's input and fact check. Mirrors griot-ml/writer_data.py (writer_input, prompt,
@@ -22,7 +21,8 @@ class GriotWriter
         $club = fn ($team) => trim(preg_replace('/\s+(FC|AFC)$/i', '', (string) $team?->name));
         $home = $club($match->homeTeam);
         $away = $club($match->awayTeam);
-        $armies = ['home' => Armies::for($match->homeTeam)['army'] ?? $home, 'away' => Armies::for($match->awayTeam)['army'] ?? $away];
+        // The keys keep their old names (the training data uses them); the values are club names now.
+        $armies = ['home' => \App\Support\ClubName::short($match->homeTeam), 'away' => \App\Support\ClubName::short($match->awayTeam)];
         $facts = array_filter($post->facts ?? [], fn ($v) => !in_array($v, [null, '', false, []], true));
         $input = [
             'kind' => $post->kind,

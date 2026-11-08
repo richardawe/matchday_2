@@ -304,3 +304,31 @@ body.md-cartoon footer{background:var(--c-surface)!important}
 .md-cartoon .md-error-card{background:var(--c-surface)}
 .md-cartoon .md-error h1{font-family:var(--c-display);font-weight:400}
 .md-cartoon .md-error-card>p:not(.md-error-code){color:var(--c-ink)}
+.md-cartoon .md-reels-nav{background:var(--c-surface);color:var(--c-ink)}
+.md-cartoon .md-reels-tap{background:var(--c-surface);color:var(--c-ink)}
+.md-cartoon .md-reels-hint{background:var(--c-surface);color:var(--c-ink)}
+.md-cartoon .md-install{background:var(--c-surface)}
+.md-cartoon .md-radio-bar{background:var(--c-surface)}
+.md-cartoon .md-radio-bar-title small{color:var(--c-ink)}
+.md-cartoon .md-radio-bar-share{border-color:var(--c-ink)}
+.md-cartoon .md-radio-bar-progress span{color:var(--c-ink)}
+.md-cartoon .md-radio-bar-feedback{color:var(--c-ink)}
+.md-cartoon .md-griot-says p{background:var(--c-surface)}
+.md-cartoon .md-griot-toast{color:var(--c-ink)}
+.md-cartoon .md-griot-match{background:var(--c-surface)}
+.md-cartoon .md-griot-pick{background:var(--c-surface)}
+.md-cartoon .md-griot-yours input{background:var(--c-surface)}
+.md-cartoon .md-griot-won{background:var(--c-surface)}
+.md-cartoon .md-griot-versus>div{background:var(--c-surface)}
+.md-cartoon .md-griot-verdict.is-win{color:var(--c-ink)}
+.md-cartoon .md-griot-table{background:var(--c-surface)}
+.md-cartoon .md-griot-winners small{color:var(--c-ink)}
+.md-cartoon .md-griot-strip a{background:var(--c-surface)}
+.md-cartoon .md-griot-badge{background:var(--c-surface)}
+.md-cartoon .md-watch-live{background:var(--c-surface);border-bottom-color:var(--c-ink)}
+.md-cartoon .md-watch-live a{color:var(--c-ink)!important}
+.md-cartoon .md-watch-live-tag{color:var(--c-ink)}
+.md-cartoon .md-watch-live b{color:var(--c-ink)}
+.md-cartoon .md-feature-live{background:var(--c-surface)}
+.md-cartoon .md-reel-card{background:var(--c-surface);color:var(--c-ink)!important}
+.md-cartoon .md-reel-card video,.md-cartoon .md-reel-card img{background:var(--c-surface)}

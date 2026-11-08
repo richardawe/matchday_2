@@ -39,4 +39,10 @@ class ClubName
 
         return self::SHORT[$key] ?? self::SHORT[config('armies.aliases')[$key] ?? ''] ?? $full;
     }
+
+    /** The name a commentator says aloud: the short name without written abbreviations ("Forest", not "Nott'm Forest"). */
+    public static function spoken(Team|string|null $team): string
+    {
+        return str_replace("Nott'm Forest", 'Forest', self::short($team));
+    }
 }

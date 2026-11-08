@@ -12,27 +12,19 @@
                     Your premier destination for football match analysis, predictions, and insights across African and international leagues.
                 </p>
                 <x-social-follow />
-                <ul class="mt-3 space-y-1 text-sm">
-                    @foreach(config('social.accounts') as $key => $account)
-                        <li><a href="{{ $account['url'] }}" target="_blank" rel="noopener me" class="text-black hover:text-gray-600 transition-colors">{{ $account['handle'] }} on {{ $account['name'] }}</a></li>
-                    @endforeach
-                </ul>
             </div>
 
             <!-- Quick Links -->
             <div>
                 <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
                 <ul class="space-y-2">
-                    <li><a href="{{ route('home') }}" class="text-black hover:text-gray-600 transition-colors">Home</a></li>
-                    <li><a href="{{ route('matches.index') }}" class="text-black hover:text-gray-600 transition-colors">Live Matches</a></li>
-                    <li><a href="{{ route('leagues.index') }}" class="text-black hover:text-gray-600 transition-colors">Leagues</a></li>
-                    <li><a href="{{ route('community') }}" class="text-black hover:text-gray-600 transition-colors">Community</a></li>
+                    <li><a href="{{ route('matches.index') }}" class="text-black hover:text-gray-600 transition-colors">Matches</a></li>
                     <li><a href="{{ route('reels.index') }}" class="text-black hover:text-gray-600 transition-colors">20-second reels</a></li>
-                    <li><a href="{{ \App\Support\WarLinks::home() }}" class="text-black hover:text-gray-600 transition-colors">Matchday War</a></li>
-                    <li><a href="{{ route('teams.index') }}" class="text-black hover:text-gray-600 transition-colors">Teams</a></li>
-                    <li><a href="{{ route('blogs.index') }}" class="text-black hover:text-gray-600 transition-colors">Articles</a></li>
-                    <li><a href="{{ route('app.install') }}" class="text-black hover:text-gray-600 transition-colors">Get the app</a></li>
+                    @if(\App\Support\StreamLink::enabled())<li><a href="{{ \App\Support\StreamLink::url() }}" class="text-black hover:text-gray-600 transition-colors">Watch live</a></li>@endif
                     <li><a href="{{ route('predictions.index') }}" class="text-black hover:text-gray-600 transition-colors">Beat the Griot</a></li>
+                    <li><a href="{{ \App\Support\WarLinks::home() }}" class="text-black hover:text-gray-600 transition-colors">Matchday War</a></li>
+                    <li><a href="{{ route('leagues.index') }}" class="text-black hover:text-gray-600 transition-colors">Leagues</a></li>
+                    <li><a href="{{ route('app.install') }}" class="text-black hover:text-gray-600 transition-colors">Get the app</a></li>
                 </ul>
             </div>
 

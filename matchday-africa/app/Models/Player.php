@@ -8,6 +8,13 @@ use Carbon\Carbon;
 
 class Player extends Model
 {
+    protected static function booted(): void
+    {
+        // Photo lookups cache squads per request; any change to a player clears them.
+        static::saved(fn () => \App\Services\PlayerPhotos::flush());
+        static::deleted(fn () => \App\Services\PlayerPhotos::flush());
+    }
+
     protected $fillable = [
         'team_id',
         'football_data_id',

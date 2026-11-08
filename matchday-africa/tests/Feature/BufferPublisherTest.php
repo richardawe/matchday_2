@@ -49,7 +49,7 @@ class BufferPublisherTest extends TestCase
 
         $posts = collect($this->bufferPosts())->keyBy('channelId');
         $this->assertCount(2, $posts);
-        $this->assertStringContainsString('First blood', $posts['chan-x']['text']);
+        $this->assertStringStartsWith('GOAL! Bukayo Saka scores for Arsenal. First goal of the match in the 41st minute. Arsenal 1–0 Chelsea.', $posts['chan-x']['text']);
         $this->assertStringStartsWith(url('/moments'), $posts['chan-x']['assets'][0]['image']['url']);
         $this->assertSame('shareNow', $posts['chan-x']['mode']);
         $this->assertArrayNotHasKey('metadata', $posts['chan-x']);

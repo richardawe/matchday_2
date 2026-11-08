@@ -26,8 +26,11 @@
                 @endphp
                 <li class="md-tl-post is-{{ $post->kind }}" id="griot-{{ $post->id }}">
                     <span class="md-tl-clock">{{ $clockLabel }}</span>
-                    @php $moodImages = \App\Support\ArmyMoods::forPost($post, $match); @endphp
-                    @if($moodImages)<span class="md-tl-moods">@foreach($moodImages as $image)<img class="md-mood md-tl-mood{{ $image['logo'] ? ' is-logo' : '' }}" src="{{ $image['url'] }}" alt="{{ $image['alt'] }}" width="76" height="76" loading="lazy">@endforeach</span>@endif
+                    @php
+                        $moodImages = \App\Support\ArmyMoods::forPost($post, $match);
+                        $face = \App\Services\PlayerPhotos::forPost($post, $match); // whoever the Griot names, on every post
+                    @endphp
+                    @if($moodImages || $face)<span class="md-tl-moods">@if($face)<img class="md-mood md-tl-mood md-tl-face{{ $post->kind === 'red_card' ? ' is-red' : '' }}" src="{{ $face['url'] }}" alt="{{ $face['name'] }}" width="76" height="76" loading="lazy">@endif @foreach($moodImages as $image)<img class="md-mood md-tl-mood{{ $image['logo'] ? ' is-logo' : '' }}" src="{{ $image['url'] }}" alt="{{ $image['alt'] }}" width="76" height="76" loading="lazy">@endforeach</span>@endif
                     <div>
                         <span class="md-tl-tag">{{ $teller->tag($post) }}</span>
                         <h3>{{ $headline }}</h3>

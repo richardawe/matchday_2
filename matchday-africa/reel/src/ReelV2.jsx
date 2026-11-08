@@ -28,8 +28,11 @@ const luma = (hex) => {
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
 // The colour a side is drawn in: its first kit colour, or the second when the first is near-black/white.
-// "The Roman Legion": the army's title as it follows the club's name (config armies `title`).
-const title = (side) => side.title ?? `The ${side.army}`;
+// A side's scorers for the opening frame: "Saka 23′ · Havertz 70′" (own goals marked OG).
+const scorers = (beats, side) => (beats ?? [])
+    .filter((b) => b.type === 'goal' && b.side === side && b.player)
+    .map((b) => `${b.player.trim().split(/\s+/).pop()}${b.clock ? ` ${b.clock}` : ''}`)
+    .join(' · ');
 
 const hue = (side) => {
     const [a, b] = side.colours;
@@ -179,14 +182,30 @@ const Burst = ({ text, colour = SUN, top, left = '50%', size = 1, delay = 2, til
     );
 };
 
-// Caption in a comic speech box with an offset shadow in the side's colour.
-const Caption = ({ headline, line, colour, delay = 6 }) => {
+// The player the caption names, in a round badge ringed in the club colour, sitting on the
+// caption's top edge (black and white for a red card).
+const Face = ({ photo, name, colour, grey }) => {
+    const frame = useCurrentFrame();
+    const { fps } = useVideoConfig();
+    const u = useUnit();
+    const pop = spring({ frame: frame - 3, fps, config: { damping: 11 } });
+    return (
+        <div style={{ position: 'absolute', right: 26 * u, top: -292 * u, width: 300 * u, textAlign: 'center', transform: `scale(${pop}) rotate(3deg)`, transformOrigin: '50% 100%' }}>
+            <Img src={staticFile(photo)} style={{ width: 280 * u, height: 280 * u, borderRadius: '50%', objectFit: 'cover', objectPosition: 'center top', background: PAPER, border: `${9 * u}px solid ${colour}`, outline: `${6 * u}px solid ${INK}`, boxShadow: `${10 * u}px ${10 * u}px 0 ${INK}`, filter: grey ? 'grayscale(1)' : 'none' }} />
+            {name && <div style={{ display: 'inline-block', marginTop: -18 * u, position: 'relative', padding: `${4 * u}px ${14 * u}px`, background: INK, color: SUN, font: `${30 * u}px PlexMono`, whiteSpace: 'nowrap' }}>{name}</div>}
+        </div>
+    );
+};
+
+// Caption in a comic speech box with an offset shadow in the side's colour, with the named player's photo.
+const Caption = ({ headline, line, colour, delay = 6, photo, name, grey }) => {
     const frame = useCurrentFrame();
     const { fps } = useVideoConfig();
     const u = useUnit();
     const pop = spring({ frame: frame - delay, fps, config: { damping: 13 } });
     return (
         <div style={{ position: 'absolute', left: 52 * u, right: 52 * u, bottom: 96 * u, padding: `${26 * u}px ${32 * u}px`, background: PAPER, border: `${6 * u}px solid ${INK}`, boxShadow: `${14 * u}px ${14 * u}px 0 ${colour}`, transform: `translateY(${interpolate(pop, [0, 1], [60 * u, 0])}px) rotate(-1deg)`, opacity: pop }}>
+            {photo && <Face photo={photo} name={name} colour={colour} grey={grey} />}
             <div style={{ font: `${84 * u}px/1.02 Anton`, color: INK, textTransform: 'uppercase' }}>{headline}</div>
             {line && <div style={{ font: `${36 * u}px/1.3 Plex`, color: '#2b2722', marginTop: 12 * u }}>{line}</div>}
         </div>
@@ -266,10 +285,10 @@ const Title = ({ home, away, competition, beats }) => {
             </div>
             <div style={{ position: 'absolute', top: 150 * u, left: 52 * u, right: 52 * u, padding: `${18 * u}px ${24 * u}px ${8 * u}px`, background: PAPER, border: `${7 * u}px solid ${INK}`, boxShadow: `${14 * u}px ${14 * u}px 0 ${INK}`, transform: `scale(${settle}) rotate(-1.5deg)`, textAlign: 'center' }}>
                 <div style={{ display: 'flex', gap: 20 * u }}>
-                    {[home, away].map((side) => (
+                    {[['home', home], ['away', away]].map(([which, side]) => (
                         <div key={side.club} style={{ flex: 1, minWidth: 0, borderTop: `${12 * u}px solid ${hue(side)}`, paddingTop: 8 * u }}>
                             <div style={{ font: `${40 * u}px Anton`, color: INK, textTransform: 'uppercase', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{side.club}</div>
-                            <div style={{ font: `${24 * u}px PlexMono`, color: '#5a5246', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{title(side)}</div>
+                            <div style={{ font: `${24 * u}px PlexMono`, color: '#5a5246', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{scorers(beats, which) || '\u00a0'}</div>
                         </div>
                     ))}
                 </div>
@@ -278,9 +297,12 @@ const Title = ({ home, away, competition, beats }) => {
                 </div>
             </div>
             {key && (
-                <div style={{ position: 'absolute', left: 52 * u, right: 52 * u, bottom: 90 * u, padding: `${18 * u}px ${26 * u}px`, background: INK, border: `${5 * u}px solid ${SUN}` }}>
-                    <div style={{ font: `${26 * u}px PlexMono`, color: SUN, letterSpacing: 2 * u }}>KEY MOMENT · {key.tag}</div>
-                    <div style={{ font: `${58 * u}px/1.02 Anton`, color: PAPER, textTransform: 'uppercase', marginTop: 6 * u }}>{key.headline}</div>
+                <div style={{ position: 'absolute', left: 52 * u, right: 52 * u, bottom: 90 * u, padding: `${18 * u}px ${26 * u}px`, background: INK, border: `${5 * u}px solid ${SUN}`, display: 'flex', gap: 22 * u, alignItems: 'center' }}>
+                    {key.photo && <Img src={staticFile(key.photo)} style={{ flex: 'none', width: 130 * u, height: 130 * u, borderRadius: '50%', objectFit: 'cover', objectPosition: 'center top', background: PAPER, border: `${6 * u}px solid ${SUN}` }} />}
+                    <div style={{ minWidth: 0 }}>
+                        <div style={{ font: `${26 * u}px PlexMono`, color: SUN, letterSpacing: 2 * u }}>KEY MOMENT · {key.tag}</div>
+                        <div style={{ font: `${58 * u}px/1.02 Anton`, color: PAPER, textTransform: 'uppercase', marginTop: 6 * u }}>{key.headline}</div>
+                    </div>
                 </div>
             )}
             <Footer colours={home.colours} />
@@ -321,7 +343,8 @@ const Beat = ({ beat, home, away }) => {
             <Board home={home} away={away} homeScore={beat.home_score} awayScore={beat.away_score} tag={beat.tag} />
             {/* In the sky above the other army (top left), clear of the hero's head (it starts at ~31% of the height). */}
             <Burst text={BURSTS[beat.type] ?? beat.type.toUpperCase()} colour={burstColour} top={250 * u} left={who ? '31%' : '50%'} size={who ? 0.6 : 0.58} />
-            <Caption headline={beat.headline} line={beat.line} colour={hue(hero)} />
+            <Caption headline={beat.headline} line={beat.line} colour={hue(hero)} photo={beat.photo}
+                name={beat.player ? beat.player.trim().split(/\s+/).pop() : null} grey={beat.type === 'red_card'} />
             <Footer colours={hero.colours} />
             <Wipe />
         </AbsoluteFill>
@@ -357,7 +380,7 @@ const Stats = ({ home, away, stats }) => {
                     );
                 })}
             </div>
-            <div style={{ position: 'absolute', left: 52 * u, right: 52 * u, bottom: 110 * u, font: `${56 * u}px/1.08 Anton`, color: INK, textTransform: 'uppercase', textAlign: 'center' }}>{home.club} – {title(home)}<br /><span style={{ color: '#d2a052' }}>v</span><br />{away.club} – {title(away)}</div>
+            <div style={{ position: 'absolute', left: 52 * u, right: 52 * u, bottom: 110 * u, font: `${56 * u}px/1.08 Anton`, color: INK, textTransform: 'uppercase', textAlign: 'center' }}>{home.club}<br /><span style={{ color: '#d2a052' }}>v</span><br />{away.club}</div>
             <Footer colours={home.colours} />
             <Wipe />
         </AbsoluteFill>

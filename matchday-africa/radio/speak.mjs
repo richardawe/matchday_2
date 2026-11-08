@@ -1,4 +1,5 @@
-// Speaks a reel's commentary with Kokoro: one short line per scene, fitted to the scene's length.
+// Speaks a reel's commentary with Kokoro: one call per scene, fitted to the scene's length, so the
+// reel sounds like one commentator calling the match from kick-off to the final whistle.
 //   node speak.mjs --props reel.json --out-dir dir
 // Each title, beat and final in the props may carry `say`: wordings from longest to shortest. The
 // longest that fits its scene is used, sped up a little if needed. Writes one raw float32 mono
@@ -11,7 +12,7 @@ import { FPS, timelineFor } from '../reel/src/timeline.js';
 export const RATE = 24000;
 const SPEED = 1.2; // a commentator's pace
 const MAX_SPEED = 1.4;
-const GAP = 0.2; // breath before the next scene
+const GAP = 0.12; // breath before the next scene (short: the calls run on like live commentary)
 
 // The lines to speak: [{at, max, say}] in scene order. The numbers screen has no line of its own,
 // so the full-time call starts there and runs into the final card (2 s alone is too short for it).
@@ -39,16 +40,18 @@ export function trim(samples, threshold = 0.01) {
 }
 
 // The longest wording that fits `max` seconds, at up to MAX_SPEED; otherwise the shortest, fastest.
+// The wording used is kept on the returned samples (`.text`) so the render log shows what was said.
 export async function fit(line, synthesize) {
+    const said = (audio, text) => Object.assign(audio, { text });
     let text;
     for (text of line.say) {
         const audio = trim(await synthesize(text, SPEED));
         const seconds = audio.length / RATE;
-        if (seconds <= line.max) return audio;
+        if (seconds <= line.max) return said(audio, text);
         const speed = SPEED * (seconds / line.max);
-        if (speed <= MAX_SPEED) return trim(await synthesize(text, speed));
+        if (speed <= MAX_SPEED) return said(trim(await synthesize(text, speed)), text);
     }
-    return trim(await synthesize(text, MAX_SPEED));
+    return said(trim(await synthesize(text, MAX_SPEED)), text);
 }
 
 async function main() {
@@ -75,7 +78,7 @@ async function main() {
         const samples = await fit(line, synthesize);
         const file = path.join(arg('out-dir'), `line-${i}.f32`);
         await writeFile(file, Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength));
-        out.push({ at: line.at, file, seconds: Math.round((samples.length / RATE) * 100) / 100 });
+        out.push({ at: line.at, file, seconds: Math.round((samples.length / RATE) * 100) / 100, text: samples.text });
     }
     console.log(JSON.stringify(out));
 }

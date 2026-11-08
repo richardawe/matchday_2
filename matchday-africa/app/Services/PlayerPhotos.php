@@ -116,13 +116,57 @@ class PlayerPhotos
     /** Our photo for a player named in a match feed, or null. Includes players who left the squad. */
     public static function forName(?int $teamId, ?string $name): ?string
     {
-        if (!$teamId || !$name) {
+        return self::player($teamId, $name)?->photo_url;
+    }
+
+    /**
+     * The photo of a player named in a match moment: ['url' => …, 'path' => local file or null].
+     * Looks in the side's squad first, then the other one (an own goal counts for the other side).
+     */
+    public static function forMatch(\App\Models\FootballMatch $match, ?string $side, ?string $name): ?array
+    {
+        $teams = $side === 'away' ? [$match->away_team_id, $match->home_team_id] : [$match->home_team_id, $match->away_team_id];
+        foreach ($teams as $teamId) {
+            if ($player = self::player($teamId, $name)) {
+                $file = public_path("generated/players/{$player->id}.png");
+
+                return ['url' => $player->photo_url, 'path' => is_file($file) ? $file : null, 'name' => $player->name];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The photo for a Griot timeline post: whoever the post names (the scorer, the player sent off,
+     * the one who hit the post or missed, the player going off injured). Null when nobody is named
+     * or we have no photo.
+     */
+    public static function forPost(\App\Models\GriotPost $post, \App\Models\FootballMatch $match): ?array
+    {
+        $facts = $post->facts ?? [];
+        $name = $facts['player'] ?? $facts['player_off'] ?? null;
+
+        return $name ? self::forMatch($match, $post->side, $name) : null;
+    }
+
+    private static function player(?int $teamId, ?string $name): ?Player
+    {
+        if (!$teamId || !$name || trim($name) === '') {
             return null;
         }
-        $player = Player::where('team_id', $teamId)->whereNotNull('photo_url')->get()
-            ->sortByDesc('is_active')->first(fn (Player $p) => PlayerNames::same($p->name, $name));
+        // Squads with photos, loaded once per team per request or job (a timeline asks for many posts).
+        app()->scopedIf('player-photos.squads', fn () => new \ArrayObject());
+        $squads = app('player-photos.squads');
+        $squad = $squads[$teamId] ??= Player::where('team_id', $teamId)->whereNotNull('photo_url')->get()->sortByDesc('is_active')->values();
 
-        return $player?->photo_url;
+        return $squad->first(fn (Player $p) => PlayerNames::same($p->name, $name));
+    }
+
+    /** Forgets the loaded squads (after a photo is saved). */
+    public static function flush(): void
+    {
+        app()->forgetInstance('player-photos.squads');
     }
 
     /** Stores API-Football's team id on our teams (one call per league a week). */

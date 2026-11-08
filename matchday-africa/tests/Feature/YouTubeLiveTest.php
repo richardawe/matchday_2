@@ -31,8 +31,9 @@ class YouTubeLiveTest extends TestCase
         config(['youtube.client_id' => 'client-123', 'youtube.client_secret' => 'secret-456', 'youtube.channel_id' => 'UC123', 'stream.competitions' => ['PL'], 'youtube.privacy' => 'unlisted']);
         $this->admin = User::factory()->create(['is_admin' => true]);
         $pl = League::create(['football_data_id' => 2021, 'short_code' => 'PL', 'name' => 'Premier League']);
-        // Saturday 12:30, 15:00, 17:30 UTC and Sunday 14:00 UTC (match_date is UTC wall-clock).
+        // Saturday 12:30, three at 15:00, 17:30 UTC and Sunday 14:00 UTC (match_date is UTC wall-clock).
         foreach ([['Liverpool FC', 'Arsenal FC', '2026-11-07 12:30:00'], ['Chelsea FC', 'Everton FC', '2026-11-07 15:00:00'],
+            ['Tottenham Hotspur FC', 'Wolverhampton Wanderers FC', '2026-11-07 15:00:00'], ['Aston Villa FC', 'Nottingham Forest FC', '2026-11-07 15:00:00'],
             ['Fulham FC', 'Brentford FC', '2026-11-07 17:30:00'], ['Leeds United FC', 'Sunderland AFC', '2026-11-08 14:00:00']] as [$h, $a, $at]) {
             FootballMatch::create(['league_id' => $pl->id, 'home_team_id' => Team::create(['name' => $h])->id,
                 'away_team_id' => Team::create(['name' => $a])->id, 'match_date' => $at, 'status' => 'TIMED']);
@@ -107,18 +108,24 @@ class YouTubeLiveTest extends TestCase
         $this->assertSame(0, YoutubeAccount::count());
     }
 
-    public function test_matchdays_become_windows(): void
+    public function test_only_three_or_more_matches_at_once_open_a_window(): void
     {
         $windows = app(YouTubeBroadcasts::class)->windows();
 
-        $this->assertCount(2, $windows);
+        // The 15:00 block (three at once) streams; the 12:30, 17:30 and Sunday singles don't.
+        $this->assertCount(1, $windows);
         $this->assertSame('2026-11-07', $windows[0]['key']);
-        $this->assertSame('2026-11-07 12:15', $windows[0]['start']->format('Y-m-d H:i'));
-        $this->assertSame('2026-11-07 19:55', $windows[0]['end']->format('Y-m-d H:i'));
-        $this->assertCount(3, $windows[0]['matches']);
-        $this->assertSame('2026-11-08', $windows[1]['key']);
-        $this->assertStringContainsString('Premier League scores', app(YouTubeBroadcasts::class)->title($windows[0]));
-        $this->assertStringContainsString('13:30 Liverpool v Arsenal', app(YouTubeBroadcasts::class)->description($windows[0]));
+        $this->assertSame('2026-11-07 14:45', $windows[0]['start']->format('Y-m-d H:i'));
+        $this->assertSame('2026-11-07 17:25', $windows[0]['end']->format('Y-m-d H:i'));
+        $this->assertSame(['Chelsea FC', 'Tottenham Hotspur FC', 'Aston Villa FC'], $windows[0]['matches']->map(fn ($m) => $m->homeTeam->name)->all());
+        $this->assertStringContainsString('3 matches', app(YouTubeBroadcasts::class)->title($windows[0]));
+        $this->assertStringContainsString('16:00 Chelsea v Everton', app(YouTubeBroadcasts::class)->description($windows[0]));
+
+        // With the threshold at 1 (the admin page) every matchday is a window again.
+        $any = app(YouTubeBroadcasts::class)->windows(min: 1);
+        $this->assertSame(['2026-11-07', '2026-11-08'], $any->pluck('key')->all());
+        $this->assertSame('2026-11-07 12:15', $any[0]['start']->format('Y-m-d H:i'));
+        $this->assertCount(5, $any[0]['matches']);
     }
 
     public function test_broadcasts_are_made_once_per_matchday_and_ended_after(): void
@@ -127,13 +134,13 @@ class YouTubeLiveTest extends TestCase
         config(['youtube.auto' => true]);
 
         $this->artisan('youtube:broadcasts')->assertSuccessful();
-        $this->assertSame(['2026-11-07', '2026-11-08'], YoutubeBroadcast::orderBy('starts_at')->pluck('window_key')->all());
+        $this->assertSame(['2026-11-07'], YoutubeBroadcast::orderBy('starts_at')->pluck('window_key')->all(), 'only the 15:00 block');
         Http::assertSent(fn (Request $r) => str_contains($r->url(), '/liveBroadcasts/bind') && str_contains($r->url(), 'streamId=stream-9'));
         Http::assertSent(fn (Request $r) => str_contains($r->url(), '/liveBroadcasts?') && $r->method() === 'POST'
             && $r['contentDetails']['enableAutoStart'] === true && $r['status']['privacyStatus'] === 'unlisted');
 
         $this->artisan('youtube:broadcasts');
-        $this->assertSame(2, YoutubeBroadcast::count());
+        $this->assertSame(1, YoutubeBroadcast::count());
 
         // After Saturday's window the live broadcast is ended.
         $this->lifeCycle = 'live';
@@ -141,7 +148,6 @@ class YouTubeLiveTest extends TestCase
         $this->artisan('youtube:broadcasts');
         Http::assertSent(fn (Request $r) => str_contains($r->url(), '/liveBroadcasts/transition') && str_contains($r->url(), 'broadcastStatus=complete'));
         $this->assertSame('complete', YoutubeBroadcast::where('window_key', '2026-11-07')->value('status'));
-        $this->assertSame('scheduled', YoutubeBroadcast::where('window_key', '2026-11-08')->value('status'));
     }
 
     public function test_nothing_is_scheduled_automatically_unless_switched_on(): void

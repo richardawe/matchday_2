@@ -5,7 +5,7 @@ namespace App\Services\Griot;
 use App\Models\FootballMatch;
 use App\Models\GriotPost;
 use App\Services\Griot;
-use App\Support\Armies;
+use App\Support\ClubName;
 
 /**
  * Tells each timeline post in the fan's voice. Templates only: every name, minute and number
@@ -18,84 +18,84 @@ class GriotTeller
     /** Each kind: one or more [headline, line] variants, picked by the post's key so reruns agree. */
     private const LINES = [
         'en' => [
-            'kickoff' => [['Hear me, the armies meet', 'The {home_army} and the {away_army} take the field. Let the drums speak.']],
-            'own_goal' => [['The gods favour the {army}', '{player} turns it into his own net. {score_short}.']],
-            'penalty' => [['From the spot, it is done', '{player} does not miss. {score_short}.']],
+            'kickoff' => [['Kick-off: {home} v {away}', 'Hear me: {home} and {away} are under way. Let the drums speak.']],
+            'own_goal' => [['OWN GOAL! {player} turns it in', '{player} puts it into his own net{at}. A gift for {club}. {score}.']],
+            'penalty' => [['PENALTY! {player} scores for {club}', '{player} does not miss from the spot{at}. {score}.']],
             'goal_assist' => ['{assist} laid it on for him.'],
-            'goal_pressure' => ['The {army} knocked {shots_before} times before the door gave way.'],
-            'red_card' => [['A warrior is banished', '{player} is sent from the field. The {army} fight on with ten.']],
-            'var' => [['The elders say no', '{player} thought he had scored. The screen has spoken: no goal.']],
-            'woodwork' => [['The post stands guard', '{player} strikes {where} and the frame shakes. Still {score_short}.'],
-                ['Wood, only wood', '{player} {where}. The post refuses him.']],
-            'big_chance_saved' => [['The keeper holds the gate', '{player} {where}, but the shot is saved. Still {score_short}.'],
-                ['Denied', '{player} goes for it {where}. The keeper stands firm.']],
-            'big_chance_missed' => [['So close, so far', '{player} {where} and it goes wide. Still {score_short}.'],
-                ['The chance escapes', '{player} {where}, but the goal stays shut.']],
-            'big_chance_penalty_missed' => [['The spot betrays him', '{player} misses the penalty. Still {score_short}.']],
-            'pressure' => [['The {army} press forward', '{shots} shots in {span_text}, {on_target_text}. The {opp_army} hold on.'],
-                ['The drums beat faster', 'The {army} come again and again: {shots} shots in {span_text}.']],
-            'injury' => [['A warrior is hurt', '{player_off} cannot go on. {player_on} takes his place for the {army}.']],
-            'half_time' => [['The drums pause', 'Half-time: {score}. Shots {home_shots} to {away_shots}.']],
-            'win' => [['Let it be told: the {army} prevail', 'Full time: {score}. Shots {home_shots} to {away_shots}.']],
-            'draw' => [['Honours even, no army yields', 'Full time: {score}. Shots {home_shots} to {away_shots}.']],
-            'where' => ['six_yard' => 'from six yards', 'box' => 'inside the box', 'outside' => 'from distance', '' => 'goes for goal'],
+            'goal_pressure' => ['{club} knocked {shots_before} times before the door gave way.'],
+            'red_card' => [['RED CARD! {player} is sent off', '{club} are down to ten{at}. Still {score_short}.']],
+            'var' => [['VAR: no goal for {club}', '{player} thought he had scored{at}. The screen says no. Still {score_short}.']],
+            'woodwork' => [['OFF THE POST! {player} so close', '{player} hits the woodwork{where} for {club}{at}. Still {score_short}.'],
+                ['OFF THE WOODWORK! {club} denied', '{player} strikes{where} and the frame shakes{at}. Still {score_short}.']],
+            'big_chance_saved' => [['SAVED! {player} is denied', '{player} shoots{where} for {club}{at}, but the keeper saves. Still {score_short}.'],
+                ['WHAT A SAVE! {club} denied', 'The keeper stops {player}{where}{at}. Still {score_short}.']],
+            'big_chance_missed' => [['MISSED! {player} so close', '{player} shoots{where} for {club}{at} and it goes wide. Still {score_short}.'],
+                ['CHANCE GONE for {club}', '{player} fires{where}{at}, but the goal stays shut. Still {score_short}.']],
+            'big_chance_penalty_missed' => [['PENALTY MISSED! {player}', '{player} misses from the spot for {club}{at}. Still {score_short}.']],
+            'pressure' => [['{club} on the attack', '{shots} shots in {span_text}, {on_target_text}. {opp} hold on.'],
+                ['{club} pile on the pressure', '{club} come again and again: {shots} shots in {span_text}.']],
+            'injury' => [['INJURY: {player_off} goes off', '{player_off} cannot go on{at}. {player_on} comes on for {club}.']],
+            'half_time' => [['Half-time: {home} {score_short} {away}', '{score} at the break. Shots {home_shots} to {away_shots}.']],
+            'win' => [['Full time: {club} win', '{score}. Shots {home_shots} to {away_shots}.']],
+            'draw' => [['Full time: honours even', '{score}. Shots {home_shots} to {away_shots}.']],
+            'where' => ['six_yard' => ' from six yards', 'box' => ' inside the box', 'outside' => ' from distance', '' => ''],
         ],
         'pcm' => [
-            'kickoff' => [['Wahala don start', '{home_army} and {away_army} don enter field. Make the drum talk!']],
-            'own_goal' => [['E don enter by heself!', '{player} put am for him own net. {score_short}.']],
-            'penalty' => [['Penalty don enter!', '{player} no dull am. {score_short}.']],
+            'kickoff' => [['Match don start: {home} v {away}', '{home} and {away} don enter field. Make the drum talk!']],
+            'own_goal' => [['Own goal! {player} score for the other side', '{player} put am for him own net{at}. Na gift for {club}. {score}.']],
+            'penalty' => [['Penalty don enter! {player} for {club}', '{player} no dull am{at}. {score}.']],
             'goal_assist' => ['Na {assist} give am the ball.'],
-            'goal_pressure' => ['{army} knock the door {shots_before} times before e open.'],
-            'red_card' => [['Red card! E don red', '{player} don comot. {army} remain ten.']],
-            'var' => [['VAR don cancel am!', '{player} think say e don score. VAR talk say no goal.']],
-            'woodwork' => [['Na post save dem!', '{player} shoot {where}, ball jam post. Still {score_short}.']],
-            'big_chance_saved' => [['Keeper don hold am!', '{player} try {where}, keeper catch am. Still {score_short}.']],
-            'big_chance_missed' => [['Chai! E for don enter', '{player} try {where}, e no enter. Still {score_short}.']],
-            'big_chance_penalty_missed' => [['Penalty don waste!', '{player} miss the penalty. Still {score_short}.']],
-            'pressure' => [['{army} dey press dem!', '{shots} shots for {span_text}. {opp_army} still dey hold.']],
-            'injury' => [['Injury wahala', '{player_off} no fit continue. {player_on} don enter for {army}.']],
-            'half_time' => [['Half time, make we breathe', '{score} for now. Shots {home_shots} to {away_shots}.']],
-            'win' => [['{army} don win am!', 'Final: {score}. Shots {home_shots} to {away_shots}.']],
-            'draw' => [['Nobody win today', 'Final: {score}. Dem share the points.']],
-            'where' => ['six_yard' => 'for six-yard box', 'box' => 'inside box', 'outside' => 'from far', '' => 'for goal'],
+            'goal_pressure' => ['{club} knock the door {shots_before} times before e open.'],
+            'red_card' => [['Red card! {player} don comot', '{club} remain ten{at}. Still {score_short}.']],
+            'var' => [['VAR don cancel {club} goal!', '{player} think say e don score{at}. VAR talk say no goal.']],
+            'woodwork' => [['Na post save dem! {player}', '{player} shoot{where} for {club}, ball jam post{at}. Still {score_short}.']],
+            'big_chance_saved' => [['Keeper don hold am! {player}', '{player} try{where} for {club}{at}, keeper catch am. Still {score_short}.']],
+            'big_chance_missed' => [['Chai! {player} miss am', '{player} try{where} for {club}{at}, e no enter. Still {score_short}.']],
+            'big_chance_penalty_missed' => [['Penalty don waste! {player}', '{player} miss the penalty for {club}{at}. Still {score_short}.']],
+            'pressure' => [['{club} dey press!', '{shots} shots for {span_text}. {opp} still dey hold.']],
+            'injury' => [['Injury: {player_off} don comot', '{player_off} no fit continue{at}. {player_on} don enter for {club}.']],
+            'half_time' => [['Half time: {home} {score_short} {away}', '{score} for now. Shots {home_shots} to {away_shots}.']],
+            'win' => [['Full time: {club} don win am!', 'Final: {score}. Shots {home_shots} to {away_shots}.']],
+            'draw' => [['Full time: nobody win today', 'Final: {score}. Dem share the points.']],
+            'where' => ['six_yard' => ' for six-yard box', 'box' => ' inside box', 'outside' => ' from far', '' => ''],
         ],
         'sw' => [
-            'kickoff' => [['Vita imeanza', '{home_army} dhidi ya {away_army}. Ngoma zinaanza kulia.']],
-            'own_goal' => [['Bao la kujifunga!', '{player} ajifunga. {score_short}.']],
-            'penalty' => [['Penalti imeingia!', '{player} hakosei. {score_short}.']],
+            'kickoff' => [['Mechi imeanza: {home} dhidi ya {away}', '{home} na {away} wameanza. Ngoma zinaanza kulia.']],
+            'own_goal' => [['Goli la kujifunga! {player}', '{player} ajifunga{at}. Zawadi kwa {club}. {score}.']],
+            'penalty' => [['Penalti! {player} afungia {club}', '{player} hakosei{at}. {score}.']],
             'goal_assist' => ['Pasi ya {assist}.'],
-            'goal_pressure' => ['{army} walibisha hodi mara {shots_before} kabla mlango haujafunguka.'],
-            'red_card' => [['Kadi nyekundu!', '{player} atolewa nje. {army} wabaki kumi.']],
-            'var' => [['VAR yakataa!', '{player} alidhani amefunga. VAR imesema hapana.']],
-            'woodwork' => [['Mwamba umeokoa!', '{player} apiga {where}, mpira wagonga mwamba. Bado {score_short}.']],
-            'big_chance_saved' => [['Kipa ameokoa!', '{player} ajaribu {where}, kipa adaka. Bado {score_short}.']],
-            'big_chance_missed' => [['Nafasi imepotea!', '{player} ajaribu {where}, haiingii. Bado {score_short}.']],
-            'big_chance_penalty_missed' => [['Penalti imekosa!', '{player} akosa penalti. Bado {score_short}.']],
-            'pressure' => [['{army} wanashambulia!', 'Mashuti {shots} kwa {span_text}. {opp_army} wanashikilia.']],
-            'injury' => [['Jeraha', '{player_off} hawezi kuendelea. {player_on} aingia kwa {army}.']],
-            'half_time' => [['Mapumziko', 'Kipindi cha kwanza: {score}. Mashuti {home_shots} kwa {away_shots}.']],
-            'win' => [['{army} washinda!', 'Mwisho wa mchezo: {score}.']],
-            'draw' => [['Sare!', 'Mwisho wa mchezo: {score}.']],
-            'where' => ['six_yard' => 'karibu na goli', 'box' => 'ndani ya boksi', 'outside' => 'kutoka mbali', '' => 'golini'],
+            'goal_pressure' => ['{club} walibisha hodi mara {shots_before} kabla mlango haujafunguka.'],
+            'red_card' => [['Kadi nyekundu! {player} atolewa', '{club} wabaki kumi{at}. Bado {score_short}.']],
+            'var' => [['VAR yakataa goli la {club}', '{player} alidhani amefunga{at}. VAR imesema hapana.']],
+            'woodwork' => [['Mwamba! {player} karibu', '{player} wa {club} apiga{where}, mpira wagonga mwamba{at}. Bado {score_short}.']],
+            'big_chance_saved' => [['Kipa aokoa! {player}', '{player} wa {club} ajaribu{where}{at}, kipa adaka. Bado {score_short}.']],
+            'big_chance_missed' => [['Nafasi imepotea! {player}', '{player} wa {club} ajaribu{where}{at}, haiingii. Bado {score_short}.']],
+            'big_chance_penalty_missed' => [['Penalti imekosa! {player}', '{player} wa {club} akosa penalti{at}. Bado {score_short}.']],
+            'pressure' => [['{club} wanashambulia!', 'Mashuti {shots} kwa {span_text}. {opp} wanashikilia.']],
+            'injury' => [['Jeraha: {player_off} atoka', '{player_off} hawezi kuendelea{at}. {player_on} aingia kwa {club}.']],
+            'half_time' => [['Mapumziko: {home} {score_short} {away}', 'Kipindi cha kwanza: {score}. Mashuti {home_shots} kwa {away_shots}.']],
+            'win' => [['Mwisho: {club} washinda!', 'Mwisho wa mchezo: {score}.']],
+            'draw' => [['Mwisho: sare!', 'Mwisho wa mchezo: {score}.']],
+            'where' => ['six_yard' => ' karibu na goli', 'box' => ' ndani ya boksi', 'outside' => ' kutoka mbali', '' => ''],
         ],
         'za' => [
-            'kickoff' => [['Ke nako!', '{home_army} vs {away_army}. Let the drums go.']],
-            'own_goal' => [['Eish, into his own net!', '{player} gifts it. {score_short}.']],
-            'penalty' => [['Penalty, sharp!', '{player} sends it home. {score_short}.']],
+            'kickoff' => [['Ke nako! {home} v {away}', '{home} and {away} are under way. Let the drums go.']],
+            'own_goal' => [['OWN GOAL! Eish, {player}', '{player} gifts it to {club}{at}. {score}.']],
+            'penalty' => [['PENALTY! {player} for {club}, sharp!', '{player} sends it home{at}. {score}.']],
             'goal_assist' => ['{assist} with the setup.'],
-            'goal_pressure' => ['The {army} knocked {shots_before} times first.'],
-            'red_card' => [['Red card, haibo!', '{player} is off. The {army} are down to ten.']],
-            'var' => [['VAR says no, yoh!', '{player} thought it counted. No goal.']],
-            'woodwork' => [['Off the woodwork!', '{player} {where} and the post says no. Still {score_short}.']],
-            'big_chance_saved' => [['What a save!', '{player} {where}, the keeper stops it. Still {score_short}.']],
-            'big_chance_missed' => [['Haibo, how did that miss?', '{player} {where}, wide. Still {score_short}.']],
-            'big_chance_penalty_missed' => [['Penalty missed, eish!', '{player} misses from the spot. Still {score_short}.']],
-            'pressure' => [['The {army} are coming!', '{shots} shots in {span_text}. The {opp_army} hang on.']],
-            'injury' => [['Injury blow', '{player_off} is done. {player_on} comes on for the {army}.']],
-            'half_time' => [['Half-time, take a breather', '{score} at the break.']],
-            'win' => [['Ayoba! The {army} win it', 'Full time: {score}.']],
-            'draw' => [['Nobody’s laughing today', 'Full time: {score}.']],
-            'where' => ['six_yard' => 'from close range', 'box' => 'in the box', 'outside' => 'from far out', '' => 'goes for it'],
+            'goal_pressure' => ['{club} knocked {shots_before} times first.'],
+            'red_card' => [['RED CARD! {player} is off, haibo!', '{club} are down to ten{at}. Still {score_short}.']],
+            'var' => [['VAR says no to {club}, yoh!', '{player} thought it counted{at}. No goal.']],
+            'woodwork' => [['OFF THE WOODWORK! {player}', '{player} hits the post{where} for {club}{at}. Still {score_short}.']],
+            'big_chance_saved' => [['WHAT A SAVE! {player} denied', '{player} goes{where} for {club}{at}, the keeper stops it. Still {score_short}.']],
+            'big_chance_missed' => [['Haibo, {player} misses!', '{player} shoots{where} for {club}{at}, wide. Still {score_short}.']],
+            'big_chance_penalty_missed' => [['PENALTY MISSED! Eish, {player}', '{player} misses from the spot for {club}{at}. Still {score_short}.']],
+            'pressure' => [['{club} are coming!', '{shots} shots in {span_text}. {opp} hang on.']],
+            'injury' => [['INJURY: {player_off} is done', '{player_off} goes off{at}. {player_on} comes on for {club}.']],
+            'half_time' => [['Half-time: {home} {score_short} {away}', '{score} at the break.']],
+            'win' => [['Ayoba! {club} win it', 'Full time: {score}.']],
+            'draw' => [['Full time: nobody’s laughing', '{score}.']],
+            'where' => ['six_yard' => ' from close range', 'box' => ' in the box', 'outside' => ' from far out', '' => ''],
         ],
     ];
 
@@ -145,7 +145,7 @@ class GriotTeller
     {
         $label = self::TAGS[$post->kind] ?? ucfirst($post->kind);
         if ($post->kind === 'goal' || $post->kind === 'red_card') {
-            $label .= ' · '.$this->club($post->side === 'away' ? $post->match?->awayTeam : $post->match?->homeTeam);
+            $label .= ' · '.ClubName::short($post->side === 'away' ? $post->match?->awayTeam : $post->match?->homeTeam);
         }
 
         return $label;
@@ -157,28 +157,29 @@ class GriotTeller
         [$headline, $line] = $this->tell($post, $voice);
         $text = rtrim($headline, '.!?').'! '.$line;
 
-        return preg_replace(['/(\d+)\+(\d+)′/u', '/(\d+)′/u', '/(\d)\s*[–-]\s*(\d)/u'], ['$1 plus $2', 'minute $1', '$1 $2'], $text);
+        return preg_replace(['/\((\d+)\+(\d+)\)/u', '/(\d+)\+(\d+)′/u', '/(\d+)′/u', '/(\d)\s*[–-]\s*(\d)/u'], ['$1 plus $2', '$1 plus $2', 'minute $1', '$1 $2'], $text);
     }
 
     private function values(GriotPost $post, FootballMatch $match, string $voice): array
     {
         $facts = $post->facts ?? [];
-        $home = Armies::for($match->homeTeam);
-        $away = Armies::for($match->awayTeam);
+        $home = ClubName::short($match->homeTeam);
+        $away = ClubName::short($match->awayTeam);
         $mine = $post->side === 'away' ? $away : $home;
         $theirs = $post->side === 'away' ? $home : $away;
         $where = self::LINES[$voice]['where'];
 
         return [
-            '{army}' => $mine['army'] ?? $this->club($post->side === 'away' ? $match->awayTeam : $match->homeTeam),
-            '{opp_army}' => $theirs['army'] ?? $this->club($post->side === 'away' ? $match->homeTeam : $match->awayTeam),
-            '{home_army}' => $home['army'] ?? $this->club($match->homeTeam),
-            '{away_army}' => $away['army'] ?? $this->club($match->awayTeam),
-            '{player}' => $facts['player'] ?? ($mine['army'] ?? 'They'),
+            '{club}' => $mine,
+            '{opp}' => $theirs,
+            '{home}' => $home,
+            '{away}' => $away,
+            '{player}' => $facts['player'] ?? $mine,
             '{assist}' => $facts['assist'] ?? '',
             '{player_on}' => $facts['player_on'] ?? 'A substitute',
             '{player_off}' => $facts['player_off'] ?? 'A player',
             '{minute}' => $post->clock ?? '',
+            '{at}' => Griot::at($voice, $post->minute, $post->extra_minute),
             '{where}' => $where[$facts['zone'] ?? ''] ?? $where[''],
             '{shots}' => (string) ($facts['shots'] ?? ''),
             '{shots_before}' => (string) ($facts['shots_before'] ?? ''),
@@ -187,7 +188,7 @@ class GriotTeller
             '{on_target_text}' => ($facts['on_target'] ?? 0) ? "{$facts['on_target']} on target" : 'none on target',
             '{home_shots}' => (string) ($facts['home_shots'] ?? 0),
             '{away_shots}' => (string) ($facts['away_shots'] ?? 0),
-            '{score}' => $this->club($match->homeTeam).' '.$post->home_score.'–'.$post->away_score.' '.$this->club($match->awayTeam),
+            '{score}' => ClubName::full($match->homeTeam).' '.$post->home_score.'–'.$post->away_score.' '.ClubName::full($match->awayTeam),
             '{score_short}' => $post->home_score.'–'.$post->away_score,
         ];
     }
@@ -205,11 +206,6 @@ class GriotTeller
 
     private function fill(string $text, array $values): string
     {
-        return trim(preg_replace('/\s+/', ' ', strtr($text, $values)));
-    }
-
-    private function club($team): string
-    {
-        return trim(preg_replace('/\s+(FC|AFC)$/i', '', (string) $team?->name));
+        return Griot::fill($text, $values);
     }
 }

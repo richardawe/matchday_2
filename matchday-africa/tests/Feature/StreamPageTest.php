@@ -148,4 +148,27 @@ class StreamPageTest extends TestCase
         $this->assertSame('#ffffff', $home['ink']);
         $this->assertStringContainsString('war/army/norse-viking-solid.webp', $home['art']);
     }
+
+    public function test_the_board_feed_gathers_events_from_every_live_match_newest_first(): void
+    {
+        $other = $this->match('Arsenal FC', 'Chelsea FC', now('UTC')->subMinutes(50), [
+            'status' => 'IN_PLAY', 'minute' => 47, 'home_score' => 1, 'away_score' => 0, 'last_api_update' => now(),
+        ]);
+        $this->goal(1, 'home', 23, 'Mohamed Salah');
+        $this->travel(1)->minutes();
+        MatchEvent::create(['football_data_id' => 2, 'match_id' => $other->id, 'team_id' => $other->home_team_id, 'type' => 'goal', 'minute' => 41, 'player_name' => 'Bukayo Saka']);
+        $this->travel(1)->minutes();
+        MatchEvent::create(['football_data_id' => 3, 'match_id' => $this->match->id, 'team_id' => $this->match->away_team_id, 'type' => 'red_card', 'minute' => 60, 'player_name' => 'Rodri']);
+
+        $snap = app(StreamFeed::class)->snapshot();
+        $this->assertCount(2, $snap['live']);
+        $this->assertSame(['RED CARD! Rodri is sent off', 'GOAL! Bukayo Saka scores for Arsenal', 'GOAL! Mohamed Salah scores for Liverpool'],
+            array_column($snap['events'], 'headline'));
+        $this->assertSame([$this->match->id, $other->id, $this->match->id], array_column($snap['events'], 'match'));
+        $this->assertSame("60′", $snap['events'][0]['clock']);
+
+        // Nothing live: no board feed.
+        FootballMatch::query()->update(['status' => 'FINISHED']);
+        $this->assertSame([], app(StreamFeed::class)->snapshot()['events']);
+    }
 }

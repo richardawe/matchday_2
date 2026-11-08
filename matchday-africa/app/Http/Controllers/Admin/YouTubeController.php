@@ -39,7 +39,7 @@ class YouTubeController extends Controller
             'auto' => (bool) config('youtube.auto'),
             'privacy' => config('youtube.privacy'),
             'redirect' => route('admin.youtube.callback'),
-            'windows' => $ready ? $this->broadcasts->windows() : collect(),
+            'windows' => $ready ? $this->broadcasts->windows(min: 1) : collect(),
             'broadcasts' => $ready ? YoutubeBroadcast::latest('starts_at')->limit(20)->get() : collect(),
             'streamPage' => (bool) config('stream.enabled'),
             'canUpload' => $account ? YouTubeClient::canUpload($account) : false,
@@ -91,7 +91,7 @@ class YouTubeController extends Controller
         $account = YouTubeClient::account();
         abort_unless($account && YouTubeClient::configured(), 404);
         $key = (string) $request->input('window');
-        $window = $this->broadcasts->windows()->first(fn ($w) => $key === '' || $w['key'] === $key);
+        $window = $this->broadcasts->windows(min: 1)->first(fn ($w) => $key === '' || $w['key'] === $key);
         if (!$window) {
             return back()->with('error', 'There is no matchday in the next 48 hours.');
         }
