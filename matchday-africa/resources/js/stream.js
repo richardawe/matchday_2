@@ -137,6 +137,12 @@ function renderLive(match, live) {
         setText('m-griot-clock', griot.clock ?? '');
         setText('m-griot-head', griot.headline);
         setText('m-griot-line', griot.line);
+        // The player the Griot names, beside his line.
+        const face = $('m-griot-face');
+        face.hidden = !griot.photo;
+        face.classList.toggle('is-red', griot.kind === 'red_card');
+        if (griot.photo && face.getAttribute('src') !== griot.photo) face.src = griot.photo;
+        face.alt = griot.player ?? '';
     }
 
     const stats = $('m-stats');

@@ -102,6 +102,29 @@ class ReelV2Test extends TestCase
         $this->assertSame("Off the post! Palmer so close for Chelsea!", $beats[1]['say'][0]);
     }
 
+    public function test_every_named_moment_carries_the_players_photo(): void
+    {
+        config(['reel.style' => 'v2', 'griot.enabled' => true]);
+        $palmer = \App\Models\Player::create(['team_id' => $this->match->away_team_id, 'name' => 'Cole Palmer']);
+        $file = public_path("generated/players/{$palmer->id}.png");
+        \Illuminate\Support\Facades\File::ensureDirectoryExists(dirname($file));
+        imagepng(imagecreatetruecolor(150, 150), $file);
+        $palmer->update(['photo_url' => url("generated/players/{$palmer->id}.png")]);
+        $this->griotPost('kickoff', null, 0, 1);
+        $this->griotPost('woodwork', 'away', 12, 2, 0, 0, ['player' => 'Cole Palmer']);
+        $this->griotPost('goal', 'home', 41, 3, 1, 0, ['player' => 'Bukayo Saka', 'angle' => 'opener']);
+
+        try {
+            $beats = app(ReelService::class)->props($this->match)['beats'];
+            $this->assertSame($file, $beats[1]['photo_path'], 'the post hit by Palmer shows Palmer');
+            $this->assertArrayNotHasKey('photo_path', $beats[2], 'no photo of Saka, so none is shown');
+            $this->assertArrayNotHasKey('photo_path', $beats[0]);
+            $this->assertStringContainsString("generated/players/{$palmer->id}.png", app(ReelService::class)->props($this->match, true)['beats'][1]['photo_url']);
+        } finally {
+            \Illuminate\Support\Facades\File::delete($file);
+        }
+    }
+
     public function test_v2_falls_back_to_chapters_without_a_timeline(): void
     {
         config(['reel.style' => 'v2', 'griot.enabled' => false]);

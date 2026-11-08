@@ -83,17 +83,21 @@ class ReelService
 
         $commentary = new ReelCommentary(['home' => ClubName::spoken($match->homeTeam), 'away' => ClubName::spoken($match->awayTeam)]);
 
-        $beats = $chapters->whereNotIn('type', ['full_time'])->map(function (MatchMoment $chapter) use ($voice, $commentary) {
+        // The named player's photo goes with each moment: a local file for this server, a URL for GitHub.
+        $photo = fn (?array $face) => $face ? [$urls ? 'photo_url' : 'photo_path' => $urls ? $face['url'] : ($face['path'] ?? $face['url'])] : [];
+
+        $beats = $chapters->whereNotIn('type', ['full_time'])->map(function (MatchMoment $chapter) use ($voice, $commentary, $match, $photo) {
             [$headline, $line] = $this->griot->tell($chapter, $voice);
 
             return ['type' => $chapter->type, 'tag' => $this->griot->tag($chapter), 'side' => $chapter->side,
                 'home_score' => $chapter->home_score, 'away_score' => $chapter->away_score, 'headline' => $headline, 'line' => $line,
                 'player' => $chapter->player_name, 'clock' => $chapter->clock,
+            ] + $photo(PlayerPhotos::forMatch($match, $chapter->side, $chapter->player_name)) + [
                 'say' => $commentary->beat(['type' => $chapter->type, 'side' => $chapter->side, 'player' => $chapter->player_name,
                     'minute' => $chapter->minute, 'extra' => $chapter->extra_minute, 'home_score' => (int) $chapter->home_score,
                     'away_score' => (int) $chapter->away_score, 'angle' => $chapter->angle])];
         })->values()->all();
-        if ($v2 && ($told = $this->timelineBeats($match, $voice, $commentary))) {
+        if ($v2 && ($told = $this->timelineBeats($match, $voice, $commentary, $photo))) {
             $beats = $told;
         }
 
@@ -126,7 +130,7 @@ class ReelService
      *
      * @return array<int, array>
      */
-    private function timelineBeats(FootballMatch $match, string $voice, ReelCommentary $commentary): array
+    private function timelineBeats(FootballMatch $match, string $voice, ReelCommentary $commentary, \Closure $photo): array
     {
         $timeline = app(GriotTimeline::class);
         if (!$timeline->ready()) {
@@ -138,7 +142,7 @@ class ReelService
             return [];
         }
 
-        return $posts->map(function (GriotPost $post) use ($match, $teller, $voice, $commentary) {
+        return $posts->map(function (GriotPost $post) use ($match, $teller, $voice, $commentary, $photo) {
             $post->setRelation('match', $match);
             [$headline, $line] = $teller->tell($post, $voice, $match);
             $tag = mb_strtoupper($teller->tag($post)).($post->clock ? ' · '.$post->clock : '');
@@ -146,7 +150,8 @@ class ReelService
 
             return ['type' => $post->kind, 'tag' => $tag, 'side' => $post->side,
                 'home_score' => (int) $post->home_score, 'away_score' => (int) $post->away_score, 'headline' => $headline, 'line' => $line,
-                'player' => $facts['player'] ?? null, 'clock' => $post->clock,
+                'player' => $facts['player'] ?? $facts['player_off'] ?? null, 'clock' => $post->clock,
+            ] + $photo(PlayerPhotos::forPost($post, $match)) + [
                 // Longest first for radio/speak.mjs: a commentator's call of the moment.
                 'say' => $commentary->beat(['type' => $post->kind, 'side' => $post->side, 'player' => $facts['player'] ?? null,
                     'minute' => $post->minute, 'extra' => $post->extra_minute, 'home_score' => (int) $post->home_score,

@@ -69,12 +69,13 @@ export function fakeSnapshot(startedAt) {
     ], t);
     const g2 = goals(id2, [{ side: 'home', at: 40, minute: "43′", scorer: 'Bukayo Saka' }], t);
     const reds = t >= 30 ? [{ id: `${id1}:red:1`, side: 'away', minute: "70′", player: 'Rodri', photo: FACE }] : [];
+    // [from, kind, headline, line, player named]: the Griot's words as the site writes them now.
     const lines = [
-        [0, 'The Vikings smell blood', 'Three corners in five minutes, and the Horde is backing towards its own walls.'],
-        [12, 'The walls are breached!', 'Gakpo finds the corner. 2–1.'],
-        [30, 'A warrior leaves the field', 'Rodri is sent off. The Horde must hold the line with ten.'],
-        [50, 'The Egyptian King strikes again!', 'Salah from close range. 3–1.'],
-        [84, 'VAR says no', 'The goal is ruled out. Still 3–1.'],
+        [0, 'pressure', 'Liverpool pile on the pressure', 'Liverpool come again and again: 6 shots in 5 minutes.', null],
+        [12, 'goal', 'GOAL! Cody Gakpo puts Liverpool in front', 'Liverpool ahead in the 64th minute. Liverpool 2–1 Manchester City.', 'Cody Gakpo'],
+        [30, 'red_card', 'RED CARD! Rodri is sent off', 'Man City are down to ten in the 70th minute. Still 2–1.', 'Rodri'],
+        [50, 'goal', 'GOAL! Mohamed Salah makes it 3–1', 'Liverpool pull further ahead in the 76th minute. Liverpool 3–1 Manchester City.', 'Mohamed Salah'],
+        [84, 'var', 'VAR: no goal for Man City', 'Erling Haaland thought he had scored in the 84th minute. The screen says no. Still 3–1.', 'Erling Haaland'],
     ].filter(([from]) => t >= from).pop();
     const count = (side, list) => list.filter((g) => g.side === side).length;
     const live = (id, home, away, rows, red, clock, griot, stats, call) => ({
@@ -86,7 +87,8 @@ export function fakeSnapshot(startedAt) {
         now: now.toISOString(), stale: t >= 95 && t < 105, test: true,
         live: [
             live(id1, LIV, MCI, g1, reds, `${minute}′`,
-                { id: id1 * 10 + lines[0], kind: 'pressure', clock: `${minute}′`, headline: lines[1], line: lines[2], audio: null },
+                { id: id1 * 10 + lines[0], kind: lines[1], clock: `${minute}′`, headline: lines[2], line: lines[3], audio: null,
+                    photo: lines[4] ? FACE : null, player: lines[4] },
                 { possession: [58, 42], shots: [14 + Math.floor(t / 20), 7] }, [2, 1]),
             live(id2, ARS, CHE, g2, [], `${minute - 30}′`, null, { possession: [51, 49], shots: [6, 5] }, null),
         ],

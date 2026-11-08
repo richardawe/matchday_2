@@ -220,7 +220,10 @@ class StreamFeed
         }
         [$headline, $line] = app(GriotTeller::class)->tell($post, 'en', $match);
 
-        return ['id' => $post->id, 'kind' => $post->kind, 'clock' => $post->clock, 'headline' => $headline, 'line' => $line, 'audio' => $post->audioUrl()];
+        $face = PlayerPhotos::forPost($post, $match);
+
+        return ['id' => $post->id, 'kind' => $post->kind, 'clock' => $post->clock, 'headline' => $headline, 'line' => $line, 'audio' => $post->audioUrl(),
+            'photo' => $face['url'] ?? null, 'player' => $face['name'] ?? null];
     }
 
     /** The Griot's call when the match is in this round of Beat the Griot. */

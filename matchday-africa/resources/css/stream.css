@@ -65,6 +65,9 @@ html, body { margin: 0; height: 100%; background: var(--ink); overflow: hidden; 
 
 .st-griot { background: var(--ink); color: var(--paper); padding: 24px 32px; display: flex; flex-direction: column; gap: 10px; border: 6px solid var(--ink); box-shadow: 10px 10px 0 var(--sun); }
 .st-griot-top { display: flex; justify-content: space-between; font: 600 24px var(--mono); color: var(--sun); }
+.st-griot-body { display: flex; gap: 22px; align-items: center; }
+.st-griot-face { flex: none; width: 150px; height: 150px; border-radius: 50%; object-fit: cover; object-position: center top; background: var(--paper); border: 6px solid var(--sun); }
+.st-griot-face.is-red { filter: grayscale(1); }
 .st-griot-head { font-family: var(--display); font-size: 44px; line-height: 1.05; }
 .st-griot-line { font-size: 34px; line-height: 1.3; font-weight: 600; }
 

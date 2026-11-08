@@ -41,8 +41,10 @@
 
             <div class="st-griot" id="m-griot" hidden>
                 <div class="st-griot-top"><span>THE GRIOT SAYS</span><span id="m-griot-clock"></span></div>
-                <div class="st-griot-head" id="m-griot-head"></div>
-                <div class="st-griot-line" id="m-griot-line"></div>
+                <div class="st-griot-body">
+                    <img class="st-griot-face" id="m-griot-face" alt="" hidden>
+                    <div><div class="st-griot-head" id="m-griot-head"></div><div class="st-griot-line" id="m-griot-line"></div></div>
+                </div>
             </div>
 
             <div class="st-card st-stats" id="m-stats" hidden></div>

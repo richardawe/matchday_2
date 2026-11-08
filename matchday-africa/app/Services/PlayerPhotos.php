@@ -137,14 +137,36 @@ class PlayerPhotos
         return null;
     }
 
+    /**
+     * The photo for a Griot timeline post: whoever the post names (the scorer, the player sent off,
+     * the one who hit the post or missed, the player going off injured). Null when nobody is named
+     * or we have no photo.
+     */
+    public static function forPost(\App\Models\GriotPost $post, \App\Models\FootballMatch $match): ?array
+    {
+        $facts = $post->facts ?? [];
+        $name = $facts['player'] ?? $facts['player_off'] ?? null;
+
+        return $name ? self::forMatch($match, $post->side, $name) : null;
+    }
+
     private static function player(?int $teamId, ?string $name): ?Player
     {
         if (!$teamId || !$name || trim($name) === '') {
             return null;
         }
+        // Squads with photos, loaded once per team per request or job (a timeline asks for many posts).
+        app()->scopedIf('player-photos.squads', fn () => new \ArrayObject());
+        $squads = app('player-photos.squads');
+        $squad = $squads[$teamId] ??= Player::where('team_id', $teamId)->whereNotNull('photo_url')->get()->sortByDesc('is_active')->values();
 
-        return Player::where('team_id', $teamId)->whereNotNull('photo_url')->get()
-            ->sortByDesc('is_active')->first(fn (Player $p) => PlayerNames::same($p->name, $name));
+        return $squad->first(fn (Player $p) => PlayerNames::same($p->name, $name));
+    }
+
+    /** Forgets the loaded squads (after a photo is saved). */
+    public static function flush(): void
+    {
+        app()->forgetInstance('player-photos.squads');
     }
 
     /** Stores API-Football's team id on our teams (one call per league a week). */

@@ -28,7 +28,7 @@
                     <span class="md-tl-clock">{{ $clockLabel }}</span>
                     @php
                         $moodImages = \App\Support\ArmyMoods::forPost($post, $match);
-                        $face = in_array($post->kind, ['goal', 'red_card'], true) ? \App\Services\PlayerPhotos::forMatch($match, $post->side, $post->facts['player'] ?? null) : null;
+                        $face = \App\Services\PlayerPhotos::forPost($post, $match); // whoever the Griot names, on every post
                     @endphp
                     @if($moodImages || $face)<span class="md-tl-moods">@if($face)<img class="md-mood md-tl-mood md-tl-face{{ $post->kind === 'red_card' ? ' is-red' : '' }}" src="{{ $face['url'] }}" alt="{{ $face['name'] }}" width="76" height="76" loading="lazy">@endif @foreach($moodImages as $image)<img class="md-mood md-tl-mood{{ $image['logo'] ? ' is-logo' : '' }}" src="{{ $image['url'] }}" alt="{{ $image['alt'] }}" width="76" height="76" loading="lazy">@endforeach</span>@endif
                     <div>
