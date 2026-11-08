@@ -1,7 +1,7 @@
 /**
  * Test mode (/stream?test=1): a made-up match day played fast, in the same shape as
  * /stream/feed, so the screen can be checked before a real match: goals (one named late), a red
- * card, a goal ruled out, two live matches taking turns, then the between-matches screen.
+ * card, a goal ruled out, three live matches on the board (two from 105 s), then the between-matches screen.
  * One loop lasts 150 seconds; each loop uses new ids so its goals are announced again.
  */
 const art = (name) => `/war/army/${name}-solid.webp`;
@@ -14,6 +14,8 @@ const LIV = team('Liverpool', 'LIV', '#C8102E', '#ffffff', 'Norse Vikings', 'nor
 const MCI = team('Man City', 'MCI', '#6CABDD', '#0b0b0b', 'Mongol Horde', 'mongol-horde');
 const ARS = team('Arsenal', 'ARS', '#EF0107', '#ffffff', 'Roman Legion', 'roman-legion');
 const CHE = team('Chelsea', 'CHE', '#034694', '#ffffff', 'Ottoman Janissaries', 'ottoman-janissary');
+const AVL = team('Aston Villa', 'AVL', '#670E36', '#ffffff', 'Anglo-Saxon Housecarls', 'anglo-saxon-housecarl');
+const WOL = team('Wolves', 'WOL', '#FDB913', '#0b0b0b', 'Wolf Warband', 'wolf-warband');
 const NEW = { name: 'Newcastle', short: 'NEW', colour: '#241F20', ink: '#ffffff' };
 const TOT = { name: 'Tottenham', short: 'TOT', colour: '#FFFFFF', ink: '#0b0b0b' };
 const LOOP = 150;
@@ -91,7 +93,21 @@ export function fakeSnapshot(startedAt) {
                     photo: lines[4] ? FACE : null, player: lines[4] },
                 { possession: [58, 42], shots: [14 + Math.floor(t / 20), 7] }, [2, 1]),
             live(id2, ARS, CHE, g2, [], `${minute - 30}′`, null, { possession: [51, 49], shots: [6, 5] }, null),
+            // A third match until 105 s, so the board shows three; then two.
+            ...(t < 105 ? [live(id1 + 2, AVL, WOL, goals(id1 + 2, [{ side: 'away', at: -1, minute: "18′", scorer: 'Matheus Cunha' }, { side: 'home', at: 25, minute: "52′", scorer: 'Ollie Watkins', photo: true }], t), [], `${minute - 10}′`, null, null, null)] : []),
         ],
+        // As it happens, newest first: the board's feed (StreamFeed::events in the real feed).
+        events: [
+            [84, 'var', 'VAR: no goal for Liverpool', "84′", 'LIV 3–1 MCI', LIV.colour, 'Darwin Núñez'],
+            [50, 'goal', 'GOAL! Mohamed Salah makes it 3–1', "76′", 'LIV 3–1 MCI', LIV.colour, 'Mohamed Salah'],
+            [40, 'goal', 'GOAL! Bukayo Saka scores for Arsenal', "43′", 'ARS 1–0 CHE', ARS.colour, 'Bukayo Saka'],
+            [30, 'red_card', 'RED CARD! Rodri is sent off', "70′", 'LIV 2–1 MCI', MCI.colour, 'Rodri'],
+            [25, 'goal', 'GOAL! Ollie Watkins equalises for Aston Villa', "52′", 'AVL 1–1 WOL', AVL.colour, 'Ollie Watkins'],
+            [12, 'goal', 'GOAL! Cody Gakpo puts Liverpool in front', "64′", 'LIV 2–1 MCI', LIV.colour, 'Cody Gakpo'],
+            [0, 'woodwork', 'OFF THE POST! Erling Haaland so close', "58′", 'LIV 1–1 MCI', MCI.colour, 'Erling Haaland'],
+        ].filter(([from]) => t >= from).map(([from, kind, headline, clock, score, colour, player]) => ({
+            id: `${loop}:${from}`, match: id1, kind, clock, headline, line: null, score, colour, photo: player ? FACE : null,
+        })),
         next: { id: id1 + 5, status: 'TIMED', kickoff: at(150), kickoff_lagos: '20:00', score: null, home: NEW, away: TOT },
         later: [],
         results: [],

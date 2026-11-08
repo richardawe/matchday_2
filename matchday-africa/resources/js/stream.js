@@ -99,6 +99,7 @@ let lastScore = {};
 function renderLive(match, live) {
     $('view-live').hidden = false;
     $('view-idle').hidden = true;
+    $('view-board').hidden = true;
     setText('m-competition', [match.competition, match.venue].filter(Boolean).join(' · '));
     setText('m-clock', match.clock);
     tile($('m-home-tile'), match.home);
@@ -181,6 +182,95 @@ function renderLive(match, live) {
     dots.replaceChildren(...(live.length > 1 ? live.map((m) => el('span', m.id === match.id ? 'on' : '')) : []));
 }
 
+/* ---------- several matches: the board ---------- */
+const shortName = (name) => (name ?? '').split(' ').slice(-1)[0];
+function rowEvents(match, side) {
+    const box = el('span');
+    for (const g of (match.goals ?? []).filter((x) => x.side === side && (x.scorer || x.minute))) {
+        box.append(`${shortName(g.scorer) || 'Goal'} ${g.minute ?? ''}${g.own_goal ? ' (og)' : ''}${g.penalty ? ' (pen)' : ''}  `);
+    }
+    for (const r of (match.reds ?? []).filter((x) => x.side === side)) {
+        box.append(el('i', 'st-rc'), `${shortName(r.player)} ${r.minute ?? ''}  `);
+    }
+    return box;
+}
+
+function boardRow(match) {
+    const row = el('div', 'st-brow');
+    row.dataset.id = match.id;
+    const main = el('div', 'st-brow-main');
+    const side = (team, cls) => {
+        const box = el('div', `st-brow-side ${cls}`);
+        box.append(tile(el('span', 'st-tile'), team), el('span', 'st-brow-name', team.name));
+        return box;
+    };
+    const score = el('div', 'st-brow-score');
+    const [h, a] = match.score ?? [0, 0];
+    score.append(el('span', 'h', String(h)), el('span', null, '–'), el('span', 'a', String(a)));
+    score.querySelector('span:nth-child(2)').style.color = '#4a443b';
+    main.append(el('span', 'st-brow-clock', match.clock), side(match.home, 'home'), score, side(match.away, 'away'));
+    const events = el('div', 'st-brow-events');
+    events.append(el('span'), rowEvents(match, 'home'), rowEvents(match, 'away'));
+    row.append(main, events);
+    return row;
+}
+
+function renderBoard(live, events) {
+    $('view-live').hidden = true;
+    $('view-idle').hidden = true;
+    $('view-board').hidden = false;
+    setText('b-count', `${live.length} MATCHES LIVE`);
+    const competitions = [...new Set(live.map((m) => m.competition).filter(Boolean))];
+    setText('b-competition', competitions.length === 1 ? competitions[0] : '');
+
+    const board = $('b-rows');
+    board.classList.toggle('is-compact', live.length > 5);
+    const key = JSON.stringify(live.map((m) => [m.id, m.clock, m.score, (m.goals ?? []).map((g) => [g.scorer, g.minute]), (m.reds ?? []).length]));
+    if (board.dataset.key !== key) {
+        board.dataset.key = key;
+        board.replaceChildren(...live.map((m) => {
+            const row = boardRow(m);
+            const [h, a] = m.score ?? [0, 0];
+            for (const [cls, value, k] of [['h', h, `${m.id}h`], ['a', a, `${m.id}a`]]) {
+                if (lastScore[k] !== undefined && lastScore[k] !== value) row.querySelector(`.st-brow-score .${cls}`).classList.add('st-pop');
+                lastScore[k] = value;
+            }
+            return row;
+        }));
+    }
+    // The match that just scored (or saw red) stays highlighted for a minute.
+    const hot = pinned && pinned.until > Date.now() ? pinned.id : null;
+    board.querySelectorAll('.st-brow').forEach((r) => r.classList.toggle('is-hot', Number(r.dataset.id) === hot));
+
+    // As it happens: the newest moments across every match, as many as fit.
+    const list = $('b-feed');
+    const fit = live.length > 5 ? 4 : live.length > 3 ? 5 : 8;
+    const shown = (events ?? []).slice(0, fit);
+    const fkey = shown.map((e) => e.id + (e.photo ?? '')).join('|');
+    if (list.dataset.key !== fkey) {
+        const before = new Set((list.dataset.key ?? '').split('|').map((x) => x.replace(/http.*$/, '')));
+        list.dataset.key = fkey;
+        list.replaceChildren(...shown.map((e) => {
+            const item = el('div', `st-fitem${e.kind === 'red_card' ? ' is-red' : ''}${list.dataset.seeded && !before.has(e.id) ? ' is-new' : ''}`);
+            item.style.setProperty('--c', e.colour ?? '#ffd23f');
+            if (e.photo) {
+                const img = el('img');
+                img.src = e.photo;
+                img.alt = '';
+                img.addEventListener('error', () => img.replaceWith(el('span', 'st-fdot', e.clock ?? '')));
+                item.append(img);
+            } else {
+                item.append(el('span', 'st-fdot', e.clock ?? ''));
+            }
+            const text = el('div');
+            text.append(el('div', 'st-fhead', e.headline), el('div', 'st-fmeta', [e.clock, e.score].filter(Boolean).join(' · ')));
+            item.append(text);
+            return item;
+        }));
+        list.dataset.seeded = '1';
+    }
+}
+
 /* ---------- between matches ---------- */
 function two(n) { return String(Math.max(0, n)).padStart(2, '0'); }
 function renderCountdown() {
@@ -210,6 +300,7 @@ function fixtureRow(f, finished) {
 
 function renderIdle(snap) {
     $('view-live').hidden = true;
+    $('view-board').hidden = true;
     $('view-idle').hidden = false;
     const next = snap.next;
     if (next) {
@@ -265,13 +356,13 @@ function renderIdle(snap) {
 }
 
 /* ---------- ticker ---------- */
-function renderTicker(snap, current) {
+function renderTicker(snap, current, withResults = !!current) {
     const items = [];
     for (const m of snap.live ?? []) {
         if (current && m.id === current.id) continue;
         items.push([`${m.home.short} ${m.score?.[0] ?? 0}–${m.score?.[1] ?? 0} ${m.away.short}`, m.clock]);
     }
-    if (current) for (const f of snap.results ?? []) items.push([`${f.home.short} ${f.score[0]}–${f.score[1]} ${f.away.short}`, 'FT']);
+    if (withResults) for (const f of snap.results ?? []) items.push([`${f.home.short} ${f.score[0]}–${f.score[1]} ${f.away.short}`, 'FT']);
     const ticker = $('ticker');
     ticker.hidden = !items.length;
     const key = JSON.stringify(items);
@@ -424,9 +515,15 @@ function apply(next) {
 function render() {
     if (!snapshot) return;
     const live = snapshot.live ?? [];
-    const current = featured(live);
     $('live-pill').hidden = !live.length;
     $('updating').hidden = !(snapshot.stale || Date.now() - lastGood > POLL * 6);
+    // Two or more matches at once: all of them on one board. One match: that match. None: what's next.
+    if (live.length >= 2) {
+        renderBoard(live, snapshot.events);
+        renderTicker({ ...snapshot, live: [] }, null, true); // the ticker carries today's full-time scores
+        return;
+    }
+    const current = featured(live);
     if (current) renderLive(current, live); else renderIdle(snapshot);
     renderTicker(snapshot, current);
 }

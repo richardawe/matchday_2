@@ -63,7 +63,55 @@ class StreamFeed
             'later' => $upcoming->slice(1)->map(fn (FootballMatch $m) => $this->fixture($m))->values()->all(),
             'results' => $results->map(fn (FootballMatch $m) => $this->fixture($m, true))->values()->all(),
             'reel' => $live->isEmpty() ? $this->reel($results) : null,
+            // Everything that just happened across all live matches, newest first (the multi-match board).
+            'events' => $live->isNotEmpty() ? $this->events($live) : [],
         ];
+    }
+
+    /**
+     * The latest moments across every live match, newest first: the Griot's timeline posts when the
+     * timeline is on (goals, red cards, VAR, woodwork, big chances, injuries), otherwise the goals and
+     * red cards from the match events. Each carries the match it belongs to, the score after it, the
+     * named player's photo and the side's colour.
+     */
+    public function events(Collection $live, int $limit = 10): array
+    {
+        $byId = $live->keyBy('id');
+        $short = fn (FootballMatch $m, $h, $a) => $this->team($m->homeTeam, false)['short']." {$h}–{$a} ".$this->team($m->awayTeam, false)['short'];
+        $colour = fn (FootballMatch $m, ?string $side) => $this->team($side === 'away' ? $m->awayTeam : $m->homeTeam, false)['colour'];
+
+        if (app(GriotTimeline::class)->ready()) {
+            $teller = app(GriotTeller::class);
+
+            return GriotPost::whereIn('match_id', $byId->keys())->whereNotIn('kind', ['kickoff', 'pressure'])
+                ->orderByDesc('created_at')->orderByDesc('id')->limit($limit)->get()
+                ->map(function (GriotPost $post) use ($byId, $teller, $short, $colour) {
+                    $match = $byId[$post->match_id];
+                    $post->setRelation('match', $match);
+                    [$headline, $line] = $teller->tell($post, 'en', $match);
+                    $face = PlayerPhotos::forPost($post, $match);
+
+                    return ['id' => "post:{$post->id}", 'match' => $match->id, 'kind' => $post->kind, 'clock' => $post->clock,
+                        'headline' => $headline, 'line' => $line, 'score' => $short($match, (int) $post->home_score, (int) $post->away_score),
+                        'colour' => $colour($match, $post->side), 'photo' => $face['url'] ?? null];
+                })->values()->all();
+        }
+
+        return MatchEvent::whereIn('match_id', $byId->keys())->whereIn('type', ['goal', 'red_card'])
+            ->orderByDesc('created_at')->orderByDesc('id')->limit($limit)->get()
+            ->map(function (MatchEvent $e) use ($byId, $short, $colour) {
+                $match = $byId[$e->match_id];
+                $side = $this->side($match, $e);
+                $club = \App\Support\ClubName::short($side === 'away' ? $match->awayTeam : $match->homeTeam);
+                $name = $this->name($e->player_name);
+                $headline = $e->type === 'goal'
+                    ? ($e->is_own_goal ? 'OWN GOAL! '.($name ?? '').' turns it in' : 'GOAL! '.($name ? "{$name} scores for {$club}" : "{$club} score"))
+                    : 'RED CARD! '.($name ? "{$name} is sent off" : "{$club} down to ten");
+
+                return ['id' => "event:{$e->id}", 'match' => $match->id, 'kind' => $e->type, 'clock' => $this->minute($e),
+                    'headline' => trim($headline), 'line' => null, 'score' => $short($match, (int) $match->home_score, (int) $match->away_score),
+                    'colour' => $colour($match, $side), 'photo' => PlayerPhotos::forName($e->team_id, $e->player_name)];
+            })->values()->all();
     }
 
     /** Matches in the streamed competitions, with what the snapshot reads. */

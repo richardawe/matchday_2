@@ -10,10 +10,14 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 /**
- * One YouTube broadcast per matchday window: from 15 minutes before the first kick-off to the end of
- * the last match, for the competitions on stream (config/stream.php). Matches more than an hour apart
- * after the previous one has finished start a new window. Broadcasts start themselves when the
- * picture arrives (enableAutoStart) and are ended here at the end of their window.
+ * YouTube broadcasts for the busy parts of a matchday: a window opens when at least
+ * youtube.min_matches (3) matches in the streamed competitions (config/stream.php) are on at the
+ * same time, from 15 minutes before that moment until the last of those matches ends. A match is
+ * "on" from kick-off for youtube.match_minutes (115: two halves, half-time and stoppage). Windows
+ * less than an hour apart are joined. Broadcasts start themselves when the picture arrives
+ * (enableAutoStart) and are ended here at the end of their window.
+ *
+ * The admin page asks for windows with $min = 1, so any matchday can still be scheduled by hand.
  *
  * match_date holds UTC wall-clock values (AGENTS rule 5).
  */
@@ -24,12 +28,14 @@ class YouTubeBroadcasts
     /**
      * Upcoming windows: [['key' => '2026-11-07', 'start' => Carbon, 'end' => Carbon, 'matches' => Collection], ...].
      */
-    public function windows(?Carbon $now = null, ?int $hours = null): Collection
+    public function windows(?Carbon $now = null, ?int $hours = null, ?int $min = null): Collection
     {
         $now = ($now ?? now())->copy()->utc();
         $hours ??= (int) config('youtube.ahead_hours', 48);
+        $min = max(1, $min ?? (int) config('youtube.min_matches', 3));
         $before = (int) config('youtube.before_minutes', 15);
         $after = (int) config('youtube.after_minutes', 145);
+        $playing = (int) config('youtube.match_minutes', 115);
         $codes = config('stream.competitions', []);
         $wall = fn (Carbon $at) => $at->format('Y-m-d H:i:s');
 
@@ -37,23 +43,49 @@ class YouTubeBroadcasts
             ->whereHas('league', fn ($q) => $q->whereIn('short_code', $codes)->orWhereIn('espn_slug', $codes))
             ->whereNotIn('status', ['POSTPONED', 'CANCELLED', 'SUSPENDED'])
             ->whereBetween('match_date', [$wall($now->copy()->subMinutes($after)), $wall($now->copy()->addHours($hours))])
-            ->orderBy('match_date')->get();
+            ->orderBy('match_date')->get()
+            ->map(function (FootballMatch $m) use ($playing, $after) {
+                $kickoff = Carbon::parse($m->match_date->format('Y-m-d H:i:s'), 'UTC');
+
+                return ['match' => $m, 'kickoff' => $kickoff, 'until' => $kickoff->copy()->addMinutes($playing), 'end' => $kickoff->copy()->addMinutes($after)];
+            });
+
+        // Periods when at least $min matches are on at once (sweep over kick-offs and final whistles).
+        $points = $matches->flatMap(fn ($m) => [[$m['kickoff'], 1], [$m['until'], -1]])
+            ->sort(fn ($a, $b) => [$a[0]->timestamp, $a[1]] <=> [$b[0]->timestamp, $b[1]])->values();
+        $busy = [];
+        $on = 0;
+        $from = null;
+        foreach ($points as [$at, $step]) {
+            $on += $step;
+            if ($on >= $min && $from === null) {
+                $from = $at->copy();
+            } elseif ($on < $min && $from !== null) {
+                $busy[] = [$from, $at->copy()];
+                $from = null;
+            }
+        }
 
         $windows = collect();
-        foreach ($matches as $match) {
-            $kickoff = Carbon::parse($match->match_date->format('Y-m-d H:i:s'), 'UTC');
+        foreach ($busy as [$from, $to]) {
+            // Every match on during the busy period, and the window runs until the last of them ends.
+            $in = $matches->filter(fn ($m) => $m['kickoff']->lt($to) && $m['until']->gt($from));
+            $start = $from->copy()->subMinutes($before);
+            $end = $in->max(fn ($m) => $m['end']->timestamp);
+            $end = Carbon::createFromTimestamp($end, 'UTC');
             $last = $windows->last();
-            if ($last && $kickoff->lte($last['end']->copy()->addHour())) {
-                $last['end'] = $kickoff->copy()->addMinutes($after)->max($last['end']);
-                $last['matches']->push($match);
+            if ($last && $start->lte($last['end']->copy()->addHour())) {
+                $last['end'] = $end->max($last['end']);
+                $last['matches'] = $last['matches']->merge($in->pluck('match'))->unique('id')->sortBy('match_date')->values();
                 $windows->put($windows->keys()->last(), $last);
                 continue;
             }
+            $day = $from->copy()->setTimezone('Africa/Lagos')->format('Y-m-d');
             $windows->push([
-                'key' => $kickoff->copy()->setTimezone('Africa/Lagos')->format('Y-m-d').($last && $last['key'] === $kickoff->copy()->setTimezone('Africa/Lagos')->format('Y-m-d') ? '-'.$kickoff->format('Hi') : ''),
-                'start' => $kickoff->copy()->subMinutes($before),
-                'end' => $kickoff->copy()->addMinutes($after),
-                'matches' => collect([$match]),
+                'key' => $day.($windows->contains(fn ($w) => str_starts_with($w['key'], $day)) ? '-'.$from->format('Hi') : ''),
+                'start' => $start,
+                'end' => $end,
+                'matches' => $in->pluck('match')->values(),
             ]);
         }
 

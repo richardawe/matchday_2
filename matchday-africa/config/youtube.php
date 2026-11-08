@@ -32,6 +32,13 @@ return [
     // Broadcasts are made this far ahead.
     'ahead_hours' => 48,
 
+    // Automatic broadcasts run only while at least this many streamed matches are on at once
+    // (the stream screen then shows them all together). The admin page can still schedule any matchday.
+    'min_matches' => max(1, (int) env('YOUTUBE_MIN_MATCHES', 3)),
+
+    // How long a match counts as "on" from kick-off: two halves, half-time and stoppage.
+    'match_minutes' => 115,
+
     // youtube covers live broadcasts (and uploads); youtube.upload is the uploader's own scope.
     'scopes' => ['https://www.googleapis.com/auth/youtube', 'https://www.googleapis.com/auth/youtube.upload'],
 
