@@ -33,37 +33,38 @@
                                 </a>
                             </div>
 
-                            <!-- Navigation Links -->
+                            <!-- Navigation Links: the six places fans go most, the rest under More. -->
                             <div class="hidden whitespace-nowrap space-x-6 xl:-my-px xl:ms-8 2xl:ms-10 xl:flex">
-                                <x-nav-link :href="route('home')" :active="request()->routeIs('home')">
-                                    {{ __('Home') }}
-                                </x-nav-link>
-                                <x-nav-link :href="route('matches.index')" :active="request()->routeIs('matches.*')">
-                                    {{ __('Matches') }}
-                                </x-nav-link>
+                                <x-nav-link :href="route('matches.index')" :active="request()->routeIs('matches.*')">{{ __('Matches') }}</x-nav-link>
+                                <x-nav-link :href="route('reels.index')" :active="request()->routeIs('reels.*')">{{ __('Reels') }}</x-nav-link>
+                                @if(\App\Support\StreamLink::enabled())<x-nav-link :href="\App\Support\StreamLink::url()" :active="request()->routeIs('stream.*')" class="md-nav-live">{{ __('Watch live') }}</x-nav-link>@endif
                                 <x-nav-link :href="route('predictions.index')" :active="request()->routeIs('predictions.*', 'griot.*')">{{ \App\Services\Griot\GriotChallengeService::ready() ? __('Beat the Griot') : __('Predict') }}</x-nav-link>
-                                <x-nav-link :href="route('community')" :active="request()->routeIs('community', 'groups.*')">
-                                    {{ __('Community') }}
-                                </x-nav-link>
-                                <x-nav-link :href="\App\Support\WarLinks::home()" :active="request()->routeIs('war.*')">
-                                    {{ __('War') }}
-                                </x-nav-link>
-                                <x-nav-link :href="route('discovery.index')" :active="request()->routeIs('discovery.*')">{{ __('Players') }}</x-nav-link>
+                                <x-nav-link :href="\App\Support\WarLinks::home()" :active="request()->routeIs('war.*')">{{ __('War') }}</x-nav-link>
                                 @if(\App\Models\RadioBulletin::available())<x-nav-link :href="route('radio.index')" :active="request()->routeIs('radio.*')">Listen</x-nav-link>@endif
-                                <x-nav-link :href="route('teams.index')" :active="request()->routeIs('teams.*')">
-                                    {{ __('Teams') }}
-                                </x-nav-link>
-                                <x-nav-link :href="route('blogs.index')" :active="request()->routeIs('blogs.*')">
-                                    {{ __('Articles') }}
-                                </x-nav-link>
-                                <x-nav-link :href="route('shop.index')" :active="request()->routeIs('shop.*')">{{ __('Shop') }}</x-nav-link>
-                                <x-nav-link :href="route('premium.index')" :active="request()->routeIs('premium.*')">{{ __('Premium') }}</x-nav-link>
+                                <div class="inline-flex items-center">
+                                    <x-dropdown align="left" width="48">
+                                        <x-slot name="trigger">
+                                            <button type="button" class="inline-flex items-center px-1 pt-1 text-sm font-medium leading-5 text-gray-500 hover:text-gray-700 focus:outline-none">
+                                                {{ __('More') }}
+                                                <svg class="ms-1 fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                            </button>
+                                        </x-slot>
+                                        <x-slot name="content">
+                                            <x-dropdown-link :href="route('discovery.index')">{{ __('African players') }}</x-dropdown-link>
+                                            <x-dropdown-link :href="route('teams.index')">{{ __('Teams') }}</x-dropdown-link>
+                                            <x-dropdown-link :href="route('leagues.index')">{{ __('Leagues') }}</x-dropdown-link>
+                                            <x-dropdown-link :href="route('blogs.index')">{{ __('Articles') }}</x-dropdown-link>
+                                            <x-dropdown-link :href="route('community')">{{ __('Community') }}</x-dropdown-link>
+                                            <x-dropdown-link :href="route('shop.index')">{{ __('Shop') }}</x-dropdown-link>
+                                            <x-dropdown-link :href="route('premium.index')">{{ __('Premium') }}</x-dropdown-link>
+                                        </x-slot>
+                                    </x-dropdown>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Authentication Links -->
                         <div class="hidden xl:flex xl:items-center xl:ms-4 shrink-0">
-                            <div class="hidden 2xl:block me-3"><x-social-follow size="sm" /></div>
                             @auth
                                 <x-inbox-bell />
                                 <!-- User is logged in -->
@@ -131,31 +132,26 @@
                 <!-- Responsive Navigation Menu -->
                 <div :class="{'block': open, 'hidden': ! open}" class="hidden xl:hidden">
                     <div class="pt-2 pb-3 space-y-1">
-                        <x-responsive-nav-link :href="route('home')" :active="request()->routeIs('home')">
-                            {{ __('Home') }}
-                        </x-responsive-nav-link>
-                        <x-responsive-nav-link :href="route('matches.index')" :active="request()->routeIs('matches.*')">
-                            {{ __('Live Matches') }}
-                        </x-responsive-nav-link>
-                        <x-responsive-nav-link :href="route('leagues.index')" :active="request()->routeIs('leagues.*')">
-                            {{ __('Leagues') }}
-                        </x-responsive-nav-link>
-                        @if(\App\Services\Griot\GriotChallengeService::ready())<x-responsive-nav-link :href="route('griot.challenge')" :active="request()->routeIs('griot.*')">{{ __('Beat the Griot') }}</x-responsive-nav-link>@endif
-                        <x-responsive-nav-link :href="route('community')" :active="request()->routeIs('community')">{{ __('Community') }}</x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('home')" :active="request()->routeIs('home')">{{ __('Home') }}</x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('matches.index')" :active="request()->routeIs('matches.*')">{{ __('Matches') }}</x-responsive-nav-link>
                         <x-responsive-nav-link :href="route('reels.index')" :active="request()->routeIs('reels.*')">{{ __('Reels') }}</x-responsive-nav-link>
-                        <x-responsive-nav-link :href="\App\Support\WarLinks::home()" :active="request()->routeIs('war.*')">
-                            {{ __('War') }}
-                        </x-responsive-nav-link>
-                        <x-responsive-nav-link :href="route('teams.index')" :active="request()->routeIs('teams.*')">
-                            {{ __('Teams') }}
-                        </x-responsive-nav-link>
+                        @if(\App\Support\StreamLink::enabled())<x-responsive-nav-link :href="\App\Support\StreamLink::url()" :active="request()->routeIs('stream.*')">{{ __('Watch live') }}</x-responsive-nav-link>@endif
+                        <x-responsive-nav-link :href="route('predictions.index')" :active="request()->routeIs('predictions.*', 'griot.*')">{{ \App\Services\Griot\GriotChallengeService::ready() ? __('Beat the Griot') : __('Predict') }}</x-responsive-nav-link>
+                        <x-responsive-nav-link :href="\App\Support\WarLinks::home()" :active="request()->routeIs('war.*')">{{ __('War') }}</x-responsive-nav-link>
                         @if(\App\Models\RadioBulletin::available())<x-responsive-nav-link :href="route('radio.index')" :active="request()->routeIs('radio.*')">Listen</x-responsive-nav-link>@endif
-                        <x-responsive-nav-link :href="route('blogs.index')" :active="request()->routeIs('blogs.*')">
-                            {{ __('Articles') }}
-                        </x-responsive-nav-link>
-                        <x-responsive-nav-link :href="route('shop.index')" :active="request()->routeIs('shop.*')">{{ __('Shop') }}</x-responsive-nav-link>
-                        <x-responsive-nav-link :href="route('premium.index')" :active="request()->routeIs('premium.*')">{{ __('Premium') }}</x-responsive-nav-link>
                     </div>
+                    <details class="md-nav-more border-t border-gray-200">
+                        <summary class="block pl-3 pr-4 py-2 text-base font-medium text-gray-600 cursor-pointer">{{ __('More') }}</summary>
+                        <div class="pb-2 space-y-1">
+                            <x-responsive-nav-link :href="route('discovery.index')" :active="request()->routeIs('discovery.*')">{{ __('African players') }}</x-responsive-nav-link>
+                            <x-responsive-nav-link :href="route('teams.index')" :active="request()->routeIs('teams.*')">{{ __('Teams') }}</x-responsive-nav-link>
+                            <x-responsive-nav-link :href="route('leagues.index')" :active="request()->routeIs('leagues.*')">{{ __('Leagues') }}</x-responsive-nav-link>
+                            <x-responsive-nav-link :href="route('blogs.index')" :active="request()->routeIs('blogs.*')">{{ __('Articles') }}</x-responsive-nav-link>
+                            <x-responsive-nav-link :href="route('community')" :active="request()->routeIs('community')">{{ __('Community') }}</x-responsive-nav-link>
+                            <x-responsive-nav-link :href="route('shop.index')" :active="request()->routeIs('shop.*')">{{ __('Shop') }}</x-responsive-nav-link>
+                            <x-responsive-nav-link :href="route('premium.index')" :active="request()->routeIs('premium.*')">{{ __('Premium') }}</x-responsive-nav-link>
+                        </div>
+                    </details>
 
                     <div class="px-4 py-3 border-t border-gray-200"><x-social-follow /></div>
 

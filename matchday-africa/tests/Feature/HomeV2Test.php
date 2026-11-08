@@ -57,9 +57,8 @@ class HomeV2Test extends TestCase
             // The strongest recent reel leads: a 3–3 with a 90th-minute goal and Manchester United.
             ->assertSee('Manchester United 3–3 Wolverhampton Wanderers')
             ->assertSee('data-reel-title="Everton 0–2 Chelsea"', false)
-            ->assertSee('MATCHWEEK BOARD')
-            ->assertSee('Arsenal v Liverpool')
-            ->assertSee('/card.png', false);
+            ->assertDontSee('MATCHWEEK BOARD') // calls live in Beat the Griot; fixture cards fill the hero only before reels
+            ->assertDontSee('/leagues/', false); // one link to the competitions, in the menu and footer
     }
 
     public function test_switched_on_it_replaces_the_homepage_and_the_arena_moves_to_war(): void

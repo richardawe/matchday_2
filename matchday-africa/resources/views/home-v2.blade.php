@@ -1,9 +1,10 @@
 @extends('layouts.public')
 
-{{-- The reels-first homepage (config/home.php): reels hero, today strip, matchweek board, news, play, leagues. --}}
+{{-- The reels-first homepage (config/home.php): live scores, Watch live, Beat the Griot, reels hero, next and results, news, players, play. --}}
 @section('content')
 @include('partials.home.radio-bar')
 @include('partials.home.live-now')
+@include('partials.home.watch-live')
 @include('partials.home.griot-challenge')
 @php($featured = $reels['featured'])
 <section class="md-reels" id="reels-hero" aria-labelledby="reels-title">
@@ -74,30 +75,17 @@
         </div>
     </div>
 </section>
-<x-social-follow variant="block" context="home" />
 <x-whatsapp-channel context="home" />
 <x-sponsor-slot slot="home" />
 
 @include('partials.home.command')
 
-<section class="md-pulse"><div class="md-wrap">
-    <div class="md-home-heading"><div><p class="md-eyebrow">TODAY</p><h2>Live, next and just finished.</h2></div><a href="{{ route('matches.index') }}">Full match centre →</a></div>
+{{-- Live scores lead the page (live-now), so this block shows only what's next and what just finished. --}}
+<section class="md-pulse md-pulse-no-live"><div class="md-wrap">
+    <div class="md-home-heading"><div><p class="md-eyebrow">TODAY</p><h2>Next and just finished.</h2></div><a href="{{ route('matches.index') }}">All matches →</a></div>
     <div id="matchday-pulse" data-pulse-url="{{ route('home.pulse') }}">@include('partials.home-pulse')</div>
 </div></section>
 
-@if($board->isNotEmpty())
-<section class="md-board"><div class="md-wrap">
-    <div class="md-home-heading"><div><p class="md-eyebrow">MATCHWEEK BOARD</p><h2>Who wins? Call it before kick-off.</h2></div><a href="{{ route('predictions.index') }}">Beat the Griot →</a></div>
-    <div class="md-board-grid">
-        @foreach($board as $item)
-            <a class="md-board-card" href="{{ route('matches.show', $item['match']) }}#prediction-arena">
-                <img src="{{ $item['card'] }}" alt="{{ $item['title'] }}, {{ $item['match']->league?->name }}" loading="lazy" width="1200" height="675">
-                <span><b>{{ $item['title'] }}</b><small>{{ strtoupper($item['kickoff']->format('D j M · H:i')) }} WAT</small><i>Call it →</i></span>
-            </a>
-        @endforeach
-    </div>
-</div></section>
-@endif
 
 @if($hasFeaturedBlogs)
 <section class="md-home-stories md-news-compact"><div class="md-wrap">
@@ -113,15 +101,14 @@
 @if($africanPlayersInFocus->isNotEmpty())@include('partials.home.focus')@endif
 
 <section class="md-play"><div class="md-wrap">
-    <div class="md-home-heading"><div><p class="md-eyebrow">PLAY</p><h2>Make your call. Pick your army.</h2></div></div>
+    <div class="md-home-heading"><div><p class="md-eyebrow">PLAY</p><h2>Watch, call it, pick your side.</h2></div></div>
     <div class="md-feature-grid">
+        @if(\App\Support\StreamLink::enabled())<a class="md-feature-card md-feature-live" href="{{ \App\Support\StreamLink::url() }}"><span>MATCHDAY LIVE</span><h3>Every goal as it goes in.</h3><p>Live scores, goals, red cards and the Griot's call on one screen, all matchday long.</p><b>Watch live →</b></a>@endif
         <a class="md-feature-card md-feature-predict" href="{{ route('predictions.index') }}"><span>BEAT THE GRIOT</span><h3>Three matches. Beat the Griot.</h3><p>The Griot calls three scores every round. Score more points and you could win {{ config('griot_challenge.prize') }}.</p><b>Take on the Griot →</b></a>
-        <a class="md-feature-card md-feature-war" href="{{ \App\Support\WarLinks::home() }}"><span>MATCHDAY WAR</span><h3>Turn the fixture into a battle.</h3><p>Choose your side and rally supporters. @if($arena)Today's headline match is in the arena.@endif</p><b>Enter Matchday War →</b></a>
+        <a class="md-feature-card md-feature-war" href="{{ \App\Support\WarLinks::home() }}"><span>MATCHDAY WAR</span><h3>Turn the fixture into a battle.</h3><p>Choose your side and rally supporters.</p><b>Enter Matchday War →</b></a>
     </div>
-    @if($arena)<p class="md-play-arena"><a href="{{ route('war.arena') }}">Watch the arena: {{ $arena['home']['army'] ?? '' }} v {{ $arena['away']['army'] ?? '' }} →</a></p>@endif
 </div></section>
 
-@include('partials.home.leagues')
 @include('partials.home.join')
 @include('partials.home.ngr')
 @endsection

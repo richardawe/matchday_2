@@ -511,3 +511,12 @@ body.md-cartoon .md-banter-preview img { border: 4px solid var(--c-ink); box-sha
 body.md-cartoon .md-banter-choice button { border: 2px solid var(--c-ink); background: var(--c-surface); color: var(--c-ink); font-family: var(--c-mono); }
 body.md-cartoon .md-banter-choice button[aria-pressed="true"] { background: var(--c-ink); color: var(--c-sun); }
 body.md-cartoon .md-banter-wa { border: 3px solid var(--c-ink); box-shadow: 5px 5px 0 var(--c-ink); font-family: var(--c-display); font-weight: 400; font-size: 1.15rem; }
+
+/* Watch live (STREAM_PAGE) */
+body.md-cartoon .md-watch-live { background: var(--c-ink); border-bottom: 5px solid var(--c-ink); }
+body.md-cartoon .md-watch-live a { color: var(--c-paper) !important; text-decoration: none; }
+body.md-cartoon .md-watch-live-tag { color: var(--c-sun); font-family: var(--c-mono); }
+body.md-cartoon .md-watch-live strong { font-family: var(--c-display); font-weight: 400; font-size: 1.35rem; letter-spacing: .02em; text-transform: uppercase; }
+body.md-cartoon .md-watch-live b { background: var(--c-live); color: var(--c-ink); border: 3px solid var(--c-paper); box-shadow: 4px 4px 0 var(--c-sun); font-family: var(--c-display); font-weight: 400; font-size: 1.05rem; letter-spacing: .04em; }
+body.md-cartoon .md-feature-live { background: var(--c-live); }
+body.md-cartoon .md-nav-live { color: var(--c-live) !important; font-weight: 700; }
