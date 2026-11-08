@@ -344,7 +344,7 @@ elif [[ "$mode" == configure-growth ]]; then
 else
     [[ "${GITHUB_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || { echo "Missing release commit SHA."; exit 1; }
     # YouTube settings from GitHub (secrets YOUTUBE_CLIENT_ID/SECRET, variables YOUTUBE_CHANNEL_ID and
-    # YOUTUBE_UPLOADS) into the server .env before deploy-production.sh rebuilds the config cache.
+    # YOUTUBE_UPLOADS) and the social switches (variable SOCIAL_AUTOPOST_ENABLED, secret SOCIAL_QUEUE_TOKEN) into the server .env before deploy-production.sh rebuilds the config cache.
     # Keys are added or replaced in place (never duplicated); blank ones leave the server's value alone.
     # Values travel as JSON on stdin, so they never appear in a command line or the log.
     # shellcheck disable=SC2016 # the single-quoted program is PHP, not shell
@@ -355,6 +355,12 @@ $uploads = strtolower(trim((string) getenv("YOUTUBE_UPLOADS")));
 if (in_array($uploads, ["true", "false"], true)) { $set["YOUTUBE_UPLOADS"] = $uploads; }
 elseif ($uploads !== "") { fwrite(STDERR, "YOUTUBE_UPLOADS must be true or false.\n"); exit(1); }
 if (isset($set["YOUTUBE_CHANNEL_ID"]) && !preg_match("/^UC[A-Za-z0-9_-]{22}$/", $set["YOUTUBE_CHANNEL_ID"])) { fwrite(STDERR, "YOUTUBE_CHANNEL_ID does not look like a channel ID (UC...).\n"); exit(1); }
+$autopost = strtolower(trim((string) getenv("SOCIAL_AUTOPOST_ENABLED")));
+if (in_array($autopost, ["true", "false"], true)) { $set["SOCIAL_AUTOPOST_ENABLED"] = $autopost; }
+elseif ($autopost !== "") { fwrite(STDERR, "SOCIAL_AUTOPOST_ENABLED must be true or false.\n"); exit(1); }
+$token = trim((string) getenv("SOCIAL_QUEUE_TOKEN"));
+if ($token !== "" && !preg_match("/^[A-Za-z0-9_-]{32,}$/", $token)) { fwrite(STDERR, "SOCIAL_QUEUE_TOKEN must be at least 32 letters, digits, - or _ (value not shown).\n"); exit(1); }
+if ($token !== "") { $set["SOCIAL_QUEUE_TOKEN"] = $token; }
 echo $set === [] ? "" : json_encode($set);')
     if [[ -n "$youtube_json" ]]; then
         printf '%s' "$youtube_json" | ssh "${ssh_options[@]}" "$target" "cd $root && php scripts/set-env.php"

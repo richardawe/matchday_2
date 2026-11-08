@@ -219,10 +219,12 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   `public/generated/reels/<id>/<id>.mp4` and uploaded as YouTube Shorts; YouTube LIVE is unchanged. A separate bot
   posts through Buffer from `GET /api/social-queue` and reports back with `POST /api/social-queue/{id}/posted`
   (`{channel, external_post_id, url}`); admins can mark posts by hand at `/admin/social-queue`.
-- Production: set `SOCIAL_AUTOPOST_ENABLED=false` and `SOCIAL_QUEUE_TOKEN` to a long random value
-  (`php -r "echo bin2hex(random_bytes(32));"`), then `php artisan migrate --force` and `php artisan config:clear`
-  (and `php artisan config:cache` if the server caches config). Keep the token private: never paste it in chat,
-  tickets, commits or screenshots; give it to the bot only through a secure setting.
+- Production: **every deploy writes** `SOCIAL_AUTOPOST_ENABLED` (repository variable, default `false`) and
+  `SOCIAL_QUEUE_TOKEN` (production secret; blank leaves the server value alone; at least 32 of `A-Za-z0-9_-`) into the
+  server `.env` (`scripts/ci/deploy-ssh.sh`), and the deploy migrates and rebuilds the config cache. Make the token with
+  `php -r "echo bin2hex(random_bytes(32));"`, store it as the GitHub secret `SOCIAL_QUEUE_TOKEN` and in the bot's own
+  secure setting, then redeploy. By hand instead: set both in `.env`, `php artisan migrate --force`, `php artisan config:clear`
+  (and `config:cache`). Keep the token private: never paste it in chat, tickets, commits or screenshots.
 - Turning `SOCIAL_AUTOPOST_ENABLED=true` brings back the old Buffer posting (with `BUFFER_AUTO` etc.). Don't run both
   that and the bot, or posts go out twice.
 

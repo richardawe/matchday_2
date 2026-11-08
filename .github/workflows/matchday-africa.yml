@@ -239,6 +239,10 @@ jobs:
           YOUTUBE_CHANNEL_ID: ${{ vars.YOUTUBE_CHANNEL_ID || secrets.YOUTUBE_CHANNEL_ID }}
           # Automatic YouTube Shorts for new reels; set the variable to false to stop them.
           YOUTUBE_UPLOADS: ${{ vars.YOUTUBE_UPLOADS || 'true' }}
+          # The site's own social posting stays off (a separate bot posts from /api/social-queue); set the variable to true to bring it back.
+          SOCIAL_AUTOPOST_ENABLED: ${{ vars.SOCIAL_AUTOPOST_ENABLED || 'false' }}
+          # The bot's bearer token for /api/social-queue; blank leaves the server's value alone.
+          SOCIAL_QUEUE_TOKEN: ${{ secrets.SOCIAL_QUEUE_TOKEN }}
         run: bash scripts/ci/deploy-ssh.sh deploy
       - name: Verify the public release and application routes
         env:
