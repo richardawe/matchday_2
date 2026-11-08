@@ -39,22 +39,25 @@ class GriotReelTest extends TestCase
     {
         $props = app(ReelService::class)->props($this->match);
 
-        $this->assertSame(['Full time: Arsenal 1, Chelsea 0.', 'Arsenal 1, Chelsea 0.', 'Arsenal against Chelsea.'], $props['title']['say']);
+        $this->assertSame("Arsenal against Chelsea. Here's how it went!", $props['title']['say'][0]);
         $goal = collect($props['beats'])->firstWhere('type', 'goal');
-        $this->assertSame(['Saka scores, 41 minutes! Arsenal 1, Chelsea 0.', 'Saka scores! Arsenal 1, Chelsea 0.', 'Goal, Saka! 1 nil.', 'Saka scores!', 'Goal!'], $goal['say']);
-        $this->assertSame(['Full time. Arsenal 1, Chelsea 0.', 'Full time.'], $props['final']['say']);
+        $this->assertSame(["Saka scores for Arsenal, 41 minutes! It's one nil to Arsenal.", "Saka scores for Arsenal! It's one nil to Arsenal.",
+            "Goal, Saka! It's one nil to Arsenal.", "Goal! It's one nil to Arsenal."], $goal['say']);
+        $this->assertSame("And there's the final whistle! Arsenal one, Chelsea nil. Arsenal take the points!", $props['final']['say'][0]);
+        $this->assertSame('Full time!', end($props['final']['say']));
     }
 
     public function test_props_tell_the_story_with_crest_free_art(): void
     {
         $props = app(ReelService::class)->props($this->match);
 
-        $this->assertSame('Roman Legion v Ottoman Janissaries', $props['title']['headline']);
+        $this->assertSame('Arsenal v Chelsea', $props['title']['headline']);
         $this->assertStringEndsWith('resources/armies/roman-legion.webp', $props['home']['art_path']);
         $this->assertSame(['kickoff', 'goal'], array_column($props['beats'], 'type'));
-        $this->assertSame('First blood', $props['beats'][1]['headline']);
+        $this->assertSame('GOAL! Bukayo Saka scores for Arsenal', $props['beats'][1]['headline']);
+        $this->assertSame('Bukayo Saka', $props['beats'][1]['player']);
         $this->assertSame(58, $props['stats'][0]['home']);
-        $this->assertSame('The Roman Legion prevail', $props['final']['headline']);
+        $this->assertSame('Full time: Arsenal win', $props['final']['headline']);
 
         $urls = app(ReelService::class)->props($this->match, urls: true);
         $this->assertStringContainsString('war/army/roman-legion-cutout-960.webp', $urls['home']['art_url']);

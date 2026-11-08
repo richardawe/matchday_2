@@ -8,12 +8,12 @@ use App\Models\MatchMoment;
 use App\Services\Griot\GriotTeller;
 use App\Services\Griot\GriotTimeline;
 use App\Support\Armies;
+use App\Support\ClubName;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 use Throwable;
 
@@ -81,14 +81,19 @@ class ReelService
         $home = $side($match->homeTeam, (int) $match->home_score);
         $away = $side($match->awayTeam, (int) $match->away_score);
 
-        $beats = $chapters->whereNotIn('type', ['full_time'])->map(function (MatchMoment $chapter) use ($voice, $home, $away) {
+        $commentary = new ReelCommentary(['home' => ClubName::spoken($match->homeTeam), 'away' => ClubName::spoken($match->awayTeam)]);
+
+        $beats = $chapters->whereNotIn('type', ['full_time'])->map(function (MatchMoment $chapter) use ($voice, $commentary) {
             [$headline, $line] = $this->griot->tell($chapter, $voice);
 
             return ['type' => $chapter->type, 'tag' => $this->griot->tag($chapter), 'side' => $chapter->side,
                 'home_score' => $chapter->home_score, 'away_score' => $chapter->away_score, 'headline' => $headline, 'line' => $line,
-                'say' => $this->say($chapter, $home['club'], $away['club'])];
+                'player' => $chapter->player_name, 'clock' => $chapter->clock,
+                'say' => $commentary->beat(['type' => $chapter->type, 'side' => $chapter->side, 'player' => $chapter->player_name,
+                    'minute' => $chapter->minute, 'extra' => $chapter->extra_minute, 'home_score' => (int) $chapter->home_score,
+                    'away_score' => (int) $chapter->away_score, 'angle' => $chapter->angle])];
         })->values()->all();
-        if ($v2 && ($told = $this->timelineBeats($match, $voice))) {
+        if ($v2 && ($told = $this->timelineBeats($match, $voice, $commentary))) {
             $beats = $told;
         }
 
@@ -97,8 +102,8 @@ class ReelService
             'format' => 'story',
             'competition' => 'PREMIER LEAGUE',
             // The opening frame shows the final score, so the commentary leads with it too.
-            'title' => ['headline' => "{$home['army']} v {$away['army']}", 'line' => "{$home['club']} v {$away['club']}",
-                'say' => ["Full time: {$home['club']} {$home['score']}, {$away['club']} {$away['score']}.", "{$home['club']} {$home['score']}, {$away['club']} {$away['score']}.", "{$home['club']} against {$away['club']}."]],
+            'title' => ['headline' => "{$home['club']} v {$away['club']}", 'line' => "Full time: {$home['club']} {$home['score']}–{$away['score']} {$away['club']}",
+                'say' => $commentary->title($home['score'], $away['score'])],
             'home' => $home,
             'away' => $away,
             'beats' => $beats,
@@ -108,7 +113,7 @@ class ReelService
                 ['label' => 'ON TARGET', 'home' => $match->home_shots_on_target, 'away' => $match->away_shots_on_target],
             ],
             'final' => ($final ? array_combine(['headline', 'line'], $this->griot->tell($final, $voice)) : ['headline' => 'Full time', 'line' => ''])
-                + ['say' => ["Full time. {$home['club']} {$home['score']}, {$away['club']} {$away['score']}.", 'Full time.']],
+                + ['say' => $commentary->final($home['score'], $away['score'])],
         ];
     }
 
@@ -121,7 +126,7 @@ class ReelService
      *
      * @return array<int, array>
      */
-    private function timelineBeats(FootballMatch $match, string $voice): array
+    private function timelineBeats(FootballMatch $match, string $voice, ReelCommentary $commentary): array
     {
         $timeline = app(GriotTimeline::class);
         if (!$timeline->ready()) {
@@ -133,40 +138,21 @@ class ReelService
             return [];
         }
 
-        return $posts->map(function (GriotPost $post) use ($match, $teller, $voice) {
+        return $posts->map(function (GriotPost $post) use ($match, $teller, $voice, $commentary) {
             $post->setRelation('match', $match);
             [$headline, $line] = $teller->tell($post, $voice, $match);
             $tag = mb_strtoupper($teller->tag($post)).($post->clock ? ' · '.$post->clock : '');
+            $facts = $post->facts ?? [];
 
             return ['type' => $post->kind, 'tag' => $tag, 'side' => $post->side,
                 'home_score' => (int) $post->home_score, 'away_score' => (int) $post->away_score, 'headline' => $headline, 'line' => $line,
-                // Longest first for radio/speak.mjs: the Griot's full line, then the headline alone.
-                'say' => array_values(array_unique(array_filter([$teller->speech($post, 'en'), rtrim($headline, '.!?').'!'])))];
+                'player' => $facts['player'] ?? null, 'clock' => $post->clock,
+                // Longest first for radio/speak.mjs: a commentator's call of the moment.
+                'say' => $commentary->beat(['type' => $post->kind, 'side' => $post->side, 'player' => $facts['player'] ?? null,
+                    'minute' => $post->minute, 'extra' => $post->extra_minute, 'home_score' => (int) $post->home_score,
+                    'away_score' => (int) $post->away_score, 'angle' => $facts['angle'] ?? null, 'own_goal' => !empty($facts['own_goal']),
+                    'penalty' => !empty($facts['penalty']), 'outcome' => $facts['outcome'] ?? null, 'player_off' => $facts['player_off'] ?? null])];
         })->values()->all();
-    }
-
-    /**
-     * The commentary for one chapter, longest wording first: radio/speak.mjs uses the longest that
-     * fits the scene (a beat lasts 2.8 to 14 seconds). Only facts from the chapter: who, when, the
-     * score, called the way a commentator would ("Saka scores! … 1 nil").
-     */
-    private function say(MatchMoment $chapter, string $home, string $away): array
-    {
-        $score = "{$home} {$chapter->home_score}, {$away} {$chapter->away_score}.";
-        $short = implode(' ', array_map(fn ($n) => $n === 0 ? 'nil' : (string) $n, [(int) $chapter->home_score, (int) $chapter->away_score])).'.';
-        $team = ['home' => $home, 'away' => $away][$chapter->side] ?? null;
-        $name = $chapter->player_name ? Str::afterLast(trim($chapter->player_name), ' ') : null;
-        $when = $chapter->minute ? $chapter->minute.($chapter->extra_minute ? " plus {$chapter->extra_minute}" : '').' minutes' : null;
-        $scores = $name ? "{$name} scores" : ($team ? "{$team} score" : null);
-
-        return array_values(array_filter(match ($chapter->type) {
-            'goal' => [$scores && $when ? "{$scores}, {$when}! {$score}" : null, $scores ? "{$scores}! {$score}" : null,
-                $name ? "Goal, {$name}! {$short}" : "Goal! {$short}", $scores ? "{$scores}!" : null, 'Goal!'],
-            'red_card' => [$name && $when ? "Red card! {$name} is off, {$when}." : null, $name ? "Red card, {$name}!" : null, 'Red card!'],
-            'kickoff' => ["Kick-off. {$home} against {$away}.", 'Kick-off.'],
-            'half_time' => ["Half-time. {$score}", "Half-time, {$short}", 'Half-time.'],
-            default => [],
-        }));
     }
 
     public function make(FootballMatch $match, ?string $renderer = null): string
@@ -411,8 +397,9 @@ class ReelService
      * The reel look new renders use (config reel.style), with a revision: bump the revision when the
      * art or layout changes enough that made reels should be redrawn (reel:queue picks them up).
      * r2 (3 Nov 2026): cut-outs from model mattes, sound-effect burst clear of the hero.
+     * r3 (8 Nov 2026): exactly 20 seconds, club and player names instead of army names, commentary from kick-off to full time.
      */
-    public const V2_REVISION = 'v2r2';
+    public const V2_REVISION = 'v2r3';
 
     public static function style(): string
     {

@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\MatchMoment;
-use App\Support\Armies;
+use App\Support\ClubName;
 
 /**
  * The Griot: captions each story chapter in the fan's chosen voice. Templates only, so every
@@ -14,58 +14,63 @@ class Griot
 {
     public const VOICES = ['en' => 'English', 'pcm' => 'Naija Pidgin', 'sw' => 'Sheng / Swahili', 'za' => 'Mzansi'];
 
+    /**
+     * Each line names the player and the club and says what happened, so a fan who sees only one
+     * caption knows the event, the team and the score. {at} is when it happened ("in the 41st
+     * minute"), empty when the minute is unknown.
+     */
     private const LINES = [
         'en' => [
-            'kickoff' => ['The armies meet', '{home_army} v {away_army}. The drums begin.'],
-            'opener' => ['First blood', '{player} strikes for the {army}.'],
-            'equaliser' => ['The {army} answer', '{player} levels it. All square.'],
-            'lead' => ['The {army} take the lead', '{player} puts them in front.'],
-            'extend' => ['The {army} press on', '{player} makes it {score_short}.'],
-            'late_winner' => ['A late blow', '{player} at {minute}. The {army} strike late.'],
-            'consolation' => ['Pride restored', '{player} pulls one back for the {army}.'],
-            'red_card' => ['A warrior falls', '{player} is sent off. The {army} fight on with ten.'],
-            'half_time' => ['The drums pause', 'Half-time: {score}.'],
-            'win' => ['The {army} prevail', 'Full time: {score}.'],
-            'draw' => ['Honours even', 'Full time: {score}. No army yields.'],
+            'kickoff' => ['Kick-off: {home} v {away}', 'Hear me: {home} and {away} are under way. Let the drums speak.'],
+            'opener' => ['GOAL! {player} scores for {club}', 'First goal of the match{at}. {score}.'],
+            'equaliser' => ['GOAL! {player} equalises for {club}', 'All square{at}. {score}.'],
+            'lead' => ['GOAL! {player} puts {club} in front', '{club} ahead{at}. {score}.'],
+            'extend' => ['GOAL! {player} makes it {score_short}', '{club} pull further ahead{at}. {score}.'],
+            'late_winner' => ['LATE GOAL! {player} for {club}', 'Drama{at}! {score}.'],
+            'consolation' => ['GOAL! {player} pulls one back', 'One back for {club}{at}. {score}.'],
+            'red_card' => ['RED CARD! {player} is sent off', '{club} are down to ten{at}. Still {score_short}.'],
+            'half_time' => ['Half-time: {home} {score_short} {away}', '{score} at the break.'],
+            'win' => ['Full time: {club} win', '{score}.'],
+            'draw' => ['Full time: honours even', '{score}. The points are shared.'],
         ],
         'pcm' => [
-            'kickoff' => ['Wahala don start', '{home_army} and {away_army} don enter field.'],
-            'opener' => ['Goal don enter!', '{player} don open the account for {army}.'],
-            'equaliser' => ['Dem don equalise!', '{player} don bring am back. E level now.'],
-            'lead' => ['{army} don take lead!', '{player} don put dem for front.'],
-            'extend' => ['E don pass be that!', '{player} add another one. {score_short}.'],
-            'late_winner' => ['Last-minute wahala!', '{player} for {minute}. Who dey breathe?'],
-            'consolation' => ['At least dem score one', '{player} don reduce am for {army}.'],
-            'red_card' => ['Red card! E don red', '{player} don comot. {army} remain ten.'],
-            'half_time' => ['Half time, make we breathe', '{score} for now.'],
-            'win' => ['{army} don win am!', 'Final: {score}.'],
-            'draw' => ['Nobody win today', 'Final: {score}. Dem share the points.'],
+            'kickoff' => ['Match don start: {home} v {away}', '{home} and {away} don enter field. Make the drum talk!'],
+            'opener' => ['Goal! {player} don score for {club}', '{player} don open the account{at}. {score}.'],
+            'equaliser' => ['Goal! {club} don equalise!', '{player} don bring am back{at}. {score}.'],
+            'lead' => ['Goal! {club} don take lead!', '{player} don put {club} for front{at}. {score}.'],
+            'extend' => ['Goal! {player} add another one', '{club} dey run am{at}. {score}.'],
+            'late_winner' => ['Last-minute goal! {player} for {club}', '{player} score am{at}. Who dey breathe? {score}.'],
+            'consolation' => ['Goal! {club} don reduce am', '{player} score one{at}. {score}.'],
+            'red_card' => ['Red card! {player} don comot', '{club} remain ten{at}. Still {score_short}.'],
+            'half_time' => ['Half time: {home} {score_short} {away}', '{score} for now.'],
+            'win' => ['Full time: {club} don win am!', 'Final: {score}.'],
+            'draw' => ['Full time: nobody win today', 'Final: {score}. Dem share the points.'],
         ],
         'sw' => [
-            'kickoff' => ['Vita imeanza', '{home_army} vs {away_army}. Ngoma zinaanza.'],
-            'opener' => ['Bao la kwanza!', '{player} afungua kwa {army}.'],
-            'equaliser' => ['Wamesawazisha!', '{player} arudisha usawa.'],
-            'lead' => ['{army} wako mbele!', '{player} awaweka mbele.'],
-            'extend' => ['Bao lingine!', '{player} aongeza. {score_short}.'],
-            'late_winner' => ['Bao la dakika za mwisho!', '{player} dakika ya {minute}.'],
-            'consolation' => ['Bao la kufutia machozi', '{player} afungia {army}.'],
-            'red_card' => ['Kadi nyekundu!', '{player} atolewa nje. {army} wabaki kumi.'],
-            'half_time' => ['Mapumziko', 'Kipindi cha kwanza: {score}.'],
-            'win' => ['{army} washinda!', 'Mwisho wa mchezo: {score}.'],
-            'draw' => ['Sare!', 'Mwisho wa mchezo: {score}.'],
+            'kickoff' => ['Mechi imeanza: {home} dhidi ya {away}', '{home} na {away} wameanza. Ngoma zinaanza.'],
+            'opener' => ['Goli! {player} afungia {club}', '{player} afungua ukurasa{at}. {score}.'],
+            'equaliser' => ['Goli! {club} wasawazisha', '{player} arudisha usawa{at}. {score}.'],
+            'lead' => ['Goli! {club} wako mbele', '{player} awaweka {club} mbele{at}. {score}.'],
+            'extend' => ['Goli! {player} aongeza', '{club} waongeza{at}. {score}.'],
+            'late_winner' => ['Goli la dakika za mwisho! {player}', '{player} afungia {club}{at}. {score}.'],
+            'consolation' => ['Goli! {club} wapata moja', '{player} afunga{at}. {score}.'],
+            'red_card' => ['Kadi nyekundu! {player} atolewa', '{club} wabaki kumi{at}. Bado {score_short}.'],
+            'half_time' => ['Mapumziko: {home} {score_short} {away}', 'Kipindi cha kwanza: {score}.'],
+            'win' => ['Mwisho: {club} washinda!', 'Mwisho wa mchezo: {score}.'],
+            'draw' => ['Mwisho: sare!', 'Mwisho wa mchezo: {score}.'],
         ],
         'za' => [
-            'kickoff' => ['Ke nako!', '{home_army} vs {away_army}. Let’s go.'],
-            'opener' => ['Eish, what a strike!', '{player} opens it up for the {army}.'],
-            'equaliser' => ['Haibo, it’s level!', '{player} brings it back.'],
-            'lead' => ['The {army} are in front!', '{player} with the shaya.'],
-            'extend' => ['Sharp sharp, another one!', '{player} makes it {score_short}.'],
-            'late_winner' => ['Late, late drama!', '{player} at {minute}. Yoh!'],
-            'consolation' => ['One for pride', '{player} pulls one back for the {army}.'],
-            'red_card' => ['Red card, haibo!', '{player} is off. The {army} are down to ten.'],
-            'half_time' => ['Half-time, take a breather', '{score} at the break.'],
-            'win' => ['Ayoba! The {army} win it', 'Full time: {score}.'],
-            'draw' => ['Nobody’s laughing today', 'Full time: {score}.'],
+            'kickoff' => ['Ke nako! {home} v {away}', '{home} and {away} are under way. Let’s go.'],
+            'opener' => ['GOAL! {player} scores for {club}', 'Eish, what a strike{at}! {score}.'],
+            'equaliser' => ['GOAL! {club} level it, haibo!', '{player} brings it back{at}. {score}.'],
+            'lead' => ['GOAL! {club} are in front!', '{player} with the shaya{at}. {score}.'],
+            'extend' => ['GOAL! {player} makes it {score_short}', 'Sharp sharp, {club} again{at}. {score}.'],
+            'late_winner' => ['LATE GOAL! {player} for {club}', 'Late, late drama{at}. Yoh! {score}.'],
+            'consolation' => ['GOAL! One for pride', '{player} pulls one back for {club}{at}. {score}.'],
+            'red_card' => ['RED CARD! {player} is off, haibo!', '{club} are down to ten{at}. Still {score_short}.'],
+            'half_time' => ['Half-time: {home} {score_short} {away}', '{score} at the break.'],
+            'win' => ['Ayoba! {club} win it', 'Full time: {score}.'],
+            'draw' => ['Full time: nobody’s laughing', '{score}.'],
         ],
     ];
 
@@ -92,10 +97,8 @@ class Griot
     {
         $voice = array_key_exists($voice, self::VOICES) ? $voice : 'en';
         $match = $moment->match;
-        $home = Armies::for($match->homeTeam);
-        $away = Armies::for($match->awayTeam);
-        $side = $moment->side === 'away' ? $away : $home;
-        $club = fn ($team) => trim(preg_replace('/\s+FC$/i', '', (string) $team?->name));
+        $clubs = ['home' => ClubName::short($match->homeTeam), 'away' => ClubName::short($match->awayTeam)];
+        $club = $clubs[$moment->side === 'away' ? 'away' : 'home'];
 
         $template = match ($moment->type) {
             'goal' => $moment->angle ?? 'opener',
@@ -104,16 +107,60 @@ class Griot
         };
         [$headline, $line] = self::LINES[$voice][$template] ?? self::LINES['en'][$template];
         $values = [
-            '{army}' => $side['army'] ?? $club($moment->side === 'away' ? $match->awayTeam : $match->homeTeam),
-            '{home_army}' => $home['army'] ?? $club($match->homeTeam),
-            '{away_army}' => $away['army'] ?? $club($match->awayTeam),
-            '{player}' => $moment->player_name ?: ($side['army'] ?? 'They'),
+            '{club}' => $club,
+            '{home}' => $clubs['home'],
+            '{away}' => $clubs['away'],
+            '{player}' => $moment->player_name ?: $club,
+            '{at}' => self::at($voice, $moment->minute, $moment->extra_minute),
             '{minute}' => $moment->clock ?? '',
-            '{score}' => $club($match->homeTeam).' '.$moment->home_score.'–'.$moment->away_score.' '.$club($match->awayTeam),
+            '{score}' => ClubName::full($match->homeTeam).' '.$moment->home_score.'–'.$moment->away_score.' '.ClubName::full($match->awayTeam),
             '{score_short}' => $moment->home_score.'–'.$moment->away_score,
         ];
 
-        return [strtr($headline, $values), strtr($line, $values)];
+        return [self::fill($headline, $values), self::fill($line, $values)];
+    }
+
+    /** When it happened, for the {at} slot: " in the 41st minute", " in stoppage time (45+2)", or "" without a minute. */
+    public static function at(string $voice, ?int $minute, ?int $extra = null): string
+    {
+        if ($minute === null || $minute <= 0) {
+            return '';
+        }
+        if ($extra) {
+            return match ($voice) {
+                'pcm' => " for added time ({$minute}+{$extra})",
+                'sw' => " katika dakika za nyongeza ({$minute}+{$extra})",
+                default => " in stoppage time ({$minute}+{$extra})",
+            };
+        }
+
+        return match ($voice) {
+            'pcm' => " for minute {$minute}",
+            'sw' => " dakika ya {$minute}",
+            default => ' in the '.self::ordinal($minute).' minute',
+        };
+    }
+
+    public static function ordinal(int $n): string
+    {
+        $suffix = in_array($n % 100, [11, 12, 13], true) ? 'th' : (['th', 'st', 'nd', 'rd'][$n % 10] ?? 'th');
+
+        return $n.$suffix;
+    }
+
+    /** Headline and line as one sentence pair for a post: "GOAL! Saka puts Arsenal in front. Arsenal ahead…". */
+    public static function joined(array $told): string
+    {
+        [$headline, $line] = array_pad(array_values($told), 2, '');
+        $headline = trim($headline);
+
+        return trim(($headline !== '' && !preg_match('/[.!?]$/u', $headline) ? "{$headline}." : $headline).' '.trim($line));
+    }
+
+    /** Fills a template and tidies spaces left by empty slots ("ten ." → "ten."). */
+    public static function fill(string $text, array $values): string
+    {
+        return trim(preg_replace(['/\s+/u', '/\s+([.,!?])/u'], [' ', '$1'], strtr($text, $values)));
     }
 
     /** Short label for the card's tag, e.g. "GOAL · 41′". */

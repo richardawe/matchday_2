@@ -28,8 +28,11 @@ const luma = (hex) => {
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
 // The colour a side is drawn in: its first kit colour, or the second when the first is near-black/white.
-// "The Roman Legion": the army's title as it follows the club's name (config armies `title`).
-const title = (side) => side.title ?? `The ${side.army}`;
+// A side's scorers for the opening frame: "Saka 23′ · Havertz 70′" (own goals marked OG).
+const scorers = (beats, side) => (beats ?? [])
+    .filter((b) => b.type === 'goal' && b.side === side && b.player)
+    .map((b) => `${b.player.trim().split(/\s+/).pop()}${b.clock ? ` ${b.clock}` : ''}`)
+    .join(' · ');
 
 const hue = (side) => {
     const [a, b] = side.colours;
@@ -266,10 +269,10 @@ const Title = ({ home, away, competition, beats }) => {
             </div>
             <div style={{ position: 'absolute', top: 150 * u, left: 52 * u, right: 52 * u, padding: `${18 * u}px ${24 * u}px ${8 * u}px`, background: PAPER, border: `${7 * u}px solid ${INK}`, boxShadow: `${14 * u}px ${14 * u}px 0 ${INK}`, transform: `scale(${settle}) rotate(-1.5deg)`, textAlign: 'center' }}>
                 <div style={{ display: 'flex', gap: 20 * u }}>
-                    {[home, away].map((side) => (
+                    {[['home', home], ['away', away]].map(([which, side]) => (
                         <div key={side.club} style={{ flex: 1, minWidth: 0, borderTop: `${12 * u}px solid ${hue(side)}`, paddingTop: 8 * u }}>
                             <div style={{ font: `${40 * u}px Anton`, color: INK, textTransform: 'uppercase', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{side.club}</div>
-                            <div style={{ font: `${24 * u}px PlexMono`, color: '#5a5246', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{title(side)}</div>
+                            <div style={{ font: `${24 * u}px PlexMono`, color: '#5a5246', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{scorers(beats, which) || '\u00a0'}</div>
                         </div>
                     ))}
                 </div>
@@ -357,7 +360,7 @@ const Stats = ({ home, away, stats }) => {
                     );
                 })}
             </div>
-            <div style={{ position: 'absolute', left: 52 * u, right: 52 * u, bottom: 110 * u, font: `${56 * u}px/1.08 Anton`, color: INK, textTransform: 'uppercase', textAlign: 'center' }}>{home.club} – {title(home)}<br /><span style={{ color: '#d2a052' }}>v</span><br />{away.club} – {title(away)}</div>
+            <div style={{ position: 'absolute', left: 52 * u, right: 52 * u, bottom: 110 * u, font: `${56 * u}px/1.08 Anton`, color: INK, textTransform: 'uppercase', textAlign: 'center' }}>{home.club}<br /><span style={{ color: '#d2a052' }}>v</span><br />{away.club}</div>
             <Footer colours={home.colours} />
             <Wipe />
         </AbsoluteFill>

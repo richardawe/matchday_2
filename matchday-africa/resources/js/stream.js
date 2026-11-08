@@ -125,8 +125,8 @@ function renderLive(match, live) {
     arena.style.background = `linear-gradient(90deg, ${match.home.colour} 0 50%, ${match.away.colour} 50% 100%)`;
     setImg($('m-home-art'), match.home.art, match.home.army ? `${match.home.name}'s army, the ${match.home.army}` : '');
     setImg($('m-away-art'), match.away.art, match.away.army ? `${match.away.name}'s army, the ${match.away.army}` : '');
-    setText('m-home-army', match.home.army ?? match.home.name);
-    setText('m-away-army', match.away.army ?? match.away.name);
+    setText('m-home-army', match.home.name); // club names under the art: fans know clubs, not army names
+    setText('m-away-army', match.away.name);
     arena.querySelectorAll('.st-tile').forEach((n) => n.remove());
     if (!match.home.art) { const t = tile(el('span', 'st-tile'), match.home); t.style.left = '110px'; arena.append(t); }
     if (!match.away.art) { const t = tile(el('span', 'st-tile'), match.away); t.style.right = '110px'; arena.append(t); }

@@ -108,7 +108,7 @@ class GriotTimelineTest extends TestCase
         $this->assertSame([0, 1], [$var->home_score, $var->away_score]);
         // Osula's goal before it and Barnes's after it count; Willock's never does.
         $this->assertSame([[0, 1], [0, 2]], GriotPost::where('kind', 'goal')->orderBy('seq')->get()->map(fn ($g) => [$g->home_score, $g->away_score])->all());
-        $this->assertSame('The elders say no', app(GriotTeller::class)->tell($var, 'en')[0]);
+        $this->assertSame('VAR: no goal for Brighton', app(GriotTeller::class)->tell($var, 'en')[0]);
     }
 
     public function test_the_griot_tells_posts_from_their_facts_in_four_voices(): void
@@ -119,10 +119,10 @@ class GriotTimelineTest extends TestCase
 
         $isak = GriotPost::where('kind', 'goal')->where('home_score', 2)->first();
         [$headline, $line] = $teller->tell($isak, 'en');
-        $this->assertSame('The Norse Vikings press on', $headline);
-        $this->assertStringContainsString('Alexander Isak makes it 2–0.', $line);
+        $this->assertSame('GOAL! Alexander Isak makes it 2–0', $headline);
+        $this->assertStringContainsString('Liverpool pull further ahead in the 21st minute.', $line);
         $this->assertStringContainsString('Bradley Barcola laid it on for him.', $line);
-        $this->assertSame('E don pass be that!', $teller->tell($isak, 'pcm')[0]);
+        $this->assertSame('Goal! Alexander Isak add another one', $teller->tell($isak, 'pcm')[0]);
 
         $post = GriotPost::where('kind', 'woodwork')->first();
         $this->assertStringContainsString('Yasin Ayari', implode(' ', $teller->tell($post, 'en')));
@@ -188,7 +188,7 @@ class GriotTimelineTest extends TestCase
         app(GriotTimeline::class)->build($this->match);
 
         $this->get(route('matches.show', $this->match))->assertOk()
-            ->assertSee("The Griot's timeline", false)->assertSee('Every shot')->assertSee('The Norse Vikings press on');
+            ->assertSee("The Griot's timeline", false)->assertSee('Every shot')->assertSee('GOAL! Alexander Isak makes it 2–0');
         $this->getJson(route('matches.live', $this->match))->assertOk()->assertJsonPath('timeline', fn ($html) => str_contains($html, 'md-tl-feed'));
 
         config(['griot.enabled' => false]);
@@ -238,7 +238,7 @@ class GriotTimelineTest extends TestCase
         $isak = GriotPost::where('kind', 'goal')->where('home_score', 2)->first();
         $input = $writer->input($isak, $this->match);
 
-        $this->assertSame(['kind' => 'goal', 'army' => 'Norse Vikings', 'opp_army' => 'Byzantine Cataphracts', 'home' => 'Liverpool',
+        $this->assertSame(['kind' => 'goal', 'army' => 'Liverpool', 'opp_army' => 'Brighton', 'home' => 'Liverpool',
             'away' => 'Brighton & Hove Albion', 'clock' => '21′', 'score' => '2–0'], array_diff_key($input, ['facts' => 1]));
         $this->assertSame('Alexander Isak', $input['facts']['player']);
         $this->assertNotNull($writer->accept($input, '{"headline":"Isak doubles it","line":"Alexander Isak from six yards. Bradley Barcola gave it. 2–0."}'));

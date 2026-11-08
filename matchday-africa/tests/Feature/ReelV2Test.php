@@ -98,7 +98,8 @@ class ReelV2Test extends TestCase
         $this->assertSame('away', $beats[1]['side']);
         $this->assertSame([1, 0], [$beats[2]['home_score'], $beats[2]['away_score']]);
         $this->assertNotEmpty($beats[2]['say']);
-        $this->assertStringContainsString('Bukayo Saka', $beats[2]['say'][0], 'the commentary is the Griot\'s own line');
+        $this->assertSame("Saka scores for Arsenal, 41 minutes! It's one nil to Arsenal.", $beats[2]['say'][0], 'a commentator\'s call: surname, club, minute, score');
+        $this->assertSame("Off the post! Palmer so close for Chelsea!", $beats[1]['say'][0]);
     }
 
     public function test_v2_falls_back_to_chapters_without_a_timeline(): void

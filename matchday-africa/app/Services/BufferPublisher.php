@@ -45,7 +45,7 @@ class BufferPublisher
             ->get();
         foreach ($chapters as $chapter) {
             [$headline, $line] = $this->griot->tell($chapter);
-            $text = $this->caption($chapter->match, "{$headline} {$line}", ['moment' => $chapter->id]);
+            $text = $this->caption($chapter->match, Griot::joined([$headline, $line]), ['moment' => $chapter->id]);
             foreach ($this->channelsFor($chapter->type) as $channel => $id) {
                 $count($this->send("moment:{$chapter->id}", $channel, $id, $chapter->match, $text, image: $chapter->cardUrl('en', 'feed')));
             }

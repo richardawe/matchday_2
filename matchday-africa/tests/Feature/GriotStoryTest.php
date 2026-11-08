@@ -74,13 +74,14 @@ class GriotStoryTest extends TestCase
         app(MatchStoryService::class)->syncRecent();
         $opener = MatchMoment::where('angle', 'opener')->first();
 
-        $this->assertSame(['First blood', 'Bukayo Saka strikes for the Roman Legion.'], app(Griot::class)->tell($opener, 'en'));
-        $this->assertSame('Goal don enter!', app(Griot::class)->tell($opener, 'pcm')[0]);
-        $this->assertSame('Bao la kwanza!', app(Griot::class)->tell($opener, 'sw')[0]);
-        $this->assertSame('Eish, what a strike!', app(Griot::class)->tell($opener, 'za')[0]);
+        $this->assertSame(['GOAL! Bukayo Saka scores for Arsenal', 'First goal of the match in the 41st minute. Arsenal 1–0 Chelsea.'], app(Griot::class)->tell($opener, 'en'));
+        $this->assertSame('Goal! Bukayo Saka don score for Arsenal', app(Griot::class)->tell($opener, 'pcm')[0]);
+        $this->assertSame('Goli! Bukayo Saka afungia Arsenal', app(Griot::class)->tell($opener, 'sw')[0]);
+        $this->assertSame('GOAL! Bukayo Saka scores for Arsenal', app(Griot::class)->tell($opener, 'za')[0]);
         $this->assertSame('GOAL · 41′', app(Griot::class)->tag($opener));
         $final = MatchMoment::where('type', 'full_time')->first();
-        $this->assertSame(['The Roman Legion prevail', 'Full time: Arsenal 2–1 Chelsea.'], app(Griot::class)->tell($final, 'en'));
+        $this->assertSame(['Full time: Arsenal win', 'Arsenal 2–1 Chelsea.'], app(Griot::class)->tell($final, 'en'));
+        $this->assertStringNotContainsString('Roman Legion', implode(' ', app(Griot::class)->tell($opener, 'en')), 'clubs, not army names');
     }
 
     public function test_cards_render_as_png_in_every_size_and_show_on_the_match_page(): void
@@ -95,7 +96,7 @@ class GriotStoryTest extends TestCase
         }
 
         $this->get(route('matches.show', ['match' => $this->match, 'voice' => 'sw']))->assertOk()
-            ->assertSee('THE STORY SO FAR')->assertSee('Bao la kwanza!')->assertSee('wa.me/?text=', false)
+            ->assertSee('THE STORY SO FAR')->assertSee('Goli! Bukayo Saka afungia Arsenal')->assertSee('wa.me/?text=', false)
             ->assertCookie('griot_voice', 'sw');
         $this->get(route('matches.show', ['match' => $this->match, 'moment' => $goal->id]))
             ->assertSee(route('moments.card', ['moment' => $goal->id, 'voice' => 'en', 'format' => 'og']), false);

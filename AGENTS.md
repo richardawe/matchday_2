@@ -1,8 +1,9 @@
 # Matchday Africa: agent guide
 
 Read this first. It is the project memory for coding agents (Codex reads `AGENTS.md`; Claude Code
-reads `CLAUDE.md`, which points here). Last updated 3 Nov 2026, after the cartoon look, brand pass, radio
-fix, fixture cards, redrawn-reel reposts and the swipeable home reels (PRs #40–#46; see section 7 "State on 3 Nov").
+reads `CLAUDE.md`, which points here). Last updated 8 Nov 2026, after Beat the Griot, the stream screen, YouTube LIVE
+and Shorts, player photos, social media uploads (PRs #55–#66), and club and player names in the Griot's words with a
+20-second commentary reel (see section 7 "Griot names and the commentary reel").
 
 ## 1. What is where
 
@@ -57,7 +58,7 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Griot story chapters (kick-off, goals, red cards, HT, FT) | `app/Services/MatchStoryService.php`, `Griot.php` (captions in en/pcm/sw/za), `app/Models/MatchMoment.php` | `story:sync` 1m (also after each ESPN live pass) | needs `match_moments` migration |
 | Story cards (PNG, GD) | `app/Services/StoryCardRenderer.php`, route `moments.card` | drawn on first request, cached in `storage/app/story-cards` | needs GD with FreeType + WebP |
 | 20-second reel (Remotion) | `reel/`, `app/Services/ReelService.php`, `reel:render` command, `ReelController` | `reel:render` 1m (one reel per run on the server, every waiting match at once on GitHub, `REEL_DELAY_MINUTES` after FT, 3 attempts per match; re-rendered once if the story changes within 30 min) | `REEL_RENDERER=off\|server\|github`, `REEL_OVERFLOW` |
-| Bright v2 reel (comic panels, army moods, 20-45 s, Griot timeline moments) | `reel/src/ReelV2.jsx`, moods in `reel/src/timeline.js`, `ReelService::timelineBeats()`, solid cut-outs `public/war/army/*-solid.webp` and poses `public/war/army/poses/` from `scripts/build-armies.mjs`, approved poses in `config/armies.php` `poses`; `node reel/preview.mjs` renders one still per scene | as above | `REEL_STYLE=v2` |
+| Bright v2 reel (comic panels, army moods, always 20 s, Griot timeline moments; opening frame shows club names and scorers) | `reel/src/ReelV2.jsx`, moods and the 20 s running order in `reel/src/timeline.js` (checked by `node reel/test-timeline.mjs`, run from `ReelTimelineTest`), `ReelService::timelineBeats()`, solid cut-outs `public/war/army/*-solid.webp` and poses `public/war/army/poses/` from `scripts/build-armies.mjs`, approved poses in `config/armies.php` `poses`; `node reel/preview.mjs` renders one still per scene | as above | `REEL_STYLE=v2` |
 | Match alerts + inbox ("Alert me" on any match, accounts only; kick-off reminder, kick-off, goals, red cards, HT, FT, reel) and messages to users | `app/Services/Alerts/*` (`WebPush` = RFC 8291/8292 with OpenSSL only, `MatchAlerts`, `Alerts`), `AlertController`, `Admin/AnnouncementController` (`/admin/messages`), `public/sw.js`, `public/manifest.webmanifest`, `resources/js/alerts.js`, tables `notifications`, `push_subscriptions`, `match_alerts`, `match_alert_log`, `announcements` | `alerts:scan` 1m | `PUSH_ENABLED` + VAPID keys (`push:keys --write`); inbox needs the migration |
 | Buffer → X, Instagram (live goal and red-card cards; reels go through growth_posts) | `app/Services/BufferPublisher.php`, `BufferClient.php` (ported from ngr.ltd), `buffer:publish`, `config/buffer.php`, table `social_posts` | `buffer:publish` 1m | `BUFFER_API_KEY` + `BUFFER_CHANNEL_*` |
 | Planned social posts (reels, news, fixture previews with a GD fixture card, morning fixtures, night results, "New look!" reposts of redrawn reels; X all, Instagram image/video, TikTok reels) | `GrowthPostGenerator.php` (`twitter:engage`), `FixtureCardRenderer.php` (route `matches.card`; `drawCartoon` in the cartoon look; always link it with `FixtureCardRenderer::url()`, which is versioned by look and result), table `growth_posts` (per channel), admin `/admin/twitter` | `twitter:engage` 10m plans; `buffer:publish` 1m sends when a channel's slot is free | `BUFFER_AUTO` + `BUFFER_CHANNEL_*` |
@@ -77,6 +78,7 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Player photos (API-Football squads, one call per team, each squad refreshed weekly; also from match ratings after full time) | `App\Services\PlayerPhotos` (saves `public/generated/players/{id}.png`, adds players our squads lack), `App\Support\PlayerNames` ("M. Salah" = "Mohamed Salah"), `players:photos`, admin `/admin/player-photos` (`Admin\PlayerPhotoController`: photos per club, squad gallery, players with no photo or not matched to API-Football); `PlayerService` updates squads in place (no more delete-and-recreate, so photos and `/players/{id}` links survive); `ApiFootballEnrichmentService` spends two calls on ESPN-covered matches (line-ups, ratings + photos) | `players:photos` daily 04:45 | `API_FOOTBALL_KEY`, `API_FOOTBALL_PHOTO_LEAGUES` (default `PL:39`) |
 | Matchday Live stream screen (`/stream`, 1080×1920 for YouTube LIVE; goals and red cards with army art and drum calls, Griot lines, countdown between matches; `?test=1` fake match day) | `StreamController`, `App\Services\Stream\StreamFeed` (`/stream/feed` snapshot, stable goal ids per side), `resources/views/stream.blade.php`, `resources/js/stream.js` + `resources/js/stream/*`, `resources/css/stream.css`, `config/stream.php`; plan and next phases in `docs/LIVE_STREAM_PLAN.md` | n/a | `STREAM_PAGE`, `STREAM_COMPETITIONS` |
 | YouTube LIVE (connect the channel once; one broadcast per matchday window on a reusable stream key, auto-start when the picture arrives, ended after the last match; private 30-min test broadcasts) | `Admin\YouTubeController` (`/admin/youtube`, OAuth callback `/admin/youtube/callback`), `App\Services\YouTube\YouTubeClient` (OAuth, token refresh, liveStreams/liveBroadcasts), `YouTubeBroadcasts` (windows from `stream.competitions`, title/description), `youtube:broadcasts`, tables `youtube_accounts` (tokens and stream key encrypted with APP_KEY), `youtube_broadcasts`, `config/youtube.php` | `youtube:broadcasts` 10m | `YOUTUBE_CLIENT_ID/SECRET` (Server operations `configure-youtube`), `YOUTUBE_AUTO`, `YOUTUBE_PRIVACY` (+ migration) |
+| Social media uploads (creatives for the social accounts) | `Admin\SocialMediaController`, `/admin/social-media` (MP4, MOV, JPG, PNG up to 200 MB on the public disk at `social/<yyyy-mm>/`, public URL + copy button, shows PHP upload limits); the Call out the Griot video is a static file at `public/social/griot/call_out_the_griot.mp4` | n/a | always on (admin only) |
 | YouTube Shorts (every new reel uploaded as a public Short; title "Home h-a Away \| hook #Shorts", factual one-line summary, match link with UTM; at most `YOUTUBE_DAILY_UPLOADS` a quota day, the rest wait; resumable, 3 retries) | `App\Services\YouTube\ReelUploads` (queued from `ReelService::mark` when a reel becomes ready), job `UploadReelToYouTube`, `youtube:uploads`, `youtube:backfill {--days=7}`, admin `/admin/youtube/uploads` (status, Retry upload); columns `matches.youtube_*`; uses the channel connected at `/admin/youtube` (refresh token encrypted in `youtube_accounts`), refuses any channel but `YOUTUBE_CHANNEL_ID` | `youtube:uploads` 5m | `YOUTUBE_UPLOADS` (the deploy writes it from the GitHub variable, default true) + migration |
 | Home arena | `resources/views/partials/home-arena.blade.php`, `resources/js/arena.js` (GSAP), `arena3d.js` (three.js, desktop only) | rides the home pulse refresh | always on when a Premier League match qualifies |
 
@@ -151,7 +153,7 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `REEL_RENDERER` | off | `server` (this host runs Node + Remotion) or `github` |
 | `REEL_NODE` | node | Path to the Node binary for the scheduler |
 | `REEL_VOICE` | en | Caption voice in reels: en, pcm, sw, za |
-| `REEL_NARRATION` / `REEL_NARRATION_VOICE` | false / bm_george | Kokoro commentary over new reels (`radio/speak.mjs`, server renderer only; a failure renders without it) |
+| `REEL_NARRATION` / `REEL_NARRATION_VOICE` | false / bm_george | Kokoro commentary over new reels: one commentator's call from kick-off to the final whistle, written by `App\Services\ReelCommentary` (`radio/speak.mjs`, server renderer only; a failure renders without it) |
 | `REEL_DELAY_MINUTES` | 3 | Wait after full time before rendering |
 | `REEL_GITHUB_REPO` / `REEL_GITHUB_TOKEN` | this repo / empty | For the GitHub fallback |
 | `BUFFER_API_KEY` | empty | Buffer API key |
@@ -208,6 +210,30 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   endpoint (`/matches/{id}/chronicle`) is JSON, not a page.
 - Local review tooling used on 3 Nov: a demo SQLite database plus Playwright scripts that screenshot every page at
   phone width and flag elements still in the classic serif/beige/Tailwind colours. Re-create them if needed; they are not in the repo.
+
+### Griot names and the commentary reel (8 Nov 2026)
+- Owner (8 Nov): YouTube posts work. "The army names are not resonating": the Griot's words now use **club and player names**
+  and say the event outright ("GOAL! Bukayo Saka puts Arsenal in front" / "Arsenal ahead in the 63rd minute. Arsenal 2–1
+  Chelsea."). Changed: chapter captions (`Griot.php`, so story cards, live X/Instagram posts and reels), timeline captions
+  (`GriotTeller.php`, so match pages, the stream and Griot voice clips), writer inputs (`GriotWriter`, keys still `army`/`opp_army`
+  for the training data, values are club names), reel title and stats screens, stream labels. Club names come from
+  `App\Support\ClubName` (`short` on captions, `full` in scores, `spoken` for commentary). Army art stays everywhere; army
+  names stay on /war, the arena and the Griot challenge page. Pidgin, Sheng and Mzansi lines were rewritten too and still need a
+  native speaker's review.
+- `Griot::at()` gives "in the 41st minute" / "in stoppage time (90+3)"; `Griot::joined()` joins headline and line for posts.
+- The v2 reel is **always 20 seconds** (2 s opening, 14 s of moments shared by weight, numbers, final whistle; a quiet match's
+  spare time goes to the numbers and the final whistle). Busy matches drop pressure, injuries, kick-off, chances and half-time
+  first, then early goals. `ReelService::V2_REVISION` is `v2r3`: run Server operations → `reel-queue` to redraw older reels.
+- The reel commentary (`REEL_NARRATION`) is one continuous call: "Arsenal, Chelsea. Here we go!" → "Goal, Saka! It's one nil to
+  Arsenal." → … → "Full time! Arsenal win it, two one!" (`ReelCommentary`; speak.mjs picks the longest wording that fits each
+  scene and logs it as `text`). Check that `REEL_NARRATION=true` on the server (Server operations → `configure-reel-voice`).
+- Player photos: the files were downloading and serving fine (e.g. `/generated/players/6850.png`), but only the African
+  players pages and the stream showed them. PR #64 (photos on goal and red-card cards and in the timeline, `/admin/player-photos`)
+  was merged into this branch. Photo coverage is still low (1 of 24 players on `/african-players`): `players:photos` covers
+  the Premier League only (`API_FOOTBALL_PHOTO_LEAGUES`) and is held back by API-Football's free-plan rate limit; check
+  `/admin/player-photos` for clubs not linked or players not matched.
+- Local Kokoro runs need `NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt` in the cloud container (Node's
+  fetch ignores the proxy otherwise). Remotion here: `REEL_BROWSER=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome`.
 
 ### YouTube Shorts (7 Nov 2026)
 - Google Cloud project "Matchday YouTube Uploader" (`matchday-youtube-uploader`), OAuth web client "Matchday site", app In production

@@ -51,7 +51,7 @@ class GrowthPostGenerator
             ->filter(fn ($m) => data_get($m->metadata, 'reel.status') === 'ready' && data_get($m->metadata, 'reel.ready_at'))
             ->each(function (FootballMatch $match) use (&$created) {
                 $final = $this->stories->chapters($match)->firstWhere('type', 'full_time');
-                $verdict = $final ? implode(' ', $this->griot->tell($final)) : '';
+                $verdict = $final ? \App\Services\Griot::joined($this->griot->tell($final)) : '';
                 $length = config('reel.style') === 'v2' ? 'told by the Griot' : 'in 20 seconds';
                 $body = $this->name($match->homeTeam)." {$match->home_score}–{$match->away_score} ".$this->name($match->awayTeam)
                     .": the whole match {$length} 🎬\n\n{$verdict}\n\nFull story, stats and predictions on Matchday Africa 👇";
@@ -105,7 +105,7 @@ class GrowthPostGenerator
                 continue;
             }
             $final = $this->stories->chapters($match)->firstWhere('type', 'full_time');
-            $verdict = $final ? implode(' ', $this->griot->tell($final)) : '';
+            $verdict = $final ? \App\Services\Griot::joined($this->griot->tell($final)) : '';
             $body = "🎨 New look! ".$this->name($match->homeTeam)." {$match->home_score}–{$match->away_score} ".$this->name($match->awayTeam)
                 ." retold by the Griot in our new comic style: victory, heartbreak and every big moment.\n\n{$verdict}"
                 ."\n\nEvery Premier League match now gets a reel like this at the final whistle. Full story on Matchday Africa 👇";
