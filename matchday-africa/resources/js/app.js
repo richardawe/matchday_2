@@ -15,9 +15,11 @@ startInstall();
 const arena = document.getElementById('arena');
 if (arena) import('./arena.js').then((m) => m.start(arena));
 
-// The reels-first homepage's player, likewise only where it appears.
-const reelsHero = document.getElementById('reels-hero');
-if (reelsHero) import('./home-reels.js').then((m) => m.start(reelsHero));
+// The homepage reels strip, likewise only where it appears. The pulse refresh swaps it when a new
+// reel arrives (or one turns a week old), so stopReels lets the old strip let go first.
+let stopReels = () => {};
+const startReels = (hero) => import('./home-reels.js').then((m) => { stopReels = m.start(hero); });
+if (document.getElementById('reels-hero')) startReels(document.getElementById('reels-hero'));
 
 // Full-time banter cards for WhatsApp status, only on finished match pages.
 const banter = document.querySelector('[data-banter]');
@@ -30,10 +32,23 @@ const pulse = document.getElementById('matchday-pulse');
 if (pulse) {
     const refreshPulse = async () => {
         try {
-            const response = await fetch(pulse.dataset.pulseUrl, {headers: {'Accept': 'application/json'}});
+            const reels = document.getElementById('reels-hero');
+            const url = new URL(pulse.dataset.pulseUrl, window.location.href);
+            if (reels) url.searchParams.set('reels', reels.dataset.reelsKey || '');
+            const response = await fetch(url, {headers: {'Accept': 'application/json'}});
             if (!response.ok) return;
             const data = await response.json();
             pulse.innerHTML = data.html;
+            if (reels && data.reels_html) {
+                // A new reel (or one a week old dropped): swap the strip, unless the viewer has the sound on.
+                const listening = reels.querySelector('[data-reels-sound][aria-pressed="true"]');
+                if (!listening) {
+                    stopReels();
+                    reels.outerHTML = data.reels_html;
+                    const fresh = document.getElementById('reels-hero');
+                    if (fresh) startReels(fresh);
+                }
+            }
             // Live scores lead the homepage while a match is on (partials/home/live-now).
             const liveNow = document.getElementById('home-live');
             if (liveNow && data.live !== undefined) liveNow.outerHTML = data.live;

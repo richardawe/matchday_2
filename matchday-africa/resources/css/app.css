@@ -949,3 +949,21 @@
 .md-feature-live{background:linear-gradient(145deg,rgba(8,9,8,.3),rgba(8,9,8,.95)),radial-gradient(circle at 80% 15%,#8a1f18,transparent 26rem)}
 .md-nav-more summary::-webkit-details-marker{display:none}
 .md-nav-more summary::after{content:' ▾'}
+
+/* Homepage reels strip: one row, newest first, the last seven days; tap a reel to open its match. */
+.md-reels-strip{position:relative;padding:1.2rem 0 1.6rem}
+.md-reels-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.8rem}
+.md-reels-bar .md-eyebrow{margin:0}
+.md-reels-tools{display:flex;align-items:center;gap:.5rem}
+.md-reels-strip .md-reels-sound{position:static;margin:0}
+.md-reels-strip .md-reels-nav{position:static;display:grid;place-items:center;margin:0;width:2.4rem;height:2.4rem;border:0;border-radius:50%;background:#fff;color:#111;font-size:1.5rem;line-height:1;cursor:pointer}
+@media(max-width:700px){.md-reels-strip .md-reels-nav{display:none}}
+.md-reels-row{display:flex;align-items:flex-start;gap:.9rem;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:.6rem;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.md-reels-row::-webkit-scrollbar{display:none}
+.md-reel-card{flex:0 0 min(62vw,15rem);display:flex;flex-direction:column;scroll-snap-align:start;overflow:hidden;background:#0b0b0b;border-radius:.6rem;color:#fff!important;text-decoration:none}
+.md-reel-card video,.md-reel-card img{display:block;width:100%;aspect-ratio:9/16;object-fit:cover;background:#0b0b0b}
+.md-reel-card.is-fixture{flex-basis:min(86vw,26rem)}
+.md-reel-card.is-fixture img{aspect-ratio:16/9}
+.md-reel-card-title{padding:.55rem .7rem .65rem;display:grid;gap:.15rem}
+.md-reel-card-title b{font-size:.9rem;line-height:1.2}
+.md-reel-card-title small{font-size:.7rem;opacity:.8}

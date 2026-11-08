@@ -330,3 +330,5 @@ body.md-cartoon footer{background:var(--c-surface)!important}
 .md-cartoon .md-watch-live-tag{color:var(--c-ink)}
 .md-cartoon .md-watch-live b{color:var(--c-ink)}
 .md-cartoon .md-feature-live{background:var(--c-surface)}
+.md-cartoon .md-reel-card{background:var(--c-surface);color:var(--c-ink)!important}
+.md-cartoon .md-reel-card video,.md-cartoon .md-reel-card img{background:var(--c-surface)}

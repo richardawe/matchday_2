@@ -19,7 +19,13 @@ class HomeController extends Controller
     public function pulse(): JsonResponse
     {
         $now=now();$pulse=$this->pulseMatches($now);$arena=app(\App\Services\ArenaService::class)->headline($now);
-        return response()->json(['html'=>view('partials.home-pulse',$pulse)->render(),'live'=>view('partials.home.live-now',['liveMatches'=>$pulse['liveMatches']])->render(),'has_live'=>$pulse['liveMatches']->isNotEmpty(),'updated_at'=>$now->toIso8601String(),
+        // The reels strip, only when the page's copy is out of date (a new reel, or one older than a week).
+        $strip=[];
+        if(request()->has('reels')){
+            $showcase=app(\App\Services\HomeShowcase::class);$reels=$showcase->rolling();
+            if(\App\Services\HomeShowcase::rollingKey($reels)!==request('reels')){$strip=['reels_html'=>view('partials.home.reels-strip',['reels'=>$reels,'board'=>$showcase->board()])->render()];}
+        }
+        return response()->json($strip+['html'=>view('partials.home-pulse',$pulse)->render(),'live'=>view('partials.home.live-now',['liveMatches'=>$pulse['liveMatches']])->render(),'has_live'=>$pulse['liveMatches']->isNotEmpty(),'updated_at'=>$now->toIso8601String(),
             'arena'=>$arena?['match_id'=>$arena['match']->id,'home'=>$arena['match']->home_score,'away'=>$arena['match']->away_score,'label'=>$arena['label'],'state'=>$arena['state']]:null]);
     }
 
@@ -164,7 +170,7 @@ class HomeController extends Controller
                 $showcase = app(\App\Services\HomeShowcase::class);
                 return view('home-v2', compact('liveMatches', 'upcomingMatches', 'recentResults', 'featuredBlogs', 'hasFeaturedBlogs',
                     'featuredLeagues', 'followedTeams', 'personalMatches', 'openPredictionSets', 'africanPlayersInFocus')
-                    + ['reels' => $showcase->reels(), 'board' => $showcase->board(), 'arena' => $arena]);
+                    + ['reels' => $showcase->rolling(), 'board' => $showcase->board(), 'arena' => $arena]);
             }
 
             return view('home', compact(

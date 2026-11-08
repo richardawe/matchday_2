@@ -42,6 +42,29 @@ class HomeShowcase
     }
 
     /**
+     * The homepage strip: every reel from the last $days days, newest match first, so a new reel
+     * takes the front and reels older than a week drop off the end.
+     */
+    public function rolling(int $days = 7): Collection
+    {
+        $cutoff = now('UTC')->subDays($days)->format('Y-m-d H:i:s');
+
+        return FootballMatch::with(['homeTeam', 'awayTeam', 'league'])
+            ->whereHas('league', fn ($q) => $q->where('short_code', 'PL')->orWhere('espn_slug', 'eng.1'))
+            ->whereIn('status', ['FINISHED', 'FT'])
+            ->where('match_date', '>=', $cutoff)
+            ->orderByDesc('match_date')->orderByDesc('id')->get()
+            ->filter(fn ($m) => $this->reels->path($m))
+            ->map(fn ($m) => $this->reelCard($m))->values();
+    }
+
+    /** A short key for the strip's contents: changes when a reel is added, dropped or redrawn. */
+    public static function rollingKey(Collection $reels): string
+    {
+        return substr(sha1($reels->map(fn ($r) => $r['id'].':'.$r['video'])->implode('|')), 0, 12);
+    }
+
+    /**
      * The next week's fixtures with fixture cards: Premier League first, then other listed
      * competitions to fill the board.
      */

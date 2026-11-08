@@ -53,10 +53,9 @@ class HomeV2Test extends TestCase
 
         $this->get('/?home=v2')->assertOk()
             ->assertSee('id="reels-hero"', false)
-            ->assertSee('Every match, <em>told in twenty seconds.</em>', false)
-            // The strongest recent reel leads: a 3–3 with a 90th-minute goal and Manchester United.
-            ->assertSee('Manchester United 3–3 Wolverhampton Wanderers')
-            ->assertSee('data-reel-title="Everton 0–2 Chelsea"', false)
+            ->assertDontSee('told in twenty seconds', false) // no headline panel: the reels are the hero
+            // Newest match first: Manchester United v Wolves (2 days ago), then Everton v Chelsea (3 days ago).
+            ->assertSeeInOrder(['Manchester United 3–3 Wolverhampton Wanderers', 'Everton 0–2 Chelsea'])
             ->assertDontSee('MATCHWEEK BOARD') // calls live in Beat the Griot; fixture cards fill the hero only before reels
             ->assertDontSee('/leagues/', false); // one link to the competitions, in the menu and footer
     }
@@ -74,9 +73,9 @@ class HomeV2Test extends TestCase
         FootballMatch::query()->update(['metadata' => null]);
 
         $this->get('/?home=v2')->assertOk()
-            ->assertSee('This round\'s reels appear here.', false)
-            ->assertSee('md-reels-fallback', false)
-            ->assertSee('md-reels-player is-cards', false);
+            ->assertSee('md-reel-card is-fixture', false)
+            ->assertSee('/card.png', false)
+            ->assertSee('Arsenal v Liverpool');
     }
 
     public function test_every_reel_is_a_slide_in_the_swipeable_strip(): void
@@ -86,6 +85,22 @@ class HomeV2Test extends TestCase
         $this->assertSame(substr_count($html, 'data-reel-slide'), substr_count($html, '<video '), 'one video per slide');
         $this->assertGreaterThan(1, substr_count($html, 'data-reel-slide'));
         $this->assertStringContainsString('playsinline', $html);
-        $this->assertStringContainsString('data-reel-goto="1"', $html);
+        // Each reel opens its match page.
+        foreach (FootballMatch::whereNotNull('metadata')->get() as $m) {
+            $this->assertStringContainsString('class="md-reel-card" data-reel-slide href="'.route('matches.show', $m).'"', $html);
+        }
+    }
+
+    public function test_the_strip_keeps_seven_days_and_the_pulse_sends_it_again_when_it_changes(): void
+    {
+        $html = $this->get('/?home=v2')->getContent();
+        preg_match('/data-reels-key="([^"]+)"/', $html, $key);
+        $this->getJson(route('home.pulse', ['reels' => $key[1]]))->assertOk()->assertJsonMissingPath('reels_html');
+
+        // A week later the old reels drop off and the strip is sent again (now holding fixture cards).
+        $this->travel(6)->days();
+        $fresh = $this->getJson(route('home.pulse', ['reels' => $key[1]]))->assertOk()->json('reels_html');
+        $this->assertStringNotContainsString('Everton 0–2 Chelsea', $fresh);
+        $this->assertStringNotContainsString('Manchester United 3–3', $fresh);
     }
 }
