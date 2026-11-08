@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -11,6 +13,10 @@ use Illuminate\Support\Str;
  * /admin/social-media: upload social creatives (videos and images) to the public disk and copy
  * their public URLs, so a new file doesn't need a deploy. Files go to
  * storage/app/public/social/<yyyy-mm>/<slug>-<random>.<ext>, served at /storage/social/….
+ *
+ * The page also lists the creatives committed to the repository under public/social/ (for example
+ * public/social/griot/call_out_the_griot.mp4, served at /social/griot/…). Those are read-only here:
+ * they change only through a commit and a deploy.
  */
 class SocialMediaController extends Controller
 {
@@ -32,6 +38,7 @@ class SocialMediaController extends Controller
 
         return view('admin.social-media.index', [
             'files' => $files,
+            'repoFiles' => $this->repoFiles(),
             'uploadLimit' => ini_get('upload_max_filesize'),
             'postLimit' => ini_get('post_max_size'),
             'serverBytes' => min($this->bytes(ini_get('upload_max_filesize')), $this->bytes(ini_get('post_max_size'))),
@@ -62,6 +69,30 @@ class SocialMediaController extends Controller
         return redirect()->route('admin.social-media.index')
             ->with('success', 'Uploaded.')
             ->with('uploaded', Storage::disk('public')->url($path));
+    }
+
+    /** Videos and images committed under public/social/, by path, with their public URL. */
+    private function repoFiles(): Collection
+    {
+        $root = public_path('social');
+        if (!File::isDirectory($root)) {
+            return collect();
+        }
+
+        return collect(File::allFiles($root))
+            ->filter(fn ($file) => preg_match('/^(mp4|mov|jpe?g|png)$/i', $file->getExtension()))
+            ->map(function ($file) {
+                $relative = str_replace(DIRECTORY_SEPARATOR, '/', $file->getRelativePathname());
+
+                return [
+                    'name' => $relative,
+                    'url' => url('social/'.$relative),
+                    'size' => $file->getSize(),
+                    'modified' => $file->getMTime(),
+                    'video' => (bool) preg_match('/^(mp4|mov)$/i', $file->getExtension()),
+                ];
+            })
+            ->sortBy('name')->values();
     }
 
     /** "128M" → bytes. */

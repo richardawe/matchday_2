@@ -17,6 +17,7 @@ use Tests\TestCase;
 class XTimelineTest extends TestCase
 {
     use RefreshDatabase, FakesBuffer;
+    use \Tests\Concerns\ChecksCaptions;
 
     private FootballMatch $match;
 
@@ -51,6 +52,8 @@ class XTimelineTest extends TestCase
         $preview = $posts['preview'];
         $this->assertStringContainsString("Arsenal v Chelsea\nPremier League · Kick-off 15:00 WAT", $preview->message);
         $this->assertStringContainsString('#PremierLeague #MatchdayAfrica', $preview->message);
+        $this->assertStringContainsString('Who wins? Call it:', $preview->message);
+        $this->assertCaptionsHaveNoEmoji();
         $this->assertSame(\App\Services\FixtureCardRenderer::url($this->match), $preview->image_url);
         // Three hours before kick-off, in app time; it lapses ten minutes before kick-off.
         $this->assertSame('2026-10-24 12:00', $preview->scheduled_at->format('Y-m-d H:i'));

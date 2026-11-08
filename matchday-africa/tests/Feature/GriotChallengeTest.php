@@ -23,6 +23,7 @@ use Tests\TestCase;
 class GriotChallengeTest extends TestCase
 {
     use RefreshDatabase;
+    use \Tests\Concerns\ChecksCaptions;
 
     private League $pl;
 
@@ -260,8 +261,35 @@ class GriotChallengeTest extends TestCase
 
         $this->artisan('twitter:engage');
         $post = GrowthPost::where('content_key', "griot:{$challenge->id}:calls")->sole();
-        $this->assertStringContainsString('The Griot has spoken', $post->message);
+        $this->assertStringStartsWith("The Griot has spoken\n", $post->message);
+        $this->assertStringContainsString('Free to play:', $post->message);
         $this->assertStringContainsString('Arsenal', $post->message);
+        $this->assertCaptionsHaveNoEmoji();
+    }
+
+    public function test_verdict_and_banter_captions_have_no_emoji(): void
+    {
+        config(['buffer.key' => 'key', 'buffer.channels' => ['x' => 'chan-x', 'instagram' => null, 'tiktok' => null], 'buffer.x.auto' => true]);
+        $challenge = $this->round();
+        $this->artisan('twitter:engage'); // the calls post
+
+        // The round is played and scored: every match a home win. A banter post lapses a day after its
+        // match, so by Monday night only the Monday match still gets one.
+        foreach ($challenge->picks as $pick) {
+            $pick->match->update(['status' => 'FINISHED', 'home_score' => 2, 'away_score' => 0]);
+        }
+        $this->travelTo(Carbon::parse('2026-11-09 22:00:00', 'UTC'));
+        $challenge->update(['status' => 'scored', 'scored_at' => now(), 'griot_points' => 4, 'beaters' => 12]);
+        $this->artisan('twitter:engage');
+
+        $verdict = GrowthPost::where('content_key', "griot:{$challenge->id}:verdict")->sole();
+        $this->assertStringStartsWith("12 fans beat the Griot\n", $verdict->message);
+        $this->assertStringContainsString('Next three calls are up:', $verdict->message);
+        $banter = GrowthPost::where('type', 'banter')->get();
+        $this->assertNotEmpty($banter);
+        $this->assertTrue($banter->every(fn ($p) => str_contains($p->message, 'Get the card for your status:')));
+        $this->assertEmpty(array_diff(['banter', 'griot'], GrowthPost::pluck('type')->unique()->all()));
+        $this->assertCaptionsHaveNoEmoji();
     }
 
     public function test_banter_cards_are_9_by_16_and_offered_at_full_time(): void

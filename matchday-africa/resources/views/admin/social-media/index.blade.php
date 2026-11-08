@@ -22,17 +22,14 @@
 
  <header class="md-xsection"><div><p class="md-eyebrow">UPLOADED</p><h2>Files</h2></div></header>
  @if($files->isEmpty())<p>Nothing uploaded yet.</p>@else
- <table class="md-signup-table"><thead><tr><th>File</th><th>Public URL</th><th>Size</th><th>Uploaded (Lagos)</th></tr></thead><tbody>
-  @foreach($files as $f)
-   <tr>
-    <td>{{ $f['video'] ? '🎬' : '🖼️' }} {{ $f['name'] }}</td>
-    <td><input readonly value="{{ $f['url'] }}" aria-label="Public URL of {{ $f['name'] }}" onclick="this.select()" style="width:100%;min-width:16rem;font-family:monospace">
-     <button type="button" data-copy="{{ $f['url'] }}">Copy</button> <a href="{{ $f['url'] }}" target="_blank" rel="noopener">Open</a></td>
-    <td>{{ number_format($f['size'] / 1048576, 1) }} MB</td>
-    <td>{{ \Carbon\Carbon::createFromTimestamp($f['modified'])->setTimezone('Africa/Lagos')->format('D j M Y H:i') }}</td>
-   </tr>
-  @endforeach
- </tbody></table>@endif
+ @include('admin.social-media.table', ['rows' => $files, 'dateLabel' => 'Uploaded (Lagos)'])
+ @endif
+
+ <header class="md-xsection"><div><p class="md-eyebrow">IN THE REPOSITORY</p><h2>Files in the repo</h2>
+  <p>Committed under <code>public/social/</code> and published with each deploy. Read-only here: change them with a commit.</p></div></header>
+ @if($repoFiles->isEmpty())<p>No videos or images under <code>public/social/</code>.</p>@else
+ @include('admin.social-media.table', ['rows' => $repoFiles, 'dateLabel' => 'Modified (Lagos)'])
+ @endif
 </div>
 <script>
 document.addEventListener('click', async (event) => {
