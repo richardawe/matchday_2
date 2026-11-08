@@ -54,7 +54,7 @@ class GrowthPostGenerator
                 $verdict = $final ? \App\Services\Griot::joined($this->griot->tell($final)) : '';
                 $length = config('reel.style') === 'v2' ? 'told by the Griot' : 'in 20 seconds';
                 $body = $this->name($match->homeTeam)." {$match->home_score}–{$match->away_score} ".$this->name($match->awayTeam)
-                    .": the whole match {$length} 🎬\n\n{$verdict}\n\nFull story, stats and predictions on Matchday Africa 👇";
+                    .": the whole match {$length}\n\n{$verdict}\n\nFull story, stats and predictions on Matchday Africa:";
                 $link = route('matches.show', $match);
                 if (!$video = app(ReelService::class)->url($match)) {
                     return; // Marked ready but the file is missing: a reel post without its video says nothing.
@@ -106,9 +106,9 @@ class GrowthPostGenerator
             }
             $final = $this->stories->chapters($match)->firstWhere('type', 'full_time');
             $verdict = $final ? \App\Services\Griot::joined($this->griot->tell($final)) : '';
-            $body = "🎨 New look! ".$this->name($match->homeTeam)." {$match->home_score}–{$match->away_score} ".$this->name($match->awayTeam)
+            $body = "New look! ".$this->name($match->homeTeam)." {$match->home_score}–{$match->away_score} ".$this->name($match->awayTeam)
                 ." retold by the Griot in our new comic style: victory, heartbreak and every big moment.\n\n{$verdict}"
-                ."\n\nEvery Premier League match now gets a reel like this at the final whistle. Full story on Matchday Africa 👇";
+                ."\n\nEvery Premier League match now gets a reel like this at the final whistle. Full story on Matchday Africa:";
             $link = route('matches.show', $match);
             $at = $slots();
             $created += $this->plan("reel:{$match->id}:redraw", 'reel', XText::compose($body, $link, $this->tags($match)), null, $link, $at, $at->copy()->addHours(5), $video);
@@ -157,7 +157,7 @@ class GrowthPostGenerator
                 $local = $kickoff->copy()->setTimezone(config('buffer.x.timezone'));
                 $body = $this->name($match->homeTeam).' v '.$this->name($match->awayTeam)."\n"
                     .($match->league?->name ?: 'Football').' · Kick-off '.$local->format('H:i').' WAT'
-                    ."\n\nPreview, team news and stats. Who wins? Call it 👇";
+                    ."\n\nPreview, team news and stats. Who wins? Call it:";
                 $link = route('matches.show', $match);
                 $text = XText::compose($body, $link, $this->tags($match));
                 $created += $this->plan("preview:{$match->id}", 'preview', $text, FixtureCardRenderer::url($match), $link, $send, $expires);
@@ -274,7 +274,7 @@ class GrowthPostGenerator
         foreach ($rounds as $round) {
             if ($round->status === 'open' && $round->firstKickoffUtc()->isFuture()) {
                 $lines = $round->picks->map(fn ($p) => $club($p->match->homeTeam).' '.$p->call().' '.$club($p->match->awayTeam))->implode("\n");
-                $body = "The Griot has spoken 🥁\n\n{$lines}\n\nScore more points than the Griot and you could win {$prize}. Free to play 👇";
+                $body = "The Griot has spoken\n\n{$lines}\n\nScore more points than the Griot and you could win {$prize}. Free to play:";
                 $created += $this->plan("griot:{$round->id}:calls", 'griot', XText::compose($body, $link, $hashtags),
                     \App\Services\Griot\ChallengeCardRenderer::cardUrl($round, 'calls'), $link, now(), $round->firstKickoffUtc()->subMinutes(30));
             }
@@ -282,7 +282,7 @@ class GrowthPostGenerator
                 $morning = $round->scored_at->copy()->setTimezone($tz)->addDay()->setTime(8, 0);
                 $at = $round->scored_at->copy()->setTimezone($tz)->hour < 6 ? $round->scored_at->copy()->setTimezone($tz)->setTime(8, 0) : $morning;
                 $head = $round->beaters > 0 ? number_format($round->beaters).' '.($round->beaters === 1 ? 'fan' : 'fans').' beat the Griot' : 'The Griot wins this round';
-                $body = "{$head} 🥁\n\nThe Griot scored ".(int) $round->griot_points.' from its three calls. '.(int) config('griot_challenge.winners')." winners drawn for {$prize}. Next three calls are up 👇";
+                $body = "{$head}\n\nThe Griot scored ".(int) $round->griot_points.' from its three calls. '.(int) config('griot_challenge.winners')." winners drawn for {$prize}. Next three calls are up:";
                 $created += $this->plan("griot:{$round->id}:verdict", 'griot', XText::compose($body, $link, $hashtags),
                     \App\Services\Griot\ChallengeCardRenderer::cardUrl($round, 'verdict'), $link, $at->max(now()), $at->copy()->addDays(2));
             }
@@ -295,7 +295,7 @@ class GrowthPostGenerator
                 $words = app(\App\Services\BanterCardRenderer::class)->words($m, $loser, 'pcm');
                 $matchLink = route('matches.show', $m);
                 $finished = $this->kickoff($m)->addHours(2);
-                $created += $this->plan("banter:{$m->id}", 'banter', XText::compose($words['head'].' '.$words['line']."\n\nGet the card for your status 👇", $matchLink.'#banter', $this->tags($m)),
+                $created += $this->plan("banter:{$m->id}", 'banter', XText::compose($words['head'].' '.$words['line']."\n\nGet the card for your status:", $matchLink.'#banter', $this->tags($m)),
                     \App\Services\BanterCardRenderer::cardUrl($m, $loser, 'pcm'), $matchLink, now(), $finished->copy()->addDay(), null, false);
             }
         }

@@ -16,6 +16,7 @@ use Tests\TestCase;
 class BufferPublisherTest extends TestCase
 {
     use RefreshDatabase, FakesBuffer;
+    use \Tests\Concerns\ChecksCaptions;
 
     private FootballMatch $match;
 
@@ -90,7 +91,9 @@ class BufferPublisherTest extends TestCase
         $this->assertSame($video, $posts['chan-tt']['assets'][0]['video']['url']);
         $this->assertSame('reel', $posts['chan-ig']['metadata']['instagram']['type']);
         $this->assertStringContainsString('Arsenal 1–0 Chelsea: the whole match in 20 seconds', $posts['chan-x']['text']);
-        $this->assertStringContainsString('Full story, stats and predictions on Matchday Africa', $posts['chan-x']['text']);
+        $this->assertStringContainsString("Arsenal 1–0 Chelsea: the whole match in 20 seconds\n", $posts['chan-x']['text']);
+        $this->assertStringContainsString('Full story, stats and predictions on Matchday Africa:', $posts['chan-x']['text']);
+        $this->assertCaptionsHaveNoEmoji();
         File::delete(storage_path("app/reels/{$this->match->id}.mp4"));
     }
 
@@ -118,7 +121,8 @@ class BufferPublisherTest extends TestCase
         $this->assertCount(3, $redraws);
         // 19:00 Lagos on the 19th: the next free slot is 09:00 the next morning.
         $this->assertSame('2026-10-20 09:00', $redraws->first()->scheduled_at->setTimezone('Africa/Lagos')->format('Y-m-d H:i'));
-        $this->assertStringContainsString('New look!', $redraws->firstWhere('channel', 'x')->message);
+        $this->assertStringStartsWith('New look! Arsenal', $redraws->firstWhere('channel', 'x')->message);
+        $this->assertCaptionsHaveNoEmoji();
         $this->artisan("buffer:publish");
         $this->assertSame(0, \App\Models\GrowthPost::where("content_key", "like", "reel:%:redraw%")->where("status", "sent")->count(), "not before its slot");
 

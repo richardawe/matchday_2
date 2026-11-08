@@ -53,4 +53,44 @@ class SocialMediaAdminTest extends TestCase
         $this->get('/admin/social-media')->assertRedirect('/login');
         $this->actingAs(User::factory()->create())->get('/admin/social-media')->assertStatus(403);
     }
+
+    public function test_files_committed_under_public_social_are_listed_read_only(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->create(['is_admin' => true]);
+        // The committed Griot video, plus a temporary image and a file type that isn't listed.
+        $dir = public_path('social/test-'.uniqid());
+        \Illuminate\Support\Facades\File::ensureDirectoryExists($dir);
+        file_put_contents("{$dir}/Card.PNG", str_repeat('x', 3 * 1048576));
+        file_put_contents("{$dir}/notes.txt", 'not a creative');
+        touch("{$dir}/Card.PNG", mktime(9, 30, 0, 11, 8, 2026));
+        $folder = basename($dir);
+
+        try {
+            $page = $this->actingAs($admin)->get('/admin/social-media')->assertOk()
+                ->assertSee('Files in the repo')
+                ->assertSee('Nothing uploaded yet.') // the uploads section is separate and still empty
+                ->assertSee(url('social/griot/call_out_the_griot.mp4'), false)
+                ->assertSee('griot/call_out_the_griot.mp4')
+                ->assertSee(number_format(filesize(public_path('social/griot/call_out_the_griot.mp4')) / 1048576, 1).' MB')
+                ->assertSee(url("social/{$folder}/Card.PNG"), false)
+                ->assertSee('3.0 MB')
+                ->assertSee('Sun 8 Nov 2026')
+                ->assertDontSee('notes.txt');
+
+            // Read-only: the repo section offers copy and open links only, no form or delete action of its own.
+            $html = $page->getContent();
+            $section = substr($html, strpos($html, 'Files in the repo'));
+            $this->assertStringNotContainsString('<form', $section);
+            $this->assertStringNotContainsString('method="POST"', $section);
+            $this->assertStringContainsString('data-copy="'.url('social/griot/call_out_the_griot.mp4').'"', $section);
+        } finally {
+            \Illuminate\Support\Facades\File::deleteDirectory($dir);
+        }
+
+        // Still admins only.
+        auth()->logout();
+        $this->get('/admin/social-media')->assertRedirect('/login');
+        $this->actingAs(User::factory()->create())->get('/admin/social-media')->assertForbidden();
+    }
 }
