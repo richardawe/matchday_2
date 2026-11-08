@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Support\BufferUsage;
+use App\Support\SocialAutopost;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Throwable;
@@ -48,6 +49,10 @@ class BufferClient
     {
         if (!config('buffer.key')) {
             return ['error' => 'BUFFER_API_KEY is not set'];
+        }
+        // Reading (channels, the schema) is harmless; anything that changes Buffer waits for the switch.
+        if (self::isMutation($query) && !SocialAutopost::allows('Buffer mutation')) {
+            return ['error' => SocialAutopost::OFF_MESSAGE, 'disabled' => true];
         }
 
         // Counted before sending: a request that times out still counts on Buffer's side.
@@ -164,6 +169,9 @@ class BufferClient
      */
     public function createPost(string $channelId, string $platform, string $text, ?string $image = null, ?string $video = null, string $mode = 'shareNow', ?string $dueAt = null): array
     {
+        if (!SocialAutopost::allows("Buffer post to {$platform}")) {
+            return ['error' => SocialAutopost::OFF_MESSAGE, 'disabled' => true];
+        }
         $input = [
             'channelId' => $channelId,
             'text' => $text,
@@ -280,6 +288,12 @@ class BufferClient
         $missing = array_keys(array_filter($fields, fn ($required, $name) => $required && !array_key_exists($name, $payload), ARRAY_FILTER_USE_BOTH));
 
         return ['metadata' => [$platform => $payload], 'missing' => array_values($missing), 'reason' => null];
+    }
+
+    /** A GraphQL document that may change something: any mention of a mutation counts, to be safe. */
+    public static function isMutation(string $query): bool
+    {
+        return (bool) preg_match('/\bmutation\b/i', $query);
     }
 
     /** @return array{type: ?string, kind: ?string, required: bool} */

@@ -6,6 +6,7 @@ use App\Models\FootballMatch;
 use App\Models\GrowthPost;
 use App\Models\MatchMoment;
 use App\Support\BufferUsage;
+use App\Support\SocialAutopost;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -35,6 +36,9 @@ class BufferPublisher
     public function publishPending(): array
     {
         $done = [0, 0];
+        if (!SocialAutopost::allows('live cards and planned posts')) {
+            return $done;
+        }
         $count = function (?bool $sent) use (&$done) { if ($sent !== null) { $sent ? $done[0]++ : $done[1]++; } };
 
         $chapters = MatchMoment::with('match.homeTeam', 'match.awayTeam', 'match.league')
@@ -63,7 +67,7 @@ class BufferPublisher
     public function publishTimeline(): array
     {
         $done = [0, 0];
-        if (!config('buffer.x.auto') || !Schema::hasColumn('growth_posts', 'channel')) {
+        if (!SocialAutopost::enabled() || !config('buffer.x.auto') || !Schema::hasColumn('growth_posts', 'channel')) {
             return $done;
         }
 
@@ -96,6 +100,12 @@ class BufferPublisher
     /** Sends one claimed planned post through Buffer and records the outcome. Returns [sent, failed]. */
     private function sendPlanned(GrowthPost $post, string $channel, string $channelId, array $done): array
     {
+        if (!SocialAutopost::enabled()) {
+            // Claimed while the switch was on and turned off mid-run: hand it back untouched.
+            GrowthPost::whereKey($post->id)->where('status', 'sending')->update(['status' => 'queued']);
+
+            return $done;
+        }
         if ($post->type === 'reel' && ($match = FootballMatch::find((int) Str::after($post->content_key, 'reel:'))) && ($url = app(ReelService::class)->url($match))) {
             // Reels queued before they moved to static files still name the PHP route, which Buffer can't read.
             $post->video_url = $url;
@@ -129,6 +139,9 @@ class BufferPublisher
      */
     private function publishReelsNow(string $channel, string $channelId, array $done): array
     {
+        if (!SocialAutopost::enabled()) {
+            return $done;
+        }
         $rule = config('buffer.reels_now');
         $today = now(config('buffer.x.timezone'))->startOfDay()->setTimezone(config('app.timezone'));
         $sent = GrowthPost::where(['channel' => $channel, 'type' => 'reel', 'status' => 'sent'])->where('published_at', '>=', $today)->count();
@@ -247,6 +260,9 @@ class BufferPublisher
     /** True when Buffer accepted it, false when it failed (retried next run), null when already sent or held back. */
     private function send(string $subject, string $channel, string $channelId, FootballMatch $match, string $text, ?string $image = null, ?string $video = null): ?bool
     {
+        if (!SocialAutopost::enabled()) {
+            return null;
+        }
         if (DB::table('social_posts')->where(['subject' => $subject, 'channel' => $channel])->whereIn('status', ['sent', 'sending', 'unknown'])->exists()
             || !BufferUsage::allows(true) || !$this->slotOpen($channel)) {
             return null;

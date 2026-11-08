@@ -235,11 +235,23 @@ class TwitterService
     }
 
 
+    public const DISABLED_MESSAGE = 'Posting is disabled: SOCIAL_AUTOPOST_ENABLED is off.';
+
+    /** What postTweet answers while the site may not post to social itself. */
+    public static function disabledResult(): array
+    {
+        return ['success' => false, 'disabled' => true, 'error' => self::DISABLED_MESSAGE];
+    }
+
     /**
      * Post a tweet
      */
     public function postTweet(string $text): array
     {
+        // The site no longer tweets by itself unless SOCIAL_AUTOPOST_ENABLED is on.
+        if (!\App\Support\SocialAutopost::allows('tweet')) {
+            return self::disabledResult();
+        }
         if (!$this->isConfigured()) {
             return [
                 'success' => false,
@@ -316,6 +328,9 @@ class TwitterService
      */
     public function postMultipleTweets(array $tweets, int $delaySeconds = 30): array
     {
+        if (!\App\Support\SocialAutopost::allows(count($tweets).' tweets')) {
+            return array_map(fn () => self::disabledResult(), $tweets);
+        }
         $results = [];
         
         foreach ($tweets as $index => $tweet) {

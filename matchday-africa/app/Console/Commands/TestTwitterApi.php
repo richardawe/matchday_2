@@ -54,7 +54,9 @@ class TestTwitterApi extends Command
         }
 
         // Send test tweet if requested
-        if ($this->option('tweet')) {
+        if ($this->option('tweet') && !\App\Support\SocialAutopost::enabled()) {
+            $this->info(TwitterService::DISABLED_MESSAGE);
+        } elseif ($this->option('tweet')) {
             $this->info("\n📝 Sending test tweet...");
             
             $tweetText = $this->option('text') ?: 

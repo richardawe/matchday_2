@@ -12,8 +12,9 @@ use Illuminate\Support\Str;
 /**
  * Plans the social timeline into growth_posts, one row per subject and channel (content_key), so re-running is
  * harmless: every new article, a preview of each top fixture before kick-off, the day's
- * fixtures in the morning and the results at night. Queued when config('buffer.x.auto') is on
- * (buffer:publish sends them), drafts for the admin page otherwise.
+ * fixtures in the morning and the results at night. Queued when config('buffer.x.auto') and
+ * SOCIAL_AUTOPOST_ENABLED are both on (buffer:publish sends them), drafts otherwise (the admin page
+ * and the social queue, /api/social-queue, list them).
  *
  * Nobody reads these before they go out, so they only state what the site's own data says:
  * teams, competitions, kick-offs, scores and article headlines. Generated preview prose is not
@@ -50,21 +51,29 @@ class GrowthPostGenerator
         FootballMatch::with(['homeTeam', 'awayTeam', 'league'])->where('match_date', '>=', now('UTC')->subDays(14))->whereNotNull('metadata')->get()
             ->filter(fn ($m) => data_get($m->metadata, 'reel.status') === 'ready' && data_get($m->metadata, 'reel.ready_at'))
             ->each(function (FootballMatch $match) use (&$created) {
-                $final = $this->stories->chapters($match)->firstWhere('type', 'full_time');
-                $verdict = $final ? \App\Services\Griot::joined($this->griot->tell($final)) : '';
-                $length = config('reel.style') === 'v2' ? 'told by the Griot' : 'in 20 seconds';
-                $body = $this->name($match->homeTeam)." {$match->home_score}–{$match->away_score} ".$this->name($match->awayTeam)
-                    .": the whole match {$length}\n\n{$verdict}\n\nFull story, stats and predictions on Matchday Africa:";
                 $link = route('matches.show', $match);
                 if (!$video = app(ReelService::class)->url($match)) {
                     return; // Marked ready but the file is missing: a reel post without its video says nothing.
                 }
                 // Due from the moment the reel was made: only a fresh reel goes out at once (buffer.reels_now).
                 $readyAt = Carbon::parse(data_get($match->metadata, 'reel.ready_at'));
-                $created += $this->plan("reel:{$match->id}", 'reel', XText::compose($body, $link, $this->tags($match)), null, $link, $readyAt->isFuture() ? now() : $readyAt, $this->nextRound($match), $video);
+                $created += $this->plan("reel:{$match->id}", 'reel', $this->reelCaption($match), null, $link, $readyAt->isFuture() ? now() : $readyAt, $this->nextRound($match), $video);
             });
 
         return $created + $this->redraws();
+    }
+
+    /** A reel's post: score, the Griot's full-time verdict, the match link and hashtags (also shown on the social queue). */
+    public function reelCaption(FootballMatch $match): string
+    {
+        $match->loadMissing(['homeTeam', 'awayTeam', 'league']);
+        $final = $this->stories->chapters($match)->firstWhere('type', 'full_time');
+        $verdict = $final ? \App\Services\Griot::joined($this->griot->tell($final)) : '';
+        $length = config('reel.style') === 'v2' ? 'told by the Griot' : 'in 20 seconds';
+        $body = $this->name($match->homeTeam)." {$match->home_score}–{$match->away_score} ".$this->name($match->awayTeam)
+            .": the whole match {$length}\n\n{$verdict}\n\nFull story, stats and predictions on Matchday Africa:";
+
+        return XText::compose($body, route('matches.show', $match), $this->tags($match));
     }
 
     public const REDRAW_SLOTS = ['09:00', '12:00', '15:00', '18:00'];
@@ -76,6 +85,9 @@ class GrowthPostGenerator
      */
     private function redraws(): int
     {
+        if (!\App\Support\SocialAutopost::enabled()) {
+            return 0; // "New look!" reposts are the site's own posting; the bot decides about reposts itself.
+        }
         $tz = config('buffer.x.timezone');
         $ready = FootballMatch::with(['homeTeam', 'awayTeam'])->where('match_date', '>=', now('UTC')->subDays(21))->whereNotNull('metadata')->get()
             ->filter(fn ($m) => data_get($m->metadata, 'reel.repost') && data_get($m->metadata, 'reel.status') === 'ready'
@@ -237,7 +249,7 @@ class GrowthPostGenerator
             }
             if ($existing = GrowthPost::where('content_key', $key)->first()) {
                 // Planned while posting was off: once it is on, a still-timely draft goes out too.
-                if ($existing->status === 'draft' && config('buffer.x.auto')) {
+                if ($existing->status === 'draft' && $this->sends()) {
                     $existing->update(['status' => 'queued']);
                     $created++;
                 }
@@ -245,7 +257,7 @@ class GrowthPostGenerator
             }
             GrowthPost::create([
                 'content_key' => $key, 'channel' => $channel, 'type' => $type, 'message' => $text, 'image_url' => $image, 'video_url' => $video, 'destination_url' => $url,
-                'status' => config('buffer.x.auto') ? 'queued' : 'draft',
+                'status' => $this->sends() ? 'queued' : 'draft',
                 'scheduled_at' => $at->copy()->setTimezone($appTz), 'expires_at' => $expires->copy()->setTimezone($appTz),
             ]);
             $created++;
@@ -301,6 +313,15 @@ class GrowthPostGenerator
         }
 
         return $created;
+    }
+
+    /**
+     * Whether planned posts are queued for buffer:publish. Never while SOCIAL_AUTOPOST_ENABLED is off:
+     * then they stay drafts and the posting bot takes them from the social queue.
+     */
+    private function sends(): bool
+    {
+        return \App\Support\SocialAutopost::enabled() && (bool) config('buffer.x.auto');
     }
 
     private function tags(FootballMatch $match): string

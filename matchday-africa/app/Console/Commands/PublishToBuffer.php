@@ -10,6 +10,8 @@ class PublishToBuffer extends Command {
     protected $signature='buffer:publish {--channels : List the Buffer channel IDs for BUFFER_CHANNEL_*}';
     protected $description='Send new Griot cards, full-time reels and the planned X timeline to Buffer';
     public function handle(BufferPublisher $buffer): int {
+        // Listing channels only reads; everything else is posting, which waits for SOCIAL_AUTOPOST_ENABLED.
+        if(!$this->option('channels')&&!\App\Support\SocialAutopost::enabled()){ $this->info(\App\Support\SocialAutopost::OFF_MESSAGE); return self::SUCCESS; }
         if(!config('buffer.key')){ $this->warn('BUFFER_API_KEY is not set; nothing sent.'); return self::SUCCESS; }
         if($this->option('channels')){
             try { $channels=$buffer->channels(); } catch(\Throwable $e){ $this->error('Buffer: '.$e->getMessage()); return self::FAILURE; }

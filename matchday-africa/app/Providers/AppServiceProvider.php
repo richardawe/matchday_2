@@ -38,6 +38,10 @@ class AppServiceProvider extends ServiceProvider
         // Register model observers
         FootballMatch::observe(FootballMatchObserver::class);
 
+        // The posting bot's API (/api/social-queue), per IP.
+        \Illuminate\Support\Facades\RateLimiter::for('social-queue-read', fn ($request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by($request->ip()));
+        \Illuminate\Support\Facades\RateLimiter::for('social-queue-write', fn ($request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(30)->by($request->ip()));
+
         // A visitor's guest picks and league invite follow them into their account.
         Event::listen(Login::class, function (Login $event) {
             if ($event->user instanceof User) {
