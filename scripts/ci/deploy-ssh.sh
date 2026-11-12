@@ -5,7 +5,7 @@ set -Eeuo pipefail
 
 mode=${1:-}
 case "$mode" in
-    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-challenge|configure-stream|configure-youtube|configure-growth|radio-check|configure-radio|configure-radio-model|configure-radio-voice|configure-griot|configure-reel-voice|configure-release|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry) ;;
+    preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-challenge|configure-stream|configure-youtube|configure-growth|radio-check|configure-radio|configure-radio-model|configure-radio-voice|configure-griot|configure-reel-voice|configure-release|radio-run|radio-refresh|radio-status|radio-voice|radio-publish|radio-retry|slideshow-check|configure-slideshows) ;;
     *) echo "Usage: $0 preflight|maintenance|deploy|upload-reel|status|buffer-channels|configure-buffer|plan-posts|clear-drafts|reel-check|configure-reel|reel-render|configure-espn|espn-sync|reel-queue|configure-home|configure-challenge|configure-growth"; exit 2 ;;
 esac
 for variable in CPANEL_SSH_HOST CPANEL_SSH_USER CPANEL_SSH_KEY CPANEL_SSH_KNOWN_HOSTS CPANEL_APP_ROOT CPANEL_PUBLIC_ROOT; do
@@ -310,6 +310,18 @@ elif [[ "$mode" == configure-challenge ]]; then
         *) echo "home_v2 (the on/off switch) must be on or off."; exit 1 ;;
     esac
     printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php artisan migrate --force --no-ansi && php scripts/set-env.php && php artisan config:cache --no-ansi && php artisan griot:challenge --no-ansi"
+elif [[ "$mode" == slideshow-check ]]; then
+    # Colour slideshows: migrations, the switch, the music file and whether this ffmpeg can make them.
+    ssh "${ssh_options[@]}" "$target" "cd $root && php artisan migrate:status --no-ansi | grep -i slideshows; grep -E '^SLIDESHOW_' .env; php artisan slideshow:render --check --no-ansi; php artisan schedule:list --no-ansi | grep -i slideshow || true"
+elif [[ "$mode" == configure-slideshows ]]; then
+    # SLIDESHOW_ENABLED via the home_v2 on/off input (the workflow is at GitHub's 25-input limit).
+    # Turning it on migrates, checks ffmpeg and the music, and looks up the week's slide photos once.
+    case "${INPUT_HOME_V2:-}" in
+        on) json='{"SLIDESHOW_ENABLED":"true"}'; after=' && php artisan slideshow:render --check --no-ansi; php artisan slideshow:photos --no-ansi' ;;
+        off) json='{"SLIDESHOW_ENABLED":"false"}'; after='' ;;
+        *) echo "home_v2 (the on/off switch) must be on or off."; exit 1 ;;
+    esac
+    printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php artisan migrate --force --no-ansi && php scripts/set-env.php && php artisan config:cache --no-ansi$after"
 elif [[ "$mode" == configure-stream ]]; then
     # The Matchday Live screen (/stream, STREAM_PAGE), via the home_v2 on/off input (the workflow is at
     # GitHub's 25-input limit). Turning it on also fills the Premier League's player photos once.

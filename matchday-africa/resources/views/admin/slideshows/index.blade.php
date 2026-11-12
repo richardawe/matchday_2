@@ -10,7 +10,18 @@
 
  <table class="md-signup-table"><tbody>
   <tr><th>Generation</th><td>{{ $enabled ? 'On (SLIDESHOW_ENABLED).' : 'Off: set SLIDESHOW_ENABLED=true to make new slideshows. Reviewing still works.' }}</td></tr>
-  <tr><th>Music file</th><td>{{ is_file($music) ? 'Found.' : 'Missing: upload the licensed track to '.$music.' (renders fail without it).' }}</td></tr>
+  <tr><th>ffmpeg</th><td><code>{{ $ffmpeg }}</code>: {{ $ffmpegMissing ? 'missing '.implode(', ', $ffmpegMissing).' (renders fail until this is fixed; set SLIDESHOW_FFMPEG).' : 'has everything needed.' }} Video mode: {{ $videoMode === 'filters' ? 'ffmpeg filters' : 'frames drawn by the site (works with the reel renderer\'s small ffmpeg)' }}.</td></tr>
+  <tr><th>Music</th><td>
+   {{ $musicCredit }}@if(!empty($musicInfo['licence_url'])) · <a href="{{ $musicInfo['licence_url'] }}" target="_blank" rel="noopener">licence</a>@endif
+   <br>{{ is_file($music) ? 'File found'.(!empty($musicInfo['uploaded_at']) ? ' (uploaded '.\Carbon\Carbon::parse($musicInfo['uploaded_at'])->setTimezone('Europe/London')->format('j M Y H:i').')' : '').'.' : 'No file yet: every render fails until the track is uploaded.' }}
+   @if(!empty($musicInfo['source_url']))<br>Source: <a href="{{ $musicInfo['source_url'] }}" target="_blank" rel="noopener">{{ $musicInfo['source_url'] }}</a>@else<br>Source link not recorded yet.@endif
+   <form method="post" action="{{ route('admin.slideshows.music') }}" enctype="multipart/form-data" style="margin-top:.5rem">@csrf
+    <label>Track (mp3, m4a or wav; this server takes up to {{ number_format($uploadLimit / 1048576, 0) }} MB) <input type="file" name="track" accept=".mp3,.m4a,.aac,.wav,.flac,.ogg,audio/*" required></label>
+    <label>Where it came from (licence page) <input type="url" name="source_url" value="{{ $musicInfo['source_url'] ?? '' }}" placeholder="https://…" style="min-width:18rem"></label>
+    <button type="submit">Upload music</button>
+   </form>
+   <small>Kept private in storage/app/music; only the finished videos are public. Every caption and YouTube description carries the credit.</small>
+  </td></tr>
  </tbody></table>
 
  @if(!$ready)
@@ -24,7 +35,12 @@
     <td><b>{{ $show->label() }}</b> <small><code>slideshow:{{ $show->id }}</code></small>
      <br>{{ $show->title() }}
      @if($show->match)<br><a href="{{ route('matches.show', $show->match) }}" target="_blank" rel="noopener">{{ $show->match->homeTeam?->name }} v {{ $show->match->awayTeam?->name }}</a> <small>{{ $show->match->league?->name }}</small>@endif
-     @if($show->player)<br><small>Featured: {{ $show->player->name }} ({{ \App\Support\AfricanScope::label($show->player) ?? 'not in scope' }})</small>@endif
+     @if($show->player)<br><small>Featured: {{ $show->player->name }} ({{ \App\Support\AfricanScope::label($show->player) ?? 'not in scope' }})</small>
+      @php($p = data_get($show->player->metadata, 'commons_photo'))
+      <br><small>Slide photo: @if(($p['status'] ?? null) === 'ok')<a href="{{ $p['source_url'] ?? '#' }}" target="_blank" rel="noopener">{{ $p['title'] ?? 'Commons' }}</a> ({{ $p['licence'] ?? '' }})@elseif($p){{ $p['reason'] ?? 'none found' }}@else not looked up yet @endif</small>
+      <form method="post" action="{{ route('admin.slideshows.photo') }}" style="margin-top:.25rem">@csrf<input type="hidden" name="player_id" value="{{ $show->player->id }}">
+       <input name="file" placeholder="File:Name.jpg or Commons link (empty: look up)" aria-label="Commons file for {{ $show->player->name }}" style="min-width:14rem"> <button type="submit">Use photo</button></form>
+     @endif
      <br><small>Status: <b>{{ $show->status }}</b>{{ $show->approved ? ', approved' : '' }} · priority {{ $show->priority }}@if($show->duration_seconds) · {{ $show->duration_seconds }} s @endif</small>
      @if($show->error)<br><small class="md-flash-error">{{ $show->error }}</small>@endif
      @if($show->youtube_status)<br><small>YouTube: {{ $show->youtube_status }}@if($show->youtube_video_id) · <a href="https://www.youtube.com/shorts/{{ $show->youtube_video_id }}" target="_blank" rel="noopener">Short</a>@endif</small>@endif

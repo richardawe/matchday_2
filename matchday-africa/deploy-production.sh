@@ -103,6 +103,8 @@ php artisan view:cache
 php artisan migrate:status
 php artisan matchday:health
 php artisan schedule:list
+# Colour slideshows: report whether ffmpeg and the music are ready (information only; never stops a deploy).
+php artisan slideshow:render --check || echo "Slideshows are not ready to render yet (see the line above)."
 
 echo "Restarting queue workers..."
 php artisan queue:restart

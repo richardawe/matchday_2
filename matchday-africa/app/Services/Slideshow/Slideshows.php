@@ -32,7 +32,39 @@ class Slideshows
 
         return array_filter(['key' => $key, 'title' => $track['title'] ?? null, 'artist' => $track['artist'] ?? null,
             'licence' => $track['licence'] ?? null, 'licence_url' => $track['licence_url'] ?? null,
-            'source_url' => ($track['source_url'] ?? '') ?: null], fn ($v) => $v !== null);
+            'source_url' => ($track['source_url'] ?? '') ?: (self::uploaded()['source_url'] ?? null)], fn ($v) => $v !== null);
+    }
+
+    /** What an admin uploaded at /admin/slideshows: ['file' => relative to storage/app, 'source_url', 'uploaded_at', 'by'], or []. */
+    public static function uploaded(): array
+    {
+        $key = (string) config('slideshow.music.track');
+        $json = storage_path("app/music/{$key}.json");
+        $data = is_file($json) ? json_decode((string) file_get_contents($json), true) : null;
+
+        return is_array($data) ? $data : [];
+    }
+
+    /** Stores an uploaded track (replacing an earlier upload) and where it came from. */
+    public static function storeMusic(\Illuminate\Http\UploadedFile $file, ?string $sourceUrl, ?int $userId): string
+    {
+        $key = (string) config('slideshow.music.track');
+        $ext = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'mp3');
+        $dir = storage_path('app/music');
+        File::ensureDirectoryExists($dir);
+        foreach (glob("{$dir}/{$key}.*") ?: [] as $old) {
+            if (!str_ends_with($old, '.json')) {
+                File::delete($old);
+            }
+        }
+        $file->move($dir, "{$key}.{$ext}");
+        file_put_contents("{$dir}/{$key}.json", json_encode(array_filter([
+            'file' => "music/{$key}.{$ext}", 'source_url' => $sourceUrl ?: (self::uploaded()['source_url'] ?? null),
+            'original_name' => $file->getClientOriginalName(), 'uploaded_at' => now()->toIso8601String(), 'by' => $userId,
+        ]), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        Log::info('Slideshow music uploaded', ['track' => $key, 'user_id' => $userId]);
+
+        return "{$dir}/{$key}.{$ext}";
     }
 
     /** 'Music: "Hot Amapiano Beats" by Alex Morgan (CC BY 4.0)' */
@@ -46,11 +78,14 @@ class Slideshows
             .(!empty($music['licence']) ? ' ('.$music['licence'].')' : '');
     }
 
+    /** The track's file: SLIDESHOW_MUSIC_PATH / the config path, else what was uploaded at /admin/slideshows. */
     public static function musicFile(): string
     {
         $key = (string) config('slideshow.music.track');
+        $configured = storage_path('app/'.ltrim((string) config("slideshow.music.tracks.{$key}.path"), '/'));
+        $uploaded = self::uploaded()['file'] ?? null;
 
-        return storage_path('app/'.ltrim((string) config("slideshow.music.tracks.{$key}.path"), '/'));
+        return !is_file($configured) && $uploaded && is_file(storage_path('app/'.$uploaded)) ? storage_path('app/'.$uploaded) : $configured;
     }
 
     /** Waiting renders, best first: pending, or failed with attempts left. */

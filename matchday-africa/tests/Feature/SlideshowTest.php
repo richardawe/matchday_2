@@ -54,6 +54,7 @@ class SlideshowTest extends TestCase
             'app.url' => 'https://matchday.africa',
             'slideshow.enabled' => true,
             'slideshow.commons.enabled' => false,
+            'slideshow.video_mode' => 'filters',
             'slideshow.music.tracks.hot-amapiano-beats.path' => 'testing/slideshow-music.mp3',
             'social.queue_token' => self::TOKEN,
             'social.autopost_enabled' => false,
@@ -91,6 +92,9 @@ class SlideshowTest extends TestCase
     private function fakeFfmpeg(): void
     {
         $this->app->bind(SlideshowVideo::class, fn () => (new SlideshowVideo)->usingProcess(function (array $args) {
+            if (array_intersect(['-version', '-filters', '-encoders', '-decoders', '-demuxers'], $args)) {
+                return new Process([PHP_BINARY, '-r', '']);
+            }
             $this->ffmpegCalls[] = $args;
             if (in_array('null', $args, true)) {
                 $json = '{"input_i" : "-19.52", "input_tp" : "-3.10", "input_lra" : "5.40", "input_thresh" : "-29.80", "output_i" : "-14.0", "target_offset" : "0.12"}';
@@ -259,8 +263,7 @@ class SlideshowTest extends TestCase
         $this->assertCount(2, $this->ffmpegCalls);
         [$measure, $render] = array_map(fn ($a) => implode(' ', $a), $this->ffmpegCalls);
         $this->assertStringContainsString('loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json', $measure);
-        $this->assertStringContainsString('afade=t=in:st=0:d=0.3', $measure);
-        $this->assertStringContainsString('afade=t=out:st=14.9:d=1.5', $measure);
+        $this->assertStringContainsString("volume='if(lt(t,0.3),t/0.3,if(gt(t,14.9),max(0,(16.4-t)/1.5),1))':eval=frame", $measure);
         $this->assertStringContainsString('loudnorm=I=-14:TP=-1.5:LRA=11:measured_I=-19.52:measured_TP=-3.10:measured_LRA=5.40:measured_thresh=-29.80:offset=0.12:linear=true', $render);
         $this->assertStringContainsString('xfade=transition=fade:duration=0.4:offset=3.2', $render);
         $this->assertStringContainsString('offset=12.8', $render);
@@ -269,6 +272,38 @@ class SlideshowTest extends TestCase
             $this->assertStringContainsString($arg, $render);
         }
         $this->assertFileExists(storage_path('app/testing/out.mp4'));
+    }
+
+    public function test_the_frames_mode_needs_no_video_filters_and_draws_the_zoom_and_fades_itself(): void
+    {
+        config(['slideshow.video_mode' => 'frames']);
+        $this->fakeFfmpeg();
+        $renderer = new SlideshowRenderer;
+        $slides = $renderer->render(array_map(fn ($i) => ['kind' => 'cta', 'colours' => ['#FFD23F', '#0B0B0B'], 'question' => "Slide {$i}?",
+            'cta' => 'Call it', 'path' => 'matchday.africa'], range(1, 5)), storage_path('app/testing/slides'));
+        $video = app(SlideshowVideo::class);
+
+        $frames = $video->frames($slides, 1.04, storage_path('app/testing/frames'));
+        $total = array_sum(array_column($frames['entries'], 1));
+        $this->assertEqualsWithDelta(16.4, $total, 0.001);
+        // Zoom: 96 single frames of slide 01; four crossfades of 12 frames; three held middles; the last slide held.
+        $this->assertCount(96 + 4 * 12 + 3 + 1, $frames['entries']);
+        $this->assertSame(492, $frames['frames']);
+        $this->assertFileExists(storage_path('app/testing/frames/s0492.png'));
+        File::deleteDirectory(storage_path('app/testing/frames'));
+
+        // Text at the bottom of the safe zone: no zoom, so only the fades are drawn this time.
+        $flat = array_map(fn ($s) => ['file' => $s['file'], 'boxes' => [[400, 1500, 700, 1540]]], $slides);
+        $made = $video->make($flat, storage_path('app/testing/slideshow-music.mp3'), 0, storage_path('app/testing/out.mp4'));
+        $this->assertSame('frames', $made['mode']);
+        $this->assertSame(1.0, $made['zoom']);
+        $render = implode(' ', end($this->ffmpegCalls));
+        $this->assertStringContainsString('-framerate 30 -start_number 1 -i', $render);
+        $this->assertStringNotContainsString('xfade', $render);
+        $this->assertStringNotContainsString('zoompan', $render);
+        $this->assertStringContainsString('linear=true', $render);
+        $this->assertStringContainsString('-movflags +faststart', $render);
+        $this->assertDirectoryDoesNotExist(storage_path('app/testing/frames'));
     }
 
     public function test_the_zoom_cap_keeps_text_near_the_edges_inside_the_safe_zone(): void
@@ -519,5 +554,41 @@ class SlideshowTest extends TestCase
         $deck = app(SlideshowDeck::class)->build($show);
         $this->assertSame('5 Premier League goals this season', $deck['slides'][0]['claim']);
         $this->assertStringContainsString('Mohammed Kudus (Ghana) has 5 Premier League goals this season', $deck['caption']);
+    }
+
+    public function test_admins_upload_the_music_and_pin_a_commons_photo(): void
+    {
+        // A test-only track key, so a real track in storage/app/music is never touched.
+        config(['slideshow.music.track' => 'test-track', 'slideshow.music.tracks.test-track' => config('slideshow.music.tracks.hot-amapiano-beats')
+            + ['path' => 'music/test-track.mp3'], 'slideshow.music.tracks.test-track.path' => 'music/test-track.mp3']);
+        $this->fakeFfmpeg();
+        $admin = User::factory()->create(['is_admin' => true]);
+        $this->actingAs($admin)->get('/admin/slideshows')->assertOk()->assertSee('No file yet');
+        $this->actingAs(User::factory()->create(['is_admin' => false]))
+            ->post('/admin/slideshows/music', ['track' => \Illuminate\Http\UploadedFile::fake()->create('beat.mp3', 200, 'audio/mpeg')])->assertForbidden();
+
+        $this->actingAs($admin)->post('/admin/slideshows/music', [
+            'track' => \Illuminate\Http\UploadedFile::fake()->create('Hot Amapiano Beats.mp3', 200, 'audio/mpeg'),
+            'source_url' => 'https://example.org/hot-amapiano-beats',
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $this->assertSame(storage_path('app/music/test-track.mp3'), Slideshows::musicFile());
+        $this->assertFileExists(Slideshows::musicFile());
+        $this->assertSame('https://example.org/hot-amapiano-beats', Slideshows::music()['source_url']);
+        $this->assertFileDoesNotExist(public_path('music/test-track.mp3'));
+        $this->actingAs($admin)->get('/admin/slideshows')->assertOk()->assertSee('File found')->assertSee('https://example.org/hot-amapiano-beats');
+
+        // Pinning a photo from a Commons link: the licence is still checked.
+        config(['slideshow.commons.enabled' => true]);
+        Http::fake(['commons.wikimedia.org/*' => Http::response(['query' => ['pages' => ['5' => ['title' => 'File:Kudus.jpg', 'imageinfo' => [[
+            'mime' => 'image/jpeg', 'width' => 2000, 'thumburl' => 'https://upload.wikimedia.org/k.jpg',
+            'extmetadata' => ['LicenseShortName' => ['value' => 'CC BY-NC 2.0'], 'Artist' => ['value' => 'Someone']],
+        ]]]]]])]);
+        $this->actingAs($admin)->post('/admin/slideshows/photo', ['player_id' => $this->kudus->id, 'file' => 'https://commons.wikimedia.org/wiki/File:Kudus.jpg'])
+            ->assertSessionHas('error');
+        $this->assertSame('none', data_get($this->kudus->fresh()->metadata, 'commons_photo.status'));
+        $this->assertSame('File:Kudus.jpg', data_get($this->kudus->fresh()->metadata, 'commons_photo.pinned'));
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), 'titles=File%3AKudus.jpg'));
+        File::delete([storage_path('app/music/test-track.mp3'), storage_path('app/music/test-track.json')]);
     }
 }

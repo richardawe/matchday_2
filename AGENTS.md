@@ -219,8 +219,9 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 ### Colour slideshows (12 Nov 2026)
 - Built from the owner's prompt pack (prompt 1 of 4: slideshows; then player pages, UTM/CTAs, admin review queue). Off until
   `SLIDESHOW_ENABLED=true`, the migration, and the licensed track at `storage/app/music/hot-amapiano-beats.mp3`
-  ("Hot Amapiano Beats" by Alex Morgan, CC BY 4.0; credit in every caption and YouTube description; the file was not in the
-  repo or this session, and its source URL is left empty rather than guessed). The hand pipeline (`build_slideshows.py`) was not
+  ("Hot Amapiano Beats" by Alex Morgan, CC BY 4.0; credit in every caption and YouTube description). The file was not in the
+  repo and no public copy could be found online: an admin uploads it (with its source link) at `/admin/slideshows`, which stores
+  it in `storage/app/music/` with a `.json` note; the source URL is never guessed. The hand pipeline (`build_slideshows.py`) was not
   available either; the layout follows the written spec (800 px safe column, y 150–1540, 3.6 s slides, 0.4 s fades, zoom ≤ 1.04
   clamped to text).
 - Every slideshow needs an editor's approval (`/admin/slideshows`) before public pages, `/api/social-queue` or YouTube see it;
@@ -229,9 +230,20 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   the roster and the admin UI are prompts 2 and 4. Player pages still 404 for descent-only players until prompt 2, so their
   milestone decks link to the match page.
 - Season goal totals come from match events and are only shown for the Premier League (every match synced); other leagues show
-  match-level facts only. `DiscoveryController::AFRICA` uses TZA/GMB/NER where FIFA codes are TAN/GAM/NIG (prompt 2 fixes the list).
+  match-level facts only.
 - Slide 01 photos: Wikidata image of the one footballer with that name (and our date of birth when known) → Commons licence
   check (CC0, PD, CC BY, CC BY-SA). Pin a file by hand with `php artisan slideshow:photo {player} "File:Name.jpg"`.
+- ffmpeg: the server's ffmpeg may be the reel renderer's small Remotion build (no xfade, zoompan or afade). `SlideshowVideo`
+  falls back to that binary when `SLIDESHOW_FFMPEG`/`RADIO_FFMPEG` doesn't run, and in `auto` mode draws the Ken Burns and
+  crossfade frames itself (a numbered PNG sequence, held frames as hard links; ~25 s a deck on 4 cores) when the filters are
+  missing. Audio fades are `volume` expressions in both modes. Checks: `/admin/slideshows`, `php artisan slideshow:render --check`,
+  every deploy log, Server operations `slideshow-check`; switch with `configure-slideshows` (home_v2 on/off; migrates, checks,
+  looks up the week's photos).
+- `slideshow:photos` (05:10 London) looks up slide photos for in-scope players at clubs playing in the next week; editors pin a
+  Commons file or link per featured player on `/admin/slideshows` (licence still checked).
+- Nationality codes: the player sync wrote TAN, GAM and three-letter fallbacks (LIB, SUD, MAL …) the African list never matched.
+  `PlayerService::AFRICAN_NAMES` maps them, `DiscoveryController::AFRICA` also lists TAN, GAM, NIG and STP, and a migration
+  re-codes stored rows by nationality name (Malta's MAL is left alone).
 - `ReelUploads` now delegates the resumable upload and quota to `App\Services\YouTube\ShortsUpload` (same cache keys).
 
 ### Social posting moved to a bot (8 Nov 2026)

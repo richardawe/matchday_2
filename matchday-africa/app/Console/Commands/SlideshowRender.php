@@ -16,9 +16,9 @@ class SlideshowRender extends Command
     public function handle(Slideshows $slideshows, SlideshowVideo $video): int
     {
         if ($this->option('check')) {
-            $missing = $video->missing();
             $music = Slideshows::musicFile();
-            $this->line('ffmpeg: '.config('slideshow.ffmpeg').($missing ? ' is missing '.implode(', ', $missing) : ' has everything needed'));
+            $missing = $video->missing($music);
+            $this->line('ffmpeg: '.$video->ffmpeg().($missing ? ' is missing '.implode(', ', $missing) : ' has everything needed').' (video mode: '.$video->mode().')');
             $this->line('Music: '.$music.(is_file($music) ? ' (found)' : ' (MISSING: upload the licensed track here)'));
 
             return $missing || !is_file($music) ? self::FAILURE : self::SUCCESS;

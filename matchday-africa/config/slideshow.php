@@ -15,10 +15,13 @@
 return [
     'enabled' => (bool) env('SLIDESHOW_ENABLED', false),
 
-    // The small reel/radio ffmpeg build works if it has libx264, aac, xfade, zoompan and loudnorm
-    // (php artisan slideshow:render --check lists what is missing).
+    // Falls back to the ffmpeg the reel renderer ships (reel/node_modules/@remotion/compositor-*) when this
+    // one doesn't run. php artisan slideshow:render --check (or /admin/slideshows) lists anything missing.
     'ffmpeg' => env('SLIDESHOW_FFMPEG') ?: env('RADIO_FFMPEG', 'ffmpeg'),
     'timeout' => (int) env('SLIDESHOW_TIMEOUT', 300),
+    // auto: xfade/zoompan filters when the build has them, else PHP-drawn frames joined by the concat
+    // demuxer (works with the reel renderer's small ffmpeg). Or force filters / frames.
+    'video_mode' => env('SLIDESHOW_VIDEO_MODE', 'auto'),
 
     'size' => [1080, 1920],
     'fps' => 30,
@@ -165,5 +168,6 @@ return [
         'SOM' => ['Somalia', 'Somali', ['#4189DD', '#FFFFFF']],
         'SWZ' => ['Eswatini', 'Swazi', ['#3E5EB9', '#FFD900'], ['swaziland']],
         'BOT' => ['Botswana', 'Batswana', ['#6DA9D2', '#000000']],
+        'STP' => ['São Tomé and Príncipe', 'Santomean', ['#12AD2B', '#FFCE00'], ['sao tome and principe', 'sao tome']],
     ],
 ];
