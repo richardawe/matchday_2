@@ -16,7 +16,7 @@ fi
 php scripts/deployment-settings.php validate
 public_root=$(php scripts/deployment-settings.php public)
 
-mkdir -p storage/app/story-cards storage/app/reels public/generated/reels \
+mkdir -p storage/app/story-cards storage/app/reels storage/app/slideshows storage/app/music public/generated/reels public/generated/slideshows \
     storage/framework/{cache/data,sessions,views} bootstrap/cache
 exec 9>storage/framework/deploy.lock
 flock -n 9 || { echo "Another deployment is running."; exit 1; }
@@ -90,7 +90,7 @@ if [[ "$public_root" != "$(pwd -P)/public" ]]; then
         fi
     done
 fi
-mkdir -p "$public_root/generated/reels"
+mkdir -p "$public_root/generated/reels" "$public_root/generated/slideshows"
 if [[ ! -e "$public_root/storage" && ! -L "$public_root/storage" ]]; then
     php artisan storage:link
 fi

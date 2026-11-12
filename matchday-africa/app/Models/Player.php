@@ -60,6 +60,21 @@ class Player extends Model
         return $this->belongsTo(Team::class);
     }
 
+    /** Heritage records (only confirmed ones count anywhere public). */
+    public function heritages(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PlayerHeritage::class);
+    }
+
+    /** ISO 3166 alpha-2 for a FIFA code ("NGA" → "NG"), or null. */
+    public static function isoCode(?string $fifa): ?string
+    {
+        $code = strtoupper((string) $fifa);
+
+        // ISO-3 spellings DiscoveryController::AFRICA uses where FIFA's differ (TAN, GAM, NIG).
+        return self::FIFA_TO_ISO[$code] ?? (['TZA' => 'TZ', 'GMB' => 'GM', 'NER' => 'NE'][$code] ?? null);
+    }
+
     /**
      * Scope for active players
      */

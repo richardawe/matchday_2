@@ -12,6 +12,7 @@
 
 <x-whatsapp-channel context="match" />
 <div id="match-story">@include('partials.match-story')</div>
+@include('partials.slideshow-strip', ['slideshows' => \App\Models\Slideshow::forMatch($match->id), 'heading' => 'SLIDESHOWS FOR THIS MATCH'])
 @include('partials.banter-share')
 <div id="match-timeline">@include('partials.match-timeline')</div>
 @if(!empty($reel))<x-social-follow variant="block" context="match" title="Follow for every reel like this one." />@endif

@@ -18,6 +18,7 @@
             @endforeach
         </div>
     @endif
+    @include('partials.slideshow-strip', ['slideshows' => $slideshows ?? collect(), 'heading' => 'COLOUR SLIDESHOWS · PREVIEWS, RESULTS AND TEAM OF THE WEEK'])
 </div></section>
 <x-social-follow variant="block" context="reels" />
 @endsection

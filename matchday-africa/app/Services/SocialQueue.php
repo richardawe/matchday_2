@@ -18,7 +18,9 @@ use Throwable;
  *   - every Premier League match with a ready reel ("reel:<match_id>"), with the reel's static
  *     mp4 on this site, its length, its YouTube Short and the full-time story card;
  *   - every other post the generator planned in growth_posts ("growth:<id>", the X row of each
- *     subject): previews, fixtures, results, Beat the Griot, banter and news.
+ *     subject): previews, fixtures, results, Beat the Griot, banter and news;
+ *   - every colour slideshow an editor has approved ("slideshow:<id>"), with its static mp4,
+ *     per-platform captions, the landing page tagged per channel, and the music and photo credits.
  * Each channel's posted state comes from social_queue_posts (the bot or an admin marks it), else
  * from what the site sent itself earlier (growth_posts) or, for YouTube, the Shorts upload.
  * The admin page (/admin/social-queue) and the API (/api/social-queue) both read this.
@@ -39,7 +41,7 @@ class SocialQueue
     /** Every item, newest first. */
     public function items(): Collection
     {
-        $items = $this->reelItems()->concat($this->growthItems())
+        $items = $this->reelItems()->concat($this->growthItems())->concat($this->slideshowItems())
             ->sortByDesc(fn ($item) => $item['created_at'])->values();
         $posted = self::ready()
             ? SocialQueuePost::whereIn('subject', $items->pluck('id'))->get()->groupBy('subject')
@@ -145,6 +147,56 @@ class SocialQueue
         });
     }
 
+    /**
+     * Approved, rendered slideshows. reel_url carries the video too, so a bot that posts reels posts
+     * these the same way; captions holds the text for each platform (X within 280 weighted characters).
+     */
+    private function slideshowItems(): Collection
+    {
+        if (!\App\Models\Slideshow::ready()) {
+            return collect();
+        }
+        $since = $this->since();
+
+        return \App\Models\Slideshow::with(['match.homeTeam', 'match.awayTeam', 'match.league', 'player.team'])->published()
+            ->where('approved_at', '>=', $since->copy()->setTimezone(config('app.timezone')))
+            ->get()
+            ->map(function (\App\Models\Slideshow $show) {
+                $file = $show->videoFile();
+                $video = $file && is_file($show->publicVideoPath()) ? self::https((string) $show->videoUrl()) : null;
+                if (!$video) {
+                    return null; // Approved but the file is gone: nothing to post.
+                }
+                $landing = $show->landing_path ? self::https($show->landing_path) : self::https($show->pageUrl());
+                $captions = collect((array) $show->captions)->only(self::CHANNELS)->map(fn ($c) => self::plain((string) $c))->all();
+
+                return [
+                    'id' => "slideshow:{$show->id}",
+                    'type' => 'slideshow',
+                    'slideshow_type' => $show->type,
+                    'match' => $show->match ? $this->matchInfo($show->match) : null,
+                    'player' => $show->player ? ['id' => $show->player->id, 'name' => $show->player->name,
+                        'label' => \App\Support\AfricanScope::label($show->player)] : null,
+                    'reel_url' => $video,
+                    'video_url' => $video,
+                    'reel_duration_seconds' => $show->duration_seconds ?? self::duration($file),
+                    'youtube_url' => $show->youtube_video_id ? "https://www.youtube.com/shorts/{$show->youtube_video_id}" : null,
+                    'image_url' => $show->posterUrl() ? self::https($show->posterUrl()) : null,
+                    'caption' => $show->caption,
+                    'captions' => $captions,
+                    'page_url' => self::https($show->pageUrl()),
+                    'landing_url' => $landing,
+                    'landing_urls' => collect(\App\Support\SocialLink::CHANNELS)->mapWithKeys(fn ($c) => [$c => \App\Support\SocialLink::to($landing, $c, 'slideshow', "{$show->type}-{$show->id}")])->all(),
+                    'music_credit' => \App\Services\Slideshow\Slideshows::musicCredit($show->music),
+                    'music' => $show->music,
+                    'photo_credit' => data_get($show->photo, 'credit'),
+                    'photo' => $show->photo ? collect($show->photo)->only(['title', 'source_url', 'licence', 'licence_url', 'artist', 'credit'])->all() : null,
+                    'created_at' => $show->approved_at,
+                    '_slideshow' => $show,
+                ];
+            })->filter()->values();
+    }
+
     /** Adds the channels' posted state, cleans the caption and formats times; drops internals. */
     private function finish(array $item, Collection $marks): array
     {
@@ -157,7 +209,7 @@ class SocialQueue
         }
         $created = $item['created_at'];
 
-        return array_merge(array_diff_key($item, ['_match' => 1, '_growth' => 1]), [
+        return array_merge(array_diff_key($item, ['_match' => 1, '_growth' => 1, '_slideshow' => 1]), [
             'caption' => self::plain((string) $item['caption']),
             'created_at' => self::iso($created),
             'channels' => $channels,
@@ -167,6 +219,15 @@ class SocialQueue
     /** What the site posted itself before the switch (growth_posts), or the Short for YouTube. */
     private function postedBySite(array $item, string $channel): ?array
     {
+        if ($channel === 'youtube' && isset($item['_slideshow'])) {
+            $show = $item['_slideshow'];
+
+            return $show->youtube_video_id ? ['posted' => true, 'posted_at' => self::iso($show->youtube_uploaded_at), 'external_post_id' => $show->youtube_video_id,
+                'url' => $item['youtube_url'], 'source' => 'youtube_upload'] : null;
+        }
+        if (isset($item['_slideshow'])) {
+            return null; // The site never posted slideshows itself.
+        }
         if ($channel === 'youtube') {
             $match = $item['_match'] ?? null;
             if ($match && $match->youtube_video_id) {

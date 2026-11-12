@@ -111,6 +111,9 @@
                             <x-dropdown-link :href="route('admin.social-queue.index')">
                                 {{ __('📤 Social queue') }}
                             </x-dropdown-link>
+                            <x-dropdown-link :href="route('admin.slideshows.index')">
+                                {{ __('🎞️ Slideshows') }}
+                            </x-dropdown-link>
                             <x-dropdown-link :href="route('admin.player-photos.index')">
                                 {{ __('📸 Player photos') }}
                             </x-dropdown-link>
@@ -252,6 +255,9 @@
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.social-queue.index')">
                         {{ __('📤 Social queue') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('admin.slideshows.index')">
+                        {{ __('🎞️ Slideshows') }}
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.player-photos.index')">
                         {{ __('📸 Player photos') }}
