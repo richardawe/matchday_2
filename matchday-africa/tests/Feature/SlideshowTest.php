@@ -106,6 +106,33 @@ class SlideshowTest extends TestCase
         }));
     }
 
+    /** The first block of $type on a slide ('pill', 'teams', 'portrait', 'title', 'panel', 'image'). */
+    private static function block(array $slide, string $type): ?array
+    {
+        foreach ($slide['blocks'] as $block) {
+            if ($block[0] === $type) {
+                return $block;
+            }
+        }
+
+        return null;
+    }
+
+    /** Every text in a slide's panels, in order. */
+    private static function texts(array $slide): array
+    {
+        $out = [];
+        foreach ($slide['blocks'] as $block) {
+            foreach ($block[0] === 'panel' ? $block['items'] : [] as $item) {
+                if (in_array($item[0], ['text', 'badge'], true)) {
+                    $out[] = $item[1];
+                }
+            }
+        }
+
+        return $out;
+    }
+
     private function heritage(Player $player, string $status, string $code = 'NGA', string $country = 'Nigeria'): PlayerHeritage
     {
         return PlayerHeritage::create(['player_id' => $player->id, 'country' => $country, 'country_code' => $code,
@@ -161,8 +188,8 @@ class SlideshowTest extends TestCase
 
         $show = Slideshow::create(['key' => "preview:{$match->id}", 'type' => 'preview', 'match_id' => $match->id]);
         $deck = app(SlideshowDeck::class)->build($show->fresh());
-        $this->assertSame('Bukayo Saka', $deck['slides'][0]['title']);
-        $this->assertSame('of Nigerian descent', $deck['slides'][0]['label']);
+        $this->assertSame('Bukayo Saka', self::block($deck['slides'][0], 'portrait')['name']);
+        $this->assertSame('of Nigerian descent · Arsenal', self::block($deck['slides'][0], 'portrait')['line']);
         $copy = json_encode($deck['slides']).$deck['caption'].implode(' ', $deck['captions']);
         $this->assertStringContainsString('Bukayo Saka (of Nigerian descent)', $deck['caption']);
         $this->assertStringNotContainsStringIgnoringCase('international', $copy);
@@ -193,10 +220,11 @@ class SlideshowTest extends TestCase
 
         $deck = app(SlideshowDeck::class)->build($show);
 
-        $this->assertSame('flags', $deck['slides'][0]['kind']);
-        $this->assertStringEndsWith('flags/ng.png', $deck['slides'][0]['home_flag']);
-        $this->assertStringEndsWith('flags/ci.png', $deck['slides'][0]['away_flag']);
-        $this->assertSame(['#008751', '#F77F00'], $deck['slides'][0]['colours']);
+        $teams = self::block($deck['slides'][0], 'teams');
+        $this->assertStringEndsWith('flags/ng.png', $teams['home']['flag']);
+        $this->assertStringEndsWith('flags/ci.png', $teams['away']['flag']);
+        $this->assertSame(['home' => ['#008751', '#FFFFFF'], 'away' => ['#F77F00', '#009E60']], $deck['slides'][0]['colours']);
+        $this->assertNull(self::block($deck['slides'][0], 'portrait')); // no line-up data: no player is claimed
         $this->assertStringContainsString('#AFCON', $deck['captions']['x']);
     }
 
@@ -215,29 +243,32 @@ class SlideshowTest extends TestCase
     public function test_slides_keep_all_text_inside_the_safe_zone(): void
     {
         $renderer = new SlideshowRenderer;
+        $ctx = ['home' => ['#7A263A', '#1BB1E7'], 'away' => ['#034694', '#DBA111']];
+        $side = fn ($name) => ['name' => $name, 'flag' => null, 'colours' => ['#7A263A', '#1BB1E7']];
+        $long = 'Pierre-Emerick Aubameyang';
         $slides = [
-            ['kind' => 'hook', 'colours' => ['#7A263A', '#034694'], 'eyebrow' => 'PREMIER LEAGUE', 'title' => 'Mohammed Kudus Of A Very Long Name Indeed',
-                'label' => 'Ghana', 'club' => 'West Ham United', 'claim' => '5 league goals this season and a great deal more text to wrap'],
-            ['kind' => 'fixture', 'colours' => ['#7A263A', '#034694'], 'eyebrow' => 'PREMIER LEAGUE', 'home' => 'Brighton & Hove Albion', 'away' => 'Wolverhampton Wanderers',
-                'result' => null, 'lines' => ['Sat 14 Nov', 'Kick-off 15:00 GMT UK · 16:00 WAT', 'Falmer Stadium, Brighton']],
-            ['kind' => 'players', 'colours' => ['#000000', '#FFFFFF'], 'eyebrow' => 'IN THIS MATCH', 'title' => 'African players and players of African descent',
-                'rows' => array_fill(0, 4, ['name' => 'Pierre-Emerick Aubameyang', 'label' => 'of Equatorial Guinean descent', 'club' => 'Marseille', 'stats' => '2 goals · 1 assist · 90 min · Rating 8.1'])],
-            ['kind' => 'form', 'colours' => ['#FFFFFF', '#FFFFFF'], 'eyebrow' => 'FORM AND TABLE', 'title' => 'Last five', 'rows' => [['team' => 'Arsenal', 'form' => 'WWDLW', 'standing' => '1st, 30 pts']]],
-            ['kind' => 'cta', 'colours' => ['#FFD23F', '#0B0B0B'], 'question' => 'Who wins: Brighton or Wolves? A question long enough to wrap onto several lines', 'cta' => 'Call the score on matchday.africa', 'path' => 'matchday.africa/matches/123456'],
+            ['colours' => $ctx, 'spacing' => 20, 'blocks' => [['pill', 'Saturday 14 November'], ['teams', 'home' => $side('Brighton & Hove Albion'), 'away' => $side('Wolverhampton Wanderers'), 'middle' => 'v'],
+                ['portrait', 'file' => null, 'name' => 'Mohammed Kudus Of A Very Long Name Indeed', 'line' => 'of Equatorial Guinean descent · Wolverhampton Wanderers', 'credit' => 'Photo: Someone With A Long Name / Wikimedia Commons / CC BY-SA 4.0', 'colours' => ['#7A263A', '#1BB1E7']],
+                ['panel', 'items' => [['badge', 'Kick-off'], ['text', '5:30pm in the UK (GMT)', 'face' => 'bold', 'size' => 48], ['text', '6:30pm Nigerian time (WAT)', 'face' => 'bold', 'size' => 48], ['text', 'Falmer Stadium, Brighton and Hove', 'face' => 'bold', 'size' => 42]], 'gap' => 14]]],
+            ['colours' => $ctx, 'blocks' => [['pill', 'African players in this match'], ['title', 'Ones to watch this weekend in the league'],
+                ['panel', 'items' => array_merge(...array_fill(0, 4, [['text', $long, 'face' => 'bold', 'size' => 50], ['text', 'of Equatorial Guinean descent · Marseille', 'face' => 'reg', 'size' => 36], ['text', '2 goals · 1 assist · 90 min · Rating 8.1', 'face' => 'med', 'size' => 40]])), 'gap' => 10]]],
+            ['colours' => $ctx, 'blocks' => [['pill', 'Premier League'], ['title', 'Premier League table'], ['panel', 'items' => [['table', 'rows' => [
+                ['pos' => '1', 'name' => 'Liverpool', 'value' => '28 pts', 'colour' => null], ['pos' => '14', 'name' => 'Brighton & Hove Albion', 'value' => '13 pts', 'colour' => '#0057B8'], ['pos' => '20', 'name' => 'Wolverhampton Wanderers', 'value' => '2 pts', 'colour' => '#FDB913']]]]]]],
+            ['colours' => $ctx, 'blocks' => [['pill', 'Brighton v Wolves · Saturday'], ['panel', 'items' => [['text', 'Who wins: Brighton or Wolves? A question long enough to wrap onto several lines', 'face' => 'display', 'size' => 76], ['text', 'Call the score at matchday.africa before kick-off.', 'face' => 'med', 'size' => 46]]]]],
         ];
 
         $out = $renderer->render($slides, storage_path('app/testing/slides'));
 
-        $this->assertCount(5, $out);
+        $this->assertCount(4, $out);
         foreach ($out as $slide) {
             $this->assertSame([1080, 1920], array_slice(getimagesize($slide['file']), 0, 2));
-            $this->assertNotEmpty($slide['boxes']);
-            foreach ($slide['boxes'] as [$x1, $y1, $x2, $y2]) {
-                $this->assertGreaterThanOrEqual(140, $x1);
-                $this->assertLessThanOrEqual(940, $x2);
-                $this->assertGreaterThanOrEqual(150, $y1);
-                $this->assertLessThanOrEqual(1540, $y2);
-            }
+            [$l, $t, $r, $b] = $slide['bbox'];
+            $this->assertGreaterThanOrEqual(140, $l);
+            $this->assertLessThanOrEqual(941, $r);
+            $this->assertGreaterThanOrEqual(150, $t);
+            $this->assertLessThanOrEqual(1540, $b);
+            $this->assertLessThanOrEqual(20, abs($l - (1080 - $r)));
+            $this->assertLessThanOrEqual(25, abs(($t + $b) / 2 - 845));
         }
     }
 
@@ -245,20 +276,27 @@ class SlideshowTest extends TestCase
     {
         $this->expectException(UnsafeLayout::class);
 
-        (new SlideshowRenderer)->check(1, [[100, 400, 600, 460]]);
+        // Content running into the right-hand 140 px (TikTok's buttons).
+        (new SlideshowRenderer)->check(1, [[150, 600, 960, 1100]]);
+    }
+
+    public function test_off_centre_content_fails_the_render(): void
+    {
+        $this->expectException(UnsafeLayout::class);
+
+        (new SlideshowRenderer)->check(1, [[140, 150, 940, 900]]);
     }
 
     public function test_ffmpeg_gets_two_loudnorm_passes_crossfades_and_a_capped_zoom(): void
     {
         $this->fakeFfmpeg();
         $video = app(SlideshowVideo::class);
-        $slides = array_map(fn ($i) => ['file' => "/tmp/0{$i}.png", 'boxes' => [[188, 1000, 892, 1100]]], range(1, 5));
+        $slides = array_map(fn ($i) => ['file' => "/tmp/0{$i}.png", 'bbox' => [140, 300, 940, 1390]], range(1, 5));
 
         $made = $video->make($slides, storage_path('app/testing/slideshow-music.mp3'), 0, storage_path('app/testing/out.mp4'));
 
         $this->assertSame(16.4, $made['seconds']);
-        $this->assertLessThanOrEqual(1.04, $made['zoom']);
-        $this->assertGreaterThan(1.0, $made['zoom']);
+        $this->assertSame(array_fill(0, 5, 1.04), $made['zoom']);
         $this->assertSame('-19.52', $made['loudness']['input_i']);
         $this->assertCount(2, $this->ffmpegCalls);
         [$measure, $render] = array_map(fn ($a) => implode(' ', $a), $this->ffmpegCalls);
@@ -267,7 +305,10 @@ class SlideshowTest extends TestCase
         $this->assertStringContainsString('loudnorm=I=-14:TP=-2:LRA=11:measured_I=-19.52:measured_TP=-3.10:measured_LRA=5.40:measured_thresh=-29.80:offset=0.12:linear=true', $render);
         $this->assertStringContainsString('xfade=transition=fade:duration=0.4:offset=3.2', $render);
         $this->assertStringContainsString('offset=12.8', $render);
-        $this->assertStringContainsString('zoompan=', $render);
+        $this->assertSame(5, substr_count($render, 'zoompan='));
+        // Anchored on the safe column's right edge (x 940 at 2x), the content kept between y 150 and 1540.
+        $this->assertStringContainsString(":x='1880*(1-1/zoom)'", $render);
+        $this->assertStringContainsString(":y='min(2*300-2*150/zoom,max(2*1390-2*1540/zoom,(ih-ih/zoom)/2))'", $render);
         foreach (['-c:v libx264', '-pix_fmt yuv420p', '-c:a aac', '-movflags +faststart', '-framerate 30', '-t 16.4'] as $arg) {
             $this->assertStringContainsString($arg, $render);
         }
@@ -279,40 +320,41 @@ class SlideshowTest extends TestCase
         config(['slideshow.video_mode' => 'frames']);
         $this->fakeFfmpeg();
         $renderer = new SlideshowRenderer;
-        $slides = $renderer->render(array_map(fn ($i) => ['kind' => 'cta', 'colours' => ['#FFD23F', '#0B0B0B'], 'question' => "Slide {$i}?",
-            'cta' => 'Call it', 'path' => 'matchday.africa'], range(1, 5)), storage_path('app/testing/slides'));
+        $slides = $renderer->render(array_map(fn ($i) => ['colours' => ['home' => ['#FFD23F', '#0B0B0B'], 'away' => ['#0B0B0B', '#FFD23F']],
+            'blocks' => [['pill', "Slide {$i}"], ['panel', 'items' => [['text', "Slide {$i}?", 'face' => 'display', 'size' => 76]]]]], range(1, 5)), storage_path('app/testing/slides'));
         $video = app(SlideshowVideo::class);
 
-        $frames = $video->frames($slides, 1.04, storage_path('app/testing/frames'));
-        $total = array_sum(array_column($frames['entries'], 1));
-        $this->assertEqualsWithDelta(16.4, $total, 0.001);
-        // Zoom: 96 single frames of slide 01; four crossfades of 12 frames; three held middles; the last slide held.
-        $this->assertCount(96 + 4 * 12 + 3 + 1, $frames['entries']);
-        $this->assertSame(492, $frames['frames']);
-        $this->assertFileExists(storage_path('app/testing/frames/s0492.png'));
-        File::deleteDirectory(storage_path('app/testing/frames'));
+        $zooms = array_fill(0, 5, 1.04);
+        $this->assertSame(492, iterator_count($video->frames($slides, $zooms)));
+        $first = imagecreatefromstring($video->frames($slides, $zooms)->current());
+        $this->assertSame([1080, 1920], [imagesx($first), imagesy($first)]);
 
-        // Text at the bottom of the safe zone: no zoom, so only the fades are drawn this time.
-        $flat = array_map(fn ($s) => ['file' => $s['file'], 'boxes' => [[400, 1500, 700, 1540]]], $slides);
+        // Text at the bottom of the safe zone: no zoom.
+        $flat = array_map(fn ($s) => ['file' => $s['file'], 'bbox' => [140, 150, 940, 1540]], $slides);
         $made = $video->make($flat, storage_path('app/testing/slideshow-music.mp3'), 0, storage_path('app/testing/out.mp4'));
         $this->assertSame('frames', $made['mode']);
-        $this->assertSame(1.0, $made['zoom']);
+        $this->assertSame(array_fill(0, 5, 1.0), $made['zoom']);
         $render = implode(' ', end($this->ffmpegCalls));
-        $this->assertStringContainsString('-framerate 30 -start_number 1 -i', $render);
+        $this->assertStringContainsString('-f image2pipe -framerate 30 -c:v mjpeg -i -', $render);
         $this->assertStringNotContainsString('xfade', $render);
         $this->assertStringNotContainsString('zoompan', $render);
         $this->assertStringContainsString('linear=true', $render);
         $this->assertStringContainsString('-movflags +faststart', $render);
-        $this->assertDirectoryDoesNotExist(storage_path('app/testing/frames'));
     }
 
-    public function test_the_zoom_cap_keeps_text_near_the_edges_inside_the_safe_zone(): void
+    public function test_the_zoom_is_capped_by_the_content_height_and_grows_to_the_left(): void
     {
-        $this->assertSame(1.04, SlideshowVideo::zoomCap([[400, 900, 700, 1000]]));
-        // Text 10 px inside the left edge: 400 / 390 ≈ 1.0256.
-        $this->assertSame(1.025, SlideshowVideo::zoomCap([[150, 900, 700, 1000]]));
-        // Text touching the bottom of the safe zone: no zoom at all.
-        $this->assertSame(1.0, SlideshowVideo::zoomCap([[400, 1500, 700, 1540]]));
+        $this->assertSame(1.04, SlideshowVideo::zoomFor([140, 400, 940, 1300]));
+        // Content 1,360 px tall: (1540 - 150 - 2) / 1360 = 1.0205.
+        $this->assertSame(1.0205, SlideshowVideo::zoomFor([140, 160, 940, 1520]));
+        $this->assertSame(1.0, SlideshowVideo::zoomFor([140, 150, 940, 1540]));
+
+        [$x, $y, $w] = SlideshowVideo::cropFor(1.04, [140, 400, 940, 1300]);
+        // The safe column's right edge stays at 940 on screen: (940 - x) * zoom = 940.
+        $this->assertEqualsWithDelta(940, (940 - $x) * 1.04, 0.01);
+        $this->assertEqualsWithDelta(1080 / 1.04, $w, 0.01);
+        // Bottom of the content after zoom stays above 1540.
+        $this->assertLessThanOrEqual(1540.01, (1300 - $y) * 1.04);
     }
 
     // ---------------------------------------------------------------- render, queue, pages
@@ -326,15 +368,20 @@ class SlideshowTest extends TestCase
 
         $this->assertSame('ready', $show->status);
         $this->assertFalse($show->approved);
-        $this->assertSame(16.4, $show->duration_seconds);
+        $this->assertSame(13.2, $show->duration_seconds); // opener, players, form, question: no table in the data
         $this->assertFileExists(public_path("generated/slideshows/{$show->id}/slideshow.mp4"));
         $this->assertFileExists(public_path("generated/slideshows/{$show->id}/poster.jpg"));
-        $this->assertSame('Mohammed Kudus', $show->slides[0]['title']);
-        $this->assertSame('Ghana', $show->slides[0]['label']);
-        $this->assertSame('1 league goal this season', $show->slides[0]['claim']);
-        $this->assertSame(['hook', 'fixture', 'players', 'form', 'cta'], array_column($show->slides, 'kind'));
-        $this->assertSame('In this match', ucfirst(strtolower($show->slides[2]['eyebrow'])));
-        $this->assertSame(['#7A263A', '#034694'], $show->slides[0]['colours']);
+        $opener = $show->slides[0];
+        $this->assertSame('Saturday 14 November', self::block($opener, 'pill')[1]);
+        $this->assertSame(['WEST HAM', 'Chelsea', 'v'], [mb_strtoupper(self::block($opener, 'teams')['home']['name']), self::block($opener, 'teams')['away']['name'], self::block($opener, 'teams')['middle']]);
+        $this->assertSame('Mohammed Kudus', self::block($opener, 'portrait')['name']);
+        $this->assertSame('Ghana · West Ham', self::block($opener, 'portrait')['line']);
+        $this->assertSame(['Kick-off', '3:00pm in the UK (GMT)', '4:00pm Nigerian time (WAT)'], self::texts($opener));
+        $this->assertSame(['home' => ['#7A263A', '#1BB1E7'], 'away' => ['#034694', '#DBA111']], $opener['colours']);
+        $this->assertSame('African players in this match', self::block($show->slides[1], 'pill')[1]);
+        $this->assertContains('1 goal, 0 assists in the league this season', self::texts($show->slides[1]));
+        $this->assertSame('Form', self::block($show->slides[2], 'pill')[1]);
+        $this->assertSame('Who wins: West Ham or Chelsea?', self::texts($show->slides[3])[0]);
         $this->assertSame('Hot Amapiano Beats', $show->music['title']);
         $this->assertSame('CC BY 4.0', $show->music['licence']);
         $this->assertSame("/matches/{$this->epl->id}", $show->landing_path);
@@ -353,8 +400,8 @@ class SlideshowTest extends TestCase
         $this->assertNotNull($item);
         $this->assertSame("https://matchday.africa/generated/slideshows/{$show->id}/slideshow.mp4", $item['video_url']);
         $this->assertSame($item['video_url'], $item['reel_url']);
-        $this->assertSame($show->duration_seconds, $item['reel_duration_seconds']);
-        $this->assertSame(13.2, $item['reel_duration_seconds']); // No form or table in the data: that slide is dropped.
+        $this->assertEquals($show->duration_seconds, $item['reel_duration_seconds']);
+        $this->assertEquals(10.0, $item['reel_duration_seconds']); // No table or form in the data: those slides are dropped.
         $this->assertSame('Music: "Hot Amapiano Beats" by Alex Morgan (CC BY 4.0)', $item['music_credit']);
         $this->assertSame("https://matchday.africa/matches/{$this->epl->id}?utm_source=tiktok&utm_medium=social&utm_campaign=slideshow&utm_content=preview-{$show->id}", $item['landing_urls']['tiktok']);
         $this->assertStringContainsString('Source: https://freemusicarchive.org/music/alex-morgan/pop-afro-party-instrumentals/hot-amapiano-beats/', $item['music_credit_full']);
@@ -496,12 +543,13 @@ class SlideshowTest extends TestCase
 
         $this->assertSame('Jane Photographer / Wikimedia Commons / CC BY-SA 4.0', $photo['credit']);
         $this->assertSame('Q1', $photo['wikidata']);
-        $this->assertSame(['x' => 0, 'y' => 112, 'w' => 1080, 'h' => 882], $photo['crop']);
+        $this->assertSame(['x' => 216, 'y' => 86, 'w' => 648, 'h' => 648], $photo['crop']);
         $this->assertFileExists($photo['file']);
         $this->assertSame('ok', data_get($this->kudus->fresh()->metadata, 'commons_photo.status'));
 
         $show = $this->readySlideshow(approve: false);
-        $this->assertSame('Jane Photographer / Wikimedia Commons / CC BY-SA 4.0', $show->slides[0]['credit']);
+        $this->assertSame('Photo: Jane Photographer / Wikimedia Commons / CC BY-SA 4.0', self::block($show->slides[0], 'portrait')['credit']);
+        $this->assertSame("{$this->kudus->id}.jpg", self::block($show->slides[0], 'portrait')['file']); // stored without the server path
         $this->assertSame('CC BY-SA 4.0', $show->photo['licence']);
         $this->assertStringContainsString('Photo: Jane Photographer', $show->captions['instagram']);
         File::delete($photo['file']);
@@ -519,10 +567,12 @@ class SlideshowTest extends TestCase
         $show = Slideshow::where('key', "post_match:{$this->epl->id}")->firstOrFail();
         $deck = app(SlideshowDeck::class)->build($show);
 
-        $this->assertSame('1 goal, 1 assist in West Ham 2-1 Chelsea', $deck['slides'][0]['claim']);
-        $this->assertSame('2-1', $deck['slides'][1]['result']);
-        $this->assertContains("41' Mohammed Kudus · West Ham", $deck['slides'][1]['lines']);
-        $this->assertSame('1 goal · 1 assist', $deck['slides'][2]['rows'][0]['stats']);
+        $opener = $deck['slides'][0];
+        $this->assertSame('Full time · Saturday 14 November', self::block($opener, 'pill')[1]);
+        $this->assertSame('2-1', self::block($opener, 'teams')['middle']);
+        $this->assertSame(['Full time', "41' Mohammed Kudus, West Ham", "70' Jarrod Bowen, West Ham", "88' Cole Palmer, Chelsea"], self::texts($opener));
+        $this->assertContains('1 goal · 1 assist', self::texts($deck['slides'][1]));
+        $this->assertSame('How Kudus did', self::block($deck['slides'][1], 'title')[1]);
         $this->assertGreaterThan(app(SlideshowPicker::class)->priority('preview', $this->epl, 1), $show->priority);
     }
 
@@ -538,8 +588,9 @@ class SlideshowTest extends TestCase
         $deck = app(SlideshowDeck::class)->build($show);
 
         $this->assertSame('totw:2026-11-09', $show->key);
-        $this->assertSame('Mohammed Kudus', $deck['slides'][0]['title']);
-        $this->assertSame('2 goals v Fulham', $deck['slides'][1]['rows'][0]['stats']);
+        $this->assertSame('Mohammed Kudus', self::block($deck['slides'][0], 'portrait')['name']);
+        $this->assertSame(['Premier League', '2 goals', 'West Ham 3-0 Fulham'], self::texts($deck['slides'][0]));
+        $this->assertContains('2 goals v Fulham', self::texts($deck['slides'][1]));
         $this->assertStringContainsString('Team of the Week, Premier League 9 Nov–15 Nov: Mohammed Kudus (2 goals)', $deck['caption']);
     }
 
@@ -557,7 +608,7 @@ class SlideshowTest extends TestCase
 
         $show = Slideshow::where('key', "milestone:{$this->kudus->id}:5")->firstOrFail();
         $deck = app(SlideshowDeck::class)->build($show);
-        $this->assertSame('5 Premier League goals this season', $deck['slides'][0]['claim']);
+        $this->assertContains('5 Premier League goals this season', self::texts($deck['slides'][0]));
         $this->assertStringContainsString('Mohammed Kudus (Ghana) has 5 Premier League goals this season', $deck['caption']);
     }
 

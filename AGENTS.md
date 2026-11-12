@@ -224,9 +224,17 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   the FMA storage link in `config/slideshow.php` into `storage/app/music/` and checks its sha256; an admin can also upload a file at
   `/admin/slideshows`. Instagram, TikTok, YouTube and the slideshow page carry the full required credit line (licence and source
   links, "Trimmed, faded and loudness-normalised"); X carries the short credit to stay under 280. True peak is capped at −2 dBTP
-  (the master peaks at −0.1 and AAC overshoots); measured −14.1 LUFS, −1.4 dBFS peak on a real render. The hand pipeline (`build_slideshows.py`) was not
-  available either; the layout follows the written spec (800 px safe column, y 150–1540, 3.6 s slides, 0.4 s fades, zoom ≤ 1.04
-  clamped to text).
+  (the master peaks at −0.1 and AAC overshoots); measured −14.1 LUFS, −1.4 dBFS peak on a real render. The look is ported from the owner's hand
+  pipeline (`matchday/slideshows/build_slideshows.py`, `make_video.sh`, supplied 12 Nov): steep diagonal split (home top left,
+  away bottom right) with a white seam, secondary pinstripes and faint rays; a centred stack of a date pill with flags (kit
+  swatches for clubs), big flags or club colour tiles with name tags, a round portrait in the side's colours, cream panels with
+  team-coloured borders and table highlights, the site's crest-free match card on the last slide, the matchday.africa pill;
+  Anton + Asap Condensed (OFL, `resources/fonts/`). Running order: 01 date/sides/player/kick-off (or scorers), players, table,
+  form, question + card; slides without data are dropped. The render fails unless the whole content box is inside y 150–1540 and
+  the 800 px column, side margins within 20 px and the centre within 25 px of y 845 (as the hand script checks). Ken Burns on every
+  slide from 1.0, capped by the content height (≤ 1.04) and anchored on the column's right edge (x 940) so it grows left; the hand
+  script anchors x 140, which pushes content into the right-hand 140 px, so that part was deliberately not copied. Photo crops are
+  head-and-shoulders squares (`CommonsPhotos::crop`). Nation colours follow the hand `teams.json`.
 - Every slideshow needs an editor's approval (`/admin/slideshows`) before public pages, `/api/social-queue` or YouTube see it;
   a re-render needs approving again. The full review queue (caption edits, reject reasons, heritage confirmation UI) is prompt 4.
 - `player_heritages` exists now (pending/confirmed/rejected + source URL); only confirmed rows with a source count. Seeding from
@@ -237,9 +245,9 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 - Slide 01 photos: Wikidata image of the one footballer with that name (and our date of birth when known) → Commons licence
   check (CC0, PD, CC BY, CC BY-SA). Pin a file by hand with `php artisan slideshow:photo {player} "File:Name.jpg"`.
 - ffmpeg: the server's ffmpeg may be the reel renderer's small Remotion build (no xfade, zoompan or afade). `SlideshowVideo`
-  falls back to that binary when `SLIDESHOW_FFMPEG`/`RADIO_FFMPEG` doesn't run, and in `auto` mode draws the Ken Burns and
-  crossfade frames itself (a numbered PNG sequence, held frames as hard links; ~25 s a deck on 4 cores) when the filters are
-  missing. Audio fades are `volume` expressions in both modes. Checks: `/admin/slideshows`, `php artisan slideshow:render --check`,
+  falls back to that binary when `SLIDESHOW_FFMPEG`/`RADIO_FFMPEG` doesn't run, and in `auto` mode draws every frame itself (zoom and
+  crossfades, GD bilinear, JPEG frames streamed into ffmpeg's image2pipe, nothing on disk; ~31 s a deck on 4 cores, against ~17 s
+  with the filters) when xfade/zoompan are missing. Audio fades are `volume` expressions in both modes. Checks: `/admin/slideshows`, `php artisan slideshow:render --check`,
   every deploy log, Server operations `slideshow-check`; switch with `configure-slideshows` (home_v2 on/off; migrates, checks,
   looks up the week's photos).
 - `slideshow:photos` (05:10 London) looks up slide photos for in-scope players at clubs playing in the next week; editors pin a
