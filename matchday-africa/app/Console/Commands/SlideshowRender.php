@@ -19,7 +19,9 @@ class SlideshowRender extends Command
             $music = Slideshows::musicFile();
             $missing = $video->missing($music);
             $this->line('ffmpeg: '.$video->ffmpeg().($missing ? ' is missing '.implode(', ', $missing) : ' has everything needed').' (video mode: '.$video->mode().')');
-            $this->line('Music: '.$music.(is_file($music) ? ' (found)' : ' (MISSING: upload the licensed track here)'));
+            $sha = (string) config('slideshow.music.tracks.'.config('slideshow.music.track').'.sha256');
+            $this->line('Music: '.$music.(!is_file($music) ? ' (MISSING: run php artisan slideshow:music, or upload it at /admin/slideshows)'
+                : ($sha === '' ? ' (found)' : (hash_file('sha256', $music) === $sha ? ' (found, checked)' : ' (found, but not the file the credit record names)'))));
 
             return $missing || !is_file($music) ? self::FAILURE : self::SUCCESS;
         }

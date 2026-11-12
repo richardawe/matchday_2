@@ -12,8 +12,8 @@
   <tr><th>Generation</th><td>{{ $enabled ? 'On (SLIDESHOW_ENABLED).' : 'Off: set SLIDESHOW_ENABLED=true to make new slideshows. Reviewing still works.' }}</td></tr>
   <tr><th>ffmpeg</th><td><code>{{ $ffmpeg }}</code>: {{ $ffmpegMissing ? 'missing '.implode(', ', $ffmpegMissing).' (renders fail until this is fixed; set SLIDESHOW_FFMPEG).' : 'has everything needed.' }} Video mode: {{ $videoMode === 'filters' ? 'ffmpeg filters' : 'frames drawn by the site (works with the reel renderer\'s small ffmpeg)' }}.</td></tr>
   <tr><th>Music</th><td>
-   {{ $musicCredit }}@if(!empty($musicInfo['licence_url'])) · <a href="{{ $musicInfo['licence_url'] }}" target="_blank" rel="noopener">licence</a>@endif
-   <br>{{ is_file($music) ? 'File found'.(!empty($musicInfo['uploaded_at']) ? ' (uploaded '.\Carbon\Carbon::parse($musicInfo['uploaded_at'])->setTimezone('Europe/London')->format('j M Y H:i').')' : '').'.' : 'No file yet: every render fails until the track is uploaded.' }}
+   {{ $musicCredit }}
+   <br>{{ $musicChecked ? 'File found and checked against the Free Music Archive original. ' : '' }}{{ is_file($music) ? 'File found'.(!empty($musicInfo['uploaded_at']) ? ' (uploaded '.\Carbon\Carbon::parse($musicInfo['uploaded_at'])->setTimezone('Europe/London')->format('j M Y H:i').')' : '').'.' : 'No file yet: every render fails until it is in place (the deploy fetches it, or upload it here).' }}
    @if(!empty($musicInfo['source_url']))<br>Source: <a href="{{ $musicInfo['source_url'] }}" target="_blank" rel="noopener">{{ $musicInfo['source_url'] }}</a>@else<br>Source link not recorded yet.@endif
    <form method="post" action="{{ route('admin.slideshows.music') }}" enctype="multipart/form-data" style="margin-top:.5rem">@csrf
     <label>Track (mp3, m4a or wav; this server takes up to {{ number_format($uploadLimit / 1048576, 0) }} MB) <input type="file" name="track" accept=".mp3,.m4a,.aac,.wav,.flac,.ogg,audio/*" required></label>

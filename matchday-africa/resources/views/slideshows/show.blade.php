@@ -22,7 +22,7 @@
             <x-share-bar :url="$show->pageUrl()" :text="data_get($show->facts, 'title', $show->title()).' on Matchday Africa.'" campaign="slideshow" />
             <p class="md-eyebrow">CREDITS</p>
             <ul class="md-slideshow-credits">
-                @if($musicCredit)<li>{{ $musicCredit }}@if(data_get($show->music, 'licence_url')) · <a href="{{ data_get($show->music, 'licence_url') }}" rel="noopener license" target="_blank">licence</a>@endif</li>@endif
+                @if($musicCredit)<li>{{ $musicCredit }}@if(data_get($show->music, 'source_url')) <a href="{{ data_get($show->music, 'source_url') }}" rel="noopener" target="_blank">Track</a> ·@endif @if(data_get($show->music, 'licence_url'))<a href="{{ data_get($show->music, 'licence_url') }}" rel="noopener license" target="_blank">Licence</a>@endif</li>@endif
                 @if(data_get($show->photo, 'credit'))<li>Photo: <a href="{{ data_get($show->photo, 'source_url') }}" rel="noopener" target="_blank">{{ data_get($show->photo, 'credit') }}</a></li>@endif
                 <li>Facts and numbers from Matchday Africa's match data.</li>
             </ul>

@@ -431,13 +431,14 @@ class SlideshowDeck
         $slides = array_values(array_slice($slides, 0, 6));
         $music = Slideshows::music();
         $credit = Slideshows::musicCredit($music);
+        $fullCredit = Slideshows::musicCredit($music, full: true);
         $photoCredit = $photo['credit'] ?? null;
         $path ??= route('slideshows.show', $show, false);
         $tags = trim(config('slideshow.hashtag', '#MatchdayAfrica').' '.$tag);
         $content = "{$show->type}-{$show->id}";
         $link = fn (string $channel) => SocialLink::to($path, $channel, 'slideshow', $content);
         $body = SocialQueue::plain($body);
-        $long = fn (string $channel) => trim("{$body}\n\n{$link($channel)}\n\n{$credit}".($photoCredit ? "\nPhoto: {$photoCredit}" : '')."\n\n{$tags}");
+        $long = fn (string $channel) => trim("{$body}\n\n{$link($channel)}\n\n{$fullCredit}".($photoCredit ? "\nPhoto: {$photoCredit}" : '')."\n\n{$tags}");
         $captions = [
             'x' => XText::compose($body, $link('x'), "{$credit}\n{$tags}"),
             'instagram' => $long('instagram'),

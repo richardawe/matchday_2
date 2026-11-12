@@ -312,12 +312,12 @@ elif [[ "$mode" == configure-challenge ]]; then
     printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php artisan migrate --force --no-ansi && php scripts/set-env.php && php artisan config:cache --no-ansi && php artisan griot:challenge --no-ansi"
 elif [[ "$mode" == slideshow-check ]]; then
     # Colour slideshows: migrations, the switch, the music file and whether this ffmpeg can make them.
-    ssh "${ssh_options[@]}" "$target" "cd $root && php artisan migrate:status --no-ansi | grep -i slideshows; grep -E '^SLIDESHOW_' .env; php artisan slideshow:render --check --no-ansi; php artisan schedule:list --no-ansi | grep -i slideshow || true"
+    ssh "${ssh_options[@]}" "$target" "cd $root && php artisan migrate:status --no-ansi | grep -i slideshows; grep -E '^SLIDESHOW_' .env; php artisan slideshow:music --no-ansi; php artisan slideshow:render --check --no-ansi; php artisan schedule:list --no-ansi | grep -i slideshow || true"
 elif [[ "$mode" == configure-slideshows ]]; then
     # SLIDESHOW_ENABLED via the home_v2 on/off input (the workflow is at GitHub's 25-input limit).
     # Turning it on migrates, checks ffmpeg and the music, and looks up the week's slide photos once.
     case "${INPUT_HOME_V2:-}" in
-        on) json='{"SLIDESHOW_ENABLED":"true"}'; after=' && php artisan slideshow:render --check --no-ansi; php artisan slideshow:photos --no-ansi' ;;
+        on) json='{"SLIDESHOW_ENABLED":"true"}'; after=' && php artisan slideshow:music --no-ansi; php artisan slideshow:render --check --no-ansi; php artisan slideshow:photos --no-ansi' ;;
         off) json='{"SLIDESHOW_ENABLED":"false"}'; after='' ;;
         *) echo "home_v2 (the on/off switch) must be on or off."; exit 1 ;;
     esac

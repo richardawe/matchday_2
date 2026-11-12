@@ -188,6 +188,7 @@ class SocialQueue
                     'landing_url' => $landing,
                     'landing_urls' => collect(\App\Support\SocialLink::CHANNELS)->mapWithKeys(fn ($c) => [$c => \App\Support\SocialLink::to($landing, $c, 'slideshow', "{$show->type}-{$show->id}")])->all(),
                     'music_credit' => \App\Services\Slideshow\Slideshows::musicCredit($show->music),
+                    'music_credit_full' => \App\Services\Slideshow\Slideshows::musicCredit($show->music, full: true),
                     'music' => $show->music,
                     'photo_credit' => data_get($show->photo, 'credit'),
                     'photo' => $show->photo ? collect($show->photo)->only(['title', 'source_url', 'licence', 'licence_url', 'artist', 'credit'])->all() : null,

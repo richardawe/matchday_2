@@ -26,7 +26,7 @@ class SlideshowPageController extends Controller
 
         return view('slideshows.show', [
             'show' => $slideshow, 'match' => $match, 'cta' => $cta, 'more' => $more,
-            'musicCredit' => Slideshows::musicCredit($slideshow->music),
+            'musicCredit' => Slideshows::musicCredit($slideshow->music, full: true),
         ])->with('content', [
             'title' => "{$subject}: {$slideshow->label()} | Matchday Africa",
             'description' => $description,

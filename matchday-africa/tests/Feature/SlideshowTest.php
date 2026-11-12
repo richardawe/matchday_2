@@ -262,9 +262,9 @@ class SlideshowTest extends TestCase
         $this->assertSame('-19.52', $made['loudness']['input_i']);
         $this->assertCount(2, $this->ffmpegCalls);
         [$measure, $render] = array_map(fn ($a) => implode(' ', $a), $this->ffmpegCalls);
-        $this->assertStringContainsString('loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json', $measure);
+        $this->assertStringContainsString('loudnorm=I=-14:TP=-2:LRA=11:print_format=json', $measure);
         $this->assertStringContainsString("volume='if(lt(t,0.3),t/0.3,if(gt(t,14.9),max(0,(16.4-t)/1.5),1))':eval=frame", $measure);
-        $this->assertStringContainsString('loudnorm=I=-14:TP=-1.5:LRA=11:measured_I=-19.52:measured_TP=-3.10:measured_LRA=5.40:measured_thresh=-29.80:offset=0.12:linear=true', $render);
+        $this->assertStringContainsString('loudnorm=I=-14:TP=-2:LRA=11:measured_I=-19.52:measured_TP=-3.10:measured_LRA=5.40:measured_thresh=-29.80:offset=0.12:linear=true', $render);
         $this->assertStringContainsString('xfade=transition=fade:duration=0.4:offset=3.2', $render);
         $this->assertStringContainsString('offset=12.8', $render);
         $this->assertStringContainsString('zoompan=', $render);
@@ -357,6 +357,11 @@ class SlideshowTest extends TestCase
         $this->assertSame(13.2, $item['reel_duration_seconds']); // No form or table in the data: that slide is dropped.
         $this->assertSame('Music: "Hot Amapiano Beats" by Alex Morgan (CC BY 4.0)', $item['music_credit']);
         $this->assertSame("https://matchday.africa/matches/{$this->epl->id}?utm_source=tiktok&utm_medium=social&utm_campaign=slideshow&utm_content=preview-{$show->id}", $item['landing_urls']['tiktok']);
+        $this->assertStringContainsString('Source: https://freemusicarchive.org/music/alex-morgan/pop-afro-party-instrumentals/hot-amapiano-beats/', $item['music_credit_full']);
+        foreach (['instagram', 'tiktok', 'youtube'] as $channel) {
+            $this->assertStringContainsString($item['music_credit_full'], $item['captions'][$channel]);
+        }
+        $this->assertStringContainsString($item['music_credit'], $item['captions']['x']);
         foreach (['x', 'instagram', 'tiktok', 'youtube'] as $channel) {
             $this->assertStringContainsString("utm_source={$channel}&utm_medium=social&utm_campaign=slideshow&utm_content=preview-{$show->id}", $item['captions'][$channel]);
             $this->assertStringContainsString('Hot Amapiano Beats', $item['captions'][$channel]);
@@ -439,7 +444,7 @@ class SlideshowTest extends TestCase
         $this->assertSame('REELshort01', $this->epl->fresh()->youtube_video_id);
         $description = $sent[0]['snippet']['description'];
         $this->assertStringContainsString("https://matchday.africa/matches/{$this->epl->id}?utm_source=youtube&utm_medium=social&utm_campaign=slideshow&utm_content=preview-{$show->id}", $description);
-        $this->assertStringContainsString('Music: "Hot Amapiano Beats" by Alex Morgan (CC BY 4.0)', $description);
+        $this->assertStringContainsString('Music: "Hot Amapiano Beats" by Alex Morgan. Licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source: https://freemusicarchive.org/music/alex-morgan/pop-afro-party-instrumentals/hot-amapiano-beats/. Trimmed, faded and loudness-normalised for this video.', $description);
         $this->assertStringEndsWith('#Shorts', $sent[0]['snippet']['title']);
         $this->assertLessThanOrEqual(100, mb_strlen($sent[0]['snippet']['title']));
         $this->assertSame('https://www.youtube.com/shorts/SLIDEshort1', app(SocialQueue::class)->find("slideshow:{$show->id}")['youtube_url']);
@@ -590,5 +595,27 @@ class SlideshowTest extends TestCase
         $this->assertSame('File:Kudus.jpg', data_get($this->kudus->fresh()->metadata, 'commons_photo.pinned'));
         Http::assertSent(fn (Request $r) => str_contains($r->url(), 'titles=File%3AKudus.jpg'));
         File::delete([storage_path('app/music/test-track.mp3'), storage_path('app/music/test-track.json')]);
+    }
+
+    public function test_the_music_is_fetched_from_the_free_music_archive_and_checked(): void
+    {
+        config(['slideshow.music.track' => 'test-track', 'slideshow.music.tracks.test-track' => [
+            'title' => 'Hot Amapiano Beats', 'artist' => 'Alex Morgan', 'licence' => 'CC BY 4.0', 'path' => 'music/test-track.mp3',
+            'download_url' => 'https://files.freemusicarchive.org/storage-freemusicarchive-org/tracks/test.mp3', 'sha256' => hash('sha256', 'the real track'),
+        ]]);
+        File::delete([storage_path('app/music/test-track.mp3'), storage_path('app/music/test-track.json')]);
+        Http::fake(['files.freemusicarchive.org/*' => Http::sequence()->push('tampered bytes')->push('the real track')]);
+
+        [$ok, $message] = Slideshows::fetchMusic();
+        $this->assertFalse($ok);
+        $this->assertStringContainsString('does not match', $message);
+        $this->assertFileDoesNotExist(storage_path('app/music/test-track.mp3'));
+
+        $this->artisan('slideshow:music')->assertSuccessful();
+        $this->assertSame('the real track', file_get_contents(storage_path('app/music/test-track.mp3')));
+        // Already there and right: no second download.
+        $this->artisan('slideshow:music')->expectsOutputToContain('Music in place')->assertSuccessful();
+        Http::assertSentCount(2);
+        File::delete(storage_path('app/music/test-track.mp3'));
     }
 }

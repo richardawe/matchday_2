@@ -219,9 +219,12 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 ### Colour slideshows (12 Nov 2026)
 - Built from the owner's prompt pack (prompt 1 of 4: slideshows; then player pages, UTM/CTAs, admin review queue). Off until
   `SLIDESHOW_ENABLED=true`, the migration, and the licensed track at `storage/app/music/hot-amapiano-beats.mp3`
-  ("Hot Amapiano Beats" by Alex Morgan, CC BY 4.0; credit in every caption and YouTube description). The file was not in the
-  repo and no public copy could be found online: an admin uploads it (with its source link) at `/admin/slideshows`, which stores
-  it in `storage/app/music/` with a `.json` note; the source URL is never guessed. The hand pipeline (`build_slideshows.py`) was not
+  ("Hot Amapiano Beats" by Alex Morgan, album Pop, Afro & Party Instrumentals, CC BY 4.0, from the Free Music Archive; owner's
+  `music/LICENCES.md`, 12 Nov). The audio is never in the repository: every deploy runs `slideshow:music`, which downloads it from
+  the FMA storage link in `config/slideshow.php` into `storage/app/music/` and checks its sha256; an admin can also upload a file at
+  `/admin/slideshows`. Instagram, TikTok, YouTube and the slideshow page carry the full required credit line (licence and source
+  links, "Trimmed, faded and loudness-normalised"); X carries the short credit to stay under 280. True peak is capped at −2 dBTP
+  (the master peaks at −0.1 and AAC overshoots); measured −14.1 LUFS, −1.4 dBFS peak on a real render. The hand pipeline (`build_slideshows.py`) was not
   available either; the layout follows the written spec (800 px safe column, y 150–1540, 3.6 s slides, 0.4 s fades, zoom ≤ 1.04
   clamped to text).
 - Every slideshow needs an editor's approval (`/admin/slideshows`) before public pages, `/api/social-queue` or YouTube see it;

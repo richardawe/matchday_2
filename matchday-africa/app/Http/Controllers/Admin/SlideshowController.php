@@ -33,7 +33,8 @@ class SlideshowController extends Controller
                 ->orderByRaw("case when status = 'ready' and approved = 0 then 0 when status in ('pending', 'rendering') then 1 else 2 end")
                 ->orderByDesc('priority')->orderByDesc('id')->limit(120)->get() : collect(),
             'music' => $music,
-            'musicCredit' => Slideshows::musicCredit(Slideshows::music()),
+            'musicCredit' => Slideshows::musicCredit(Slideshows::music(), full: true),
+            'musicChecked' => is_file($music) && ($sha = (string) config('slideshow.music.tracks.'.config('slideshow.music.track').'.sha256')) !== '' && hash_file('sha256', $music) === $sha,
             'musicInfo' => Slideshows::music() + Slideshows::uploaded(),
             'ffmpeg' => $video->ffmpeg(),
             'ffmpegMissing' => $video->missing($music),

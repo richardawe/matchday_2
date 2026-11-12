@@ -31,8 +31,9 @@ class Slideshows
         $track = (array) config("slideshow.music.tracks.{$key}");
 
         return array_filter(['key' => $key, 'title' => $track['title'] ?? null, 'artist' => $track['artist'] ?? null,
+            'album' => $track['album'] ?? null, 'credit' => $track['credit'] ?? null,
             'licence' => $track['licence'] ?? null, 'licence_url' => $track['licence_url'] ?? null,
-            'source_url' => ($track['source_url'] ?? '') ?: (self::uploaded()['source_url'] ?? null)], fn ($v) => $v !== null);
+            'source_url' => (self::uploaded()['source_url'] ?? null) ?: (($track['source_url'] ?? '') ?: null)], fn ($v) => $v !== null);
     }
 
     /** What an admin uploaded at /admin/slideshows: ['file' => relative to storage/app, 'source_url', 'uploaded_at', 'by'], or []. */
@@ -67,15 +68,56 @@ class Slideshows
         return "{$dir}/{$key}.{$ext}";
     }
 
-    /** 'Music: "Hot Amapiano Beats" by Alex Morgan (CC BY 4.0)' */
-    public static function musicCredit(?array $music): string
+    /**
+     * The short credit, 'Music: "Hot Amapiano Beats" by Alex Morgan (CC BY 4.0)', for X; with $full, the
+     * credit line the licence notes require (licence and source links, what was changed).
+     */
+    public static function musicCredit(?array $music, bool $full = false): string
     {
         if (!$music || empty($music['title'])) {
             return '';
         }
+        if ($full && !empty($music['credit'])) {
+            return (string) $music['credit'];
+        }
 
         return 'Music: "'.$music['title'].'"'.(!empty($music['artist']) ? ' by '.$music['artist'] : '')
             .(!empty($music['licence']) ? ' ('.$music['licence'].')' : '');
+    }
+
+    /**
+     * Makes sure the track is on disk: downloads it from the credit record's download_url when it is
+     * missing (or not the expected file) and checks it against sha256. Returns [ok, message].
+     */
+    public static function fetchMusic(): array
+    {
+        $key = (string) config('slideshow.music.track');
+        $track = (array) config("slideshow.music.tracks.{$key}");
+        $file = self::musicFile();
+        $want = strtolower((string) ($track['sha256'] ?? ''));
+        if (is_file($file) && ($want === '' || hash_file('sha256', $file) === $want)) {
+            return [true, "Music in place: {$file}"];
+        }
+        if (empty($track['download_url'])) {
+            return [false, is_file($file) ? "{$file} is not the expected file and there is no download link." : 'No music file and no download link: upload it at /admin/slideshows.'];
+        }
+        $target = storage_path('app/'.ltrim((string) $track['path'], '/'));
+        File::ensureDirectoryExists(dirname($target));
+        $part = "{$target}.part";
+        try {
+            \Illuminate\Support\Facades\Http::timeout(120)->sink($part)->get($track['download_url'])->throw();
+            if ($want !== '' && hash_file('sha256', $part) !== $want) {
+                throw new \RuntimeException('the download does not match the expected file (sha256)');
+            }
+            rename($part, $target);
+        } catch (Throwable $e) {
+            File::delete($part);
+
+            return [false, 'Could not fetch the music: '.$e->getMessage()];
+        }
+        Log::info('Slideshow music downloaded', ['track' => $key]);
+
+        return [true, "Music downloaded and checked: {$target}"];
     }
 
     /** The track's file: SLIDESHOW_MUSIC_PATH / the config path, else what was uploaded at /admin/slideshows. */

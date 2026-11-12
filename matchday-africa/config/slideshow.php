@@ -61,13 +61,21 @@ return [
                 'artist' => 'Alex Morgan',
                 'licence' => 'CC BY 4.0',
                 'licence_url' => 'https://creativecommons.org/licenses/by/4.0/',
-                // Where the track was obtained (fill in from music/LICENCES.md; left empty rather than guessed).
-                'source_url' => env('SLIDESHOW_MUSIC_SOURCE_URL', ''),
+                'album' => 'Pop, Afro & Party Instrumentals',
+                'source_url' => env('SLIDESHOW_MUSIC_SOURCE_URL') ?: 'https://freemusicarchive.org/music/alex-morgan/pop-afro-party-instrumentals/hot-amapiano-beats/',
+                // slideshow:music fetches the file from here (Free Music Archive storage) and checks it against the hash,
+                // so the audio never sits in the repository. 320 kbps, 48 kHz stereo, 3:58.
+                'download_url' => 'https://files.freemusicarchive.org/storage-freemusicarchive-org/tracks/cUcs6uMOXcjxxrLW0btTwHzwF1kK9Ga4LxlZzfAd.mp3',
+                'sha256' => 'e4b9a4b972f48a1060624bee6bf7e63e09fb718c7dcc76001b81dd28e3a4eff4',
                 'path' => env('SLIDESHOW_MUSIC_PATH') ?: 'music/hot-amapiano-beats.mp3', // relative to storage/app
                 'start_seconds' => (float) env('SLIDESHOW_MUSIC_START', 0),
+                // The credit the licence notes require (music/LICENCES.md), used wherever a caption has room.
+                'credit' => 'Music: "Hot Amapiano Beats" by Alex Morgan. Licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). '
+                    .'Source: https://freemusicarchive.org/music/alex-morgan/pop-afro-party-instrumentals/hot-amapiano-beats/. '
+                    .'Trimmed, faded and loudness-normalised for this video.',
             ],
         ],
-        'loudness' => ['i' => -14, 'tp' => -1.5, 'lra' => 11],
+        'loudness' => ['i' => -14, 'tp' => -2, 'lra' => 11], // -2 dBTP leaves room for AAC overshoot on this hot master
         'fade_in' => 0.3,
         'fade_out' => 1.5,
     ],
