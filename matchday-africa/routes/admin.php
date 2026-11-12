@@ -29,6 +29,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/youtube/test', [\App\Http\Controllers\Admin\YouTubeController::class, 'test'])->name('youtube.test');
     Route::get('/social-media', [\App\Http\Controllers\Admin\SocialMediaController::class, 'index'])->name('social-media.index');
     Route::post('/social-media', [\App\Http\Controllers\Admin\SocialMediaController::class, 'store'])->name('social-media.store');
+    Route::get('/slideshows', [\App\Http\Controllers\Admin\SlideshowController::class, 'index'])->name('slideshows.index');
+    Route::post('/slideshows/music', [\App\Http\Controllers\Admin\SlideshowController::class, 'music'])->name('slideshows.music');
+    Route::post('/slideshows/photo', [\App\Http\Controllers\Admin\SlideshowController::class, 'photo'])->name('slideshows.photo');
+    Route::post('/slideshows/{slideshow}/approve', [\App\Http\Controllers\Admin\SlideshowController::class, 'approve'])->name('slideshows.approve');
+    Route::post('/slideshows/{slideshow}/unapprove', [\App\Http\Controllers\Admin\SlideshowController::class, 'unapprove'])->name('slideshows.unapprove');
+    Route::post('/slideshows/{slideshow}/regenerate', [\App\Http\Controllers\Admin\SlideshowController::class, 'regenerate'])->name('slideshows.regenerate');
     Route::get('/social-queue', [\App\Http\Controllers\Admin\SocialQueueController::class, 'index'])->name('social-queue.index');
     Route::post('/social-queue/posted', [\App\Http\Controllers\Admin\SocialQueueController::class, 'posted'])->name('social-queue.posted');
     Route::post('/social-queue/undo', [\App\Http\Controllers\Admin\SocialQueueController::class, 'undo'])->name('social-queue.undo');

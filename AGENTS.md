@@ -79,6 +79,7 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Player photos (API-Football squads, one call per team, each squad refreshed weekly; also from match ratings after full time) | `App\Services\PlayerPhotos` (saves `public/generated/players/{id}.png`, adds players our squads lack), `App\Support\PlayerNames` ("M. Salah" = "Mohamed Salah"), `players:photos`, admin `/admin/player-photos` (`Admin\PlayerPhotoController`: photos per club, squad gallery, players with no photo or not matched to API-Football); `PlayerService` updates squads in place (no more delete-and-recreate, so photos and `/players/{id}` links survive); `ApiFootballEnrichmentService` spends two calls on ESPN-covered matches (line-ups, ratings + photos) | `players:photos` daily 04:45 | `API_FOOTBALL_KEY`, `API_FOOTBALL_PHOTO_LEAGUES` (default `PL:39`) |
 | Matchday Live stream screen (`/stream`, 1080×1920 for YouTube LIVE; one live match: that match with army art and the Griot; two or more: the multi-match board, every score with scorers and red cards plus "As it happens", the newest moments across all matches from `StreamFeed::events()`; goals and red cards take the screen with drum calls; countdown between matches; `?test=1` fake match day with three live matches) | `StreamController`, `App\Services\Stream\StreamFeed` (`/stream/feed` snapshot, stable goal ids per side), `resources/views/stream.blade.php`, `resources/js/stream.js` + `resources/js/stream/*`, `resources/css/stream.css`, `config/stream.php`; plan and next phases in `docs/LIVE_STREAM_PLAN.md` | n/a | `STREAM_PAGE`, `STREAM_COMPETITIONS` |
 | YouTube LIVE (connect the channel once; automatic broadcasts only while `YOUTUBE_MIN_MATCHES` (3) streamed matches are on at once, from 15 min before until the last of them ends; admin can still schedule any matchday; reusable stream key, auto-start when the picture arrives, ended after the last match; private 30-min test broadcasts) | `Admin\YouTubeController` (`/admin/youtube`, OAuth callback `/admin/youtube/callback`), `App\Services\YouTube\YouTubeClient` (OAuth, token refresh, liveStreams/liveBroadcasts), `YouTubeBroadcasts` (windows from `stream.competitions`, title/description), `youtube:broadcasts`, tables `youtube_accounts` (tokens and stream key encrypted with APP_KEY), `youtube_broadcasts`, `config/youtube.php` | `youtube:broadcasts` 10m | `YOUTUBE_CLIENT_ID/SECRET` (Server operations `configure-youtube`), `YOUTUBE_AUTO`, `YOUTUBE_PRIVACY` (+ migration) |
+| Colour slideshows (1080×1920, five slides, ~16 s, music at −14 LUFS; previews, post-match, Team of the Week on Mondays, milestones, national teams) for African players and players of **confirmed** African descent, any league, Premier League first | `app/Services/Slideshow/*` (`SlideshowPicker` priority bands, `SlideshowFacts` DB-only facts, `SlideshowDeck` slides + captions, `SlideshowRenderer` GD with the safe-zone check, `SlideshowVideo` ffmpeg two-pass loudnorm, `CommonsPhotos` Wikidata→Commons licence-checked photos, `Slideshows` render/publish/approve), `App\Support\AfricanScope` (nationality or confirmed `player_heritages` row; "of X descent" only when confirmed), `App\Support\SocialLink` (UTM links), flags `resources/flags/*.png` (MIT flag-icons), `config/slideshow.php` (music credit record, club and nation colours), tables `slideshows`, `player_heritages`; pages `/slideshows/{id}`, strips on `/reels`, match and player pages (approved only); admin `/admin/slideshows` (approve, take off, regenerate); queue items `slideshow:<id>`; Shorts via `SlideshowUploads` (own columns, never `matches.youtube_*`) | `slideshow:generate daily` 05:40 London, `slideshow:generate post_match` 10m, `slideshow:render` 1m; uploads ride `youtube:uploads` after reels | `SLIDESHOW_ENABLED` (+ migration, music file); Shorts `YOUTUBE_UPLOADS`, `SLIDESHOW_YOUTUBE_DAILY` |
 | Social media uploads (creatives for the social accounts) | `Admin\SocialMediaController`, `/admin/social-media` (MP4, MOV, JPG, PNG up to 200 MB on the public disk at `social/<yyyy-mm>/`, public URL + copy button, shows PHP upload limits); the Call out the Griot video is a static file at `public/social/griot/call_out_the_griot.mp4` | n/a | always on (admin only) |
 | YouTube Shorts (every new reel uploaded as a public Short; title "Home h-a Away \| hook #Shorts", factual one-line summary, match link with UTM; at most `YOUTUBE_DAILY_UPLOADS` a quota day, the rest wait; resumable, 3 retries) | `App\Services\YouTube\ReelUploads` (queued from `ReelService::mark` when a reel becomes ready), job `UploadReelToYouTube`, `youtube:uploads`, `youtube:backfill {--days=7}`, admin `/admin/youtube/uploads` (status, Retry upload); columns `matches.youtube_*`; uses the channel connected at `/admin/youtube` (refresh token encrypted in `youtube_accounts`), refuses any channel but `YOUTUBE_CHANNEL_ID` | `youtube:uploads` 5m | `YOUTUBE_UPLOADS` (the deploy writes it from the GitHub variable, default true) + migration |
 | Home arena | `resources/views/partials/home-arena.blade.php`, `resources/js/arena.js` (GSAP), `arena3d.js` (three.js, desktop only) | rides the home pulse refresh | always on when a Premier League match qualifies |
@@ -180,6 +181,7 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `BANTER_CARDS` | false | Full-time banter cards on match pages |
 | `STREAM_PAGE` / `STREAM_COMPETITIONS` | false / PL,eng.1 | The `/stream` screen for live streams; competitions by league short code or ESPN slug |
 | `YOUTUBE_CLIENT_ID` / `_SECRET` / `YOUTUBE_AUTO` / `YOUTUBE_PRIVACY` / `YOUTUBE_MIN_MATCHES` | empty / empty / false / unlisted / 3 | YouTube LIVE: OAuth client, automatic broadcasts, their privacy, how many matches at once open one |
+| `SLIDESHOW_ENABLED` / `SLIDESHOW_FFMPEG` / `SLIDESHOW_MUSIC_PATH` / `SLIDESHOW_MUSIC_SOURCE_URL` / `SLIDESHOW_COMMONS` / `SLIDESHOW_YOUTUBE_DAILY` | false / `RADIO_FFMPEG` / `music/hot-amapiano-beats.mp3` (under storage/app) / empty / true / 2 | Colour slideshows: generation switch, ffmpeg binary (needs libx264, aac, xfade, zoompan, loudnorm: `slideshow:render --check`), the private music file, where the track came from, Commons photo lookups, slideshow Shorts per quota day (shared with reels, which go first) |
 | `YOUTUBE_CHANNEL_ID` / `YOUTUBE_UPLOADS` / `YOUTUBE_DAILY_UPLOADS` | Matchday Africa channel / false / 6 | YouTube Shorts: the only channel allowed, automatic reel uploads, uploads per quota day (1,600 of 10,000 units each). **Every deploy writes** `YOUTUBE_CLIENT_ID`/`_SECRET` (secrets), `YOUTUBE_CHANNEL_ID` and `YOUTUBE_UPLOADS` (repository variables; the channel defaults to `UCJ9Asmir1hBOHHQs9qSCkHg` in `config/youtube.php`, uploads to `true`) into the server `.env` (`scripts/ci/deploy-ssh.sh`, via `set-env.php`; blank secrets leave the server value alone) |
 
 ## 7. Open items and known issues
@@ -213,6 +215,47 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   endpoint (`/matches/{id}/chronicle`) is JSON, not a page.
 - Local review tooling used on 3 Nov: a demo SQLite database plus Playwright scripts that screenshot every page at
   phone width and flag elements still in the classic serif/beige/Tailwind colours. Re-create them if needed; they are not in the repo.
+
+### Colour slideshows (12 Nov 2026)
+- Built from the owner's prompt pack (prompt 1 of 4: slideshows; then player pages, UTM/CTAs, admin review queue). Off until
+  `SLIDESHOW_ENABLED=true`, the migration, and the licensed track at `storage/app/music/hot-amapiano-beats.mp3`
+  ("Hot Amapiano Beats" by Alex Morgan, album Pop, Afro & Party Instrumentals, CC BY 4.0, from the Free Music Archive; owner's
+  `music/LICENCES.md`, 12 Nov). The audio is never in the repository: every deploy runs `slideshow:music`, which downloads it from
+  the FMA storage link in `config/slideshow.php` into `storage/app/music/` and checks its sha256; an admin can also upload a file at
+  `/admin/slideshows`. Instagram, TikTok, YouTube and the slideshow page carry the full required credit line (licence and source
+  links, "Trimmed, faded and loudness-normalised"); X carries the short credit to stay under 280. True peak is capped at −2 dBTP
+  (the master peaks at −0.1 and AAC overshoots); measured −14.1 LUFS, −1.4 dBFS peak on a real render. The look is ported from the owner's hand
+  pipeline (`matchday/slideshows/build_slideshows.py`, `make_video.sh`, supplied 12 Nov): steep diagonal split (home top left,
+  away bottom right) with a white seam, secondary pinstripes and faint rays; a centred stack of a date pill with flags (kit
+  swatches for clubs), big flags or club colour tiles with name tags, a round portrait in the side's colours, cream panels with
+  team-coloured borders and table highlights, the site's crest-free match card on the last slide, the matchday.africa pill;
+  Anton + Asap Condensed (OFL, `resources/fonts/`). Running order: 01 date/sides/player/kick-off (or scorers), players, table,
+  form, question + card; slides without data are dropped. The render fails unless the whole content box is inside y 150–1540 and
+  the 800 px column, side margins within 20 px and the centre within 25 px of y 845 (as the hand script checks). Ken Burns on every
+  slide from 1.0, capped by the content height (≤ 1.04) and anchored on the column's right edge (x 940) so it grows left; the hand
+  script anchors x 140, which pushes content into the right-hand 140 px, so that part was deliberately not copied. Photo crops are
+  head-and-shoulders squares (`CommonsPhotos::crop`). Nation colours follow the hand `teams.json`.
+- Every slideshow needs an editor's approval (`/admin/slideshows`) before public pages, `/api/social-queue` or YouTube see it;
+  a re-render needs approving again. The full review queue (caption edits, reject reasons, heritage confirmation UI) is prompt 4.
+- `player_heritages` exists now (pending/confirmed/rejected + source URL); only confirmed rows with a source count. Seeding from
+  the roster and the admin UI are prompts 2 and 4. Player pages still 404 for descent-only players until prompt 2, so their
+  milestone decks link to the match page.
+- Season goal totals come from match events and are only shown for the Premier League (every match synced); other leagues show
+  match-level facts only.
+- Slide 01 photos: Wikidata image of the one footballer with that name (and our date of birth when known) → Commons licence
+  check (CC0, PD, CC BY, CC BY-SA). Pin a file by hand with `php artisan slideshow:photo {player} "File:Name.jpg"`.
+- ffmpeg: the server's ffmpeg may be the reel renderer's small Remotion build (no xfade, zoompan or afade). `SlideshowVideo`
+  falls back to that binary when `SLIDESHOW_FFMPEG`/`RADIO_FFMPEG` doesn't run, and in `auto` mode draws every frame itself (zoom and
+  crossfades, GD bilinear, JPEG frames streamed into ffmpeg's image2pipe, nothing on disk; ~31 s a deck on 4 cores, against ~17 s
+  with the filters) when xfade/zoompan are missing. Audio fades are `volume` expressions in both modes. Checks: `/admin/slideshows`, `php artisan slideshow:render --check`,
+  every deploy log, Server operations `slideshow-check`; switch with `configure-slideshows` (home_v2 on/off; migrates, checks,
+  looks up the week's photos).
+- `slideshow:photos` (05:10 London) looks up slide photos for in-scope players at clubs playing in the next week; editors pin a
+  Commons file or link per featured player on `/admin/slideshows` (licence still checked).
+- Nationality codes: the player sync wrote TAN, GAM and three-letter fallbacks (LIB, SUD, MAL …) the African list never matched.
+  `PlayerService::AFRICAN_NAMES` maps them, `DiscoveryController::AFRICA` also lists TAN, GAM, NIG and STP, and a migration
+  re-codes stored rows by nationality name (Malta's MAL is left alone).
+- `ReelUploads` now delegates the resumable upload and quota to `App\Services\YouTube\ShortsUpload` (same cache keys).
 
 ### Social posting moved to a bot (8 Nov 2026)
 - Owner's decision: the site no longer posts to social media by itself. Reels are still rendered, served from

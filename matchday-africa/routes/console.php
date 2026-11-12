@@ -47,6 +47,12 @@ Schedule::command('radio:work')->everyMinute()->withoutOverlapping(30)->runInBac
 Schedule::command('youtube:broadcasts')->everyTenMinutes()->withoutOverlapping(10)->name('youtube-broadcasts');
 // YouTube Shorts: every new reel uploaded to the channel, at most YOUTUBE_DAILY_UPLOADS a quota day (YOUTUBE_UPLOADS).
 Schedule::command('youtube:uploads')->everyFiveMinutes()->withoutOverlapping(30)->runInBackground()->name('youtube-shorts');
+// Colour slideshows (SLIDESHOW_ENABLED): previews each morning (Team of the Week on Mondays), post-match decks after
+// full time, rendered one a minute (highest priority first); editors approve them before the social queue and YouTube see them.
+Schedule::command('slideshow:photos')->dailyAt('05:10')->timezone('Europe/London')->withoutOverlapping(30)->runInBackground()->name('slideshow-photos');
+Schedule::command('slideshow:generate daily')->dailyAt('05:40')->timezone('Europe/London')->withoutOverlapping(30)->name('slideshow-daily');
+Schedule::command('slideshow:generate post_match')->everyTenMinutes()->withoutOverlapping(10)->name('slideshow-post-match');
+Schedule::command('slideshow:render')->everyMinute()->withoutOverlapping(15)->runInBackground()->name('slideshow-render');
 Schedule::command('griot:challenge')->everyTenMinutes()->withoutOverlapping(10)->name('griot-challenge');
 Schedule::command('twitter:engage')->everyTenMinutes()->withoutOverlapping(10)->name('x-timeline-planner');
 Schedule::command('matches:enrich-events')->everyThirtyMinutes()->withoutOverlapping(20)->name('match-event-enrichment');

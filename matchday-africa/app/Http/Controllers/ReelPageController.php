@@ -14,7 +14,9 @@ class ReelPageController extends Controller
         $reels = $showcase->reels(60, 45);
         $all = collect([$reels['featured']])->filter()->concat($reels['rail'])->sortByDesc('played')->values();
 
-        return view('reels.index', ['reels' => $all]);
+        $slideshows = \App\Models\Slideshow::ready() ? \App\Models\Slideshow::published()->latest('approved_at')->limit(24)->get() : collect();
+
+        return view('reels.index', ['reels' => $all, 'slideshows' => $slideshows]);
     }
 
     public function show(FootballMatch $match, ReelService $reels, HomeShowcase $showcase)

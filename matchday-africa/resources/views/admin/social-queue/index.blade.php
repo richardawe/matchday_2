@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 @section('title','Social queue')
 @section('header')
-<div class="md-admin-heading"><div><p class="md-eyebrow">SOCIAL QUEUE</p><h1>Ready to post.</h1><p>Premier League reels and the generator's cards from the last {{ (int) config('social.queue_days', 14) }} days, newest first. The posting bot reads the same list from <code>/api/social-queue</code> and marks what it posts; you can mark posts by hand here. <a href="{{ route('admin.social-media.index') }}">Social media</a></p></div></div>
+<div class="md-admin-heading"><div><p class="md-eyebrow">SOCIAL QUEUE</p><h1>Ready to post.</h1><p>Premier League reels and the generator's cards from the last {{ (int) config('social.queue_days', 14) }} days, newest first. The posting bot reads the same list from <code>/api/social-queue</code> and marks what it posts; you can mark posts by hand here. <a href="{{ route('admin.social-media.index') }}">Social media</a> · <a href="{{ route('admin.slideshows.index') }}">Slideshows to review</a></p></div></div>
 @endsection
 @section('content')
 <div class="md-xdesk md-signups">

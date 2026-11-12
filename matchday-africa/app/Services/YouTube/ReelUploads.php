@@ -10,12 +10,9 @@ use App\Models\YoutubeAccount;
 use App\Services\ReelService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
-use RuntimeException;
 use Throwable;
 
 /**
@@ -29,12 +26,10 @@ use Throwable;
  */
 class ReelUploads
 {
-    private const UPLOAD = 'https://www.googleapis.com/upload/youtube/v3/videos';
-
     /** Minutes after which an upload still marked "uploading" is taken to have died. */
     private const STALE_MINUTES = 30;
 
-    public function __construct(private YouTubeClient $client, private ReelService $reels) {}
+    public function __construct(private YouTubeClient $client, private ReelService $reels, private ShortsUpload $shorts) {}
 
     /** The columns exist (migration run). */
     public static function ready(): bool
@@ -52,12 +47,7 @@ class ReelUploads
 
     public function account(): ?YoutubeAccount
     {
-        if (!YouTubeClient::configured() || !($account = YouTubeClient::account()) || !YouTubeClient::canUpload($account)) {
-            return null;
-        }
-        $wanted = (string) config('youtube.channel_id');
-
-        return $wanted === '' || $account->channel_id === $wanted ? $account : null;
+        return $this->shorts->account();
     }
 
     /** Called when a reel becomes ready: queue it unless it is already on YouTube. */
@@ -147,10 +137,11 @@ class ReelUploads
         }
 
         try {
-            $video = $this->send($account, $match, $file, $resuming ? $session['url'] : null);
+            $video = $this->shorts->send($account, $this->metadata($match), $file, $resuming ? $session['url'] : null,
+                fn (array $started) => $match->forceFill(['youtube_upload_session' => $started])->save());
         } catch (QuotaExhausted $e) {
             // Not the reel's fault: wait for the new quota day, without using up an attempt.
-            Cache::put($this->exhaustedKey(), true, $this->quotaReset());
+            $this->shorts->exhausted();
             $match->forceFill(['youtube_status' => 'pending', 'youtube_next_at' => $this->quotaReset(), 'youtube_error' => $e->getMessage()])->save();
             Log::warning('YouTube upload quota used up; reels wait for the next quota day', ['match_id' => $match->id]);
 
@@ -161,31 +152,27 @@ class ReelUploads
 
         $match->forceFill([
             'youtube_video_id' => $video['id'], 'youtube_uploaded_at' => $this->clock(), 'youtube_status' => 'uploaded',
-            'youtube_error' => $this->restriction($video), 'youtube_next_at' => null, 'youtube_upload_session' => null,
+            'youtube_error' => $this->shorts->restriction($video), 'youtube_next_at' => null, 'youtube_upload_session' => null,
         ])->save();
         Log::info('Reel uploaded to YouTube', ['match_id' => $match->id, 'video_id' => $video['id']]);
 
         return 'uploaded';
     }
 
-    /** Uploads left today (YouTube's quota day, Pacific time). */
+    /** Uploads left today (YouTube's quota day, Pacific time; shared with slideshow Shorts). */
     public function left(): int
     {
-        if (Cache::get($this->exhaustedKey())) {
-            return 0;
-        }
-
-        return max(0, (int) config('youtube.uploads.daily_uploads') - (int) Cache::get($this->countKey(), 0));
+        return $this->shorts->left();
     }
 
     public function usedToday(): int
     {
-        return (int) Cache::get($this->countKey(), 0);
+        return $this->shorts->usedToday();
     }
 
     public function quotaReset(): Carbon
     {
-        return now(config('youtube.uploads.quota_timezone'))->addDay()->startOfDay()->setTimezone(config('app.timezone'));
+        return $this->shorts->quotaReset();
     }
 
     /** "Arsenal 2-1 Chelsea | Saka opens the scoring, 12' #Shorts" (at most 100 characters). */
@@ -294,96 +281,6 @@ class ReelUploads
         return FootballMatch::whereKey($match->id)->where(fn ($q) => $q->whereNull('youtube_next_at')->orWhere('youtube_next_at', '<=', $this->clock()))->exists();
     }
 
-    /** Resumable upload: starts (or resumes) the session and sends the file in chunks. Returns the video resource. */
-    private function send(YoutubeAccount $account, FootballMatch $match, string $file, ?string $url): array
-    {
-        $size = filesize($file);
-        $offset = 0;
-        if ($url) {
-            [$offset, $video] = $this->progress($account, $url, $size);
-            if ($video) {
-                return $video;
-            }
-            if ($offset === null) {
-                $url = null; // The session has expired: start again.
-                $offset = 0;
-            }
-        }
-        if (!$url) {
-            $response = Http::withToken($this->client->accessToken($account))->timeout(30)->acceptJson()
-                ->withHeaders(['X-Upload-Content-Type' => 'video/mp4', 'X-Upload-Content-Length' => (string) $size])
-                ->post(self::UPLOAD.'?'.http_build_query(['uploadType' => 'resumable', 'part' => 'snippet,status']), $this->metadata($match));
-            $this->guard($response);
-            $url = (string) $response->header('Location');
-            if ($url === '') {
-                throw new RuntimeException('YouTube did not return an upload session.');
-            }
-            Cache::put($this->countKey(), $this->usedToday() + 1, now()->addDays(2));
-            $match->forceFill(['youtube_upload_session' => ['size' => $size, 'url' => $url]])->save();
-        }
-
-        $chunk = max(256 * 1024, (int) config('youtube.uploads.chunk_bytes'));
-        $handle = fopen($file, 'rb');
-        try {
-            while (true) {
-                fseek($handle, $offset);
-                $bytes = fread($handle, $chunk);
-                $end = $offset + strlen($bytes) - 1;
-                $response = Http::withToken($this->client->accessToken($account))->timeout(120)->withoutRedirecting()
-                    ->withHeaders(['Content-Range' => "bytes {$offset}-{$end}/{$size}"])
-                    ->withBody($bytes, 'video/mp4')->put($url);
-                if ($response->successful() && $response->json('id')) {
-                    return $response->json();
-                }
-                if ($response->status() !== 308) {
-                    $this->guard($response);
-                    throw new RuntimeException('YouTube upload stopped (HTTP '.$response->status().').');
-                }
-                $next = $this->rangeEnd($response->header('Range'));
-                if ($next <= $offset && $end >= $offset) {
-                    throw new RuntimeException('YouTube accepted none of the last chunk.');
-                }
-                $offset = $next;
-            }
-        } finally {
-            fclose($handle);
-        }
-    }
-
-    /** Where an earlier session got to: [bytes received, null], [null, video] when it finished, or [null, null] when it has gone. */
-    private function progress(YoutubeAccount $account, string $url, int $size): array
-    {
-        $response = Http::withToken($this->client->accessToken($account))->timeout(30)->withoutRedirecting()
-            ->withHeaders(['Content-Range' => "bytes */{$size}"])->withBody('', 'video/mp4')->put($url);
-        if ($response->successful() && $response->json('id')) {
-            return [null, $response->json()];
-        }
-        if ($response->status() === 308) {
-            return [$this->rangeEnd($response->header('Range')), null];
-        }
-
-        return [null, null];
-    }
-
-    /** "bytes=0-524287" → 524288 (the next byte to send); no header → 0. */
-    private function rangeEnd(string $range): int
-    {
-        return preg_match('/(\d+)-(\d+)/', $range, $m) ? (int) $m[2] + 1 : 0;
-    }
-
-    /** Throws QuotaExhausted for quota errors, else a RuntimeException with Google's reason. */
-    private function guard(\Illuminate\Http\Client\Response $response): void
-    {
-        if ($response->successful()) {
-            return;
-        }
-        $reason = (string) $response->json('error.errors.0.reason', '');
-        if (in_array($reason, ['quotaExceeded', 'uploadLimitExceeded', 'dailyLimitExceeded', 'rateLimitExceeded'], true)) {
-            throw new QuotaExhausted('YouTube quota: '.($response->json('error.message') ?: $reason));
-        }
-        $this->client->check($response, 'upload');
-    }
-
     private function failed(FootballMatch $match, Throwable $e): string
     {
         $attempts = (int) $match->youtube_attempts + 1;
@@ -402,19 +299,6 @@ class ReelUploads
         return $final ? 'failed' : 'retry';
     }
 
-    /**
-     * Videos uploaded through an API project that hasn't passed YouTube's audit are locked to
-     * private whatever was asked: noted on the admin page.
-     */
-    private function restriction(array $video): ?string
-    {
-        $privacy = data_get($video, 'status.privacyStatus');
-
-        return $privacy && $privacy !== config('youtube.uploads.privacy')
-            ? "Uploaded, but YouTube set it to {$privacy} (videos from an unaudited API project stay private until the project passes YouTube's audit)."
-            : null;
-    }
-
     private function name($team): string
     {
         return trim(preg_replace('/\s+(FC|AFC)$/i', '', (string) ($team?->name ?? '')));
@@ -427,20 +311,5 @@ class ReelUploads
     private function clock(): Carbon
     {
         return now(config('app.timezone'));
-    }
-
-    private function quotaDay(): string
-    {
-        return now(config('youtube.uploads.quota_timezone'))->toDateString();
-    }
-
-    private function countKey(): string
-    {
-        return 'youtube:uploads:'.$this->quotaDay();
-    }
-
-    private function exhaustedKey(): string
-    {
-        return 'youtube:quota-exhausted:'.$this->quotaDay();
     }
 }

@@ -297,9 +297,33 @@ class PlayerService
             "Madagascar" => "MAD",
             "Mauritius" => "MRI",
             "Comoros" => "COM",
-            "Seychelles" => "SEY"
+            "Seychelles" => "SEY",
+            // African nations that used to fall through to their first three letters (Niger → NIG is FIFA's
+            // code, but Libya → LIB, Sudan → SUD, Malawi → MAL … are not), and other spellings providers use.
+            ...self::AFRICAN_NAMES,
         ];
         
         return $nationalityCodes[$nationality] ?? strtoupper(substr($nationality, 0, 3));
+    }
+
+    /** FIFA codes for African nationalities the main map lacks, by the names providers write. */
+    public const AFRICAN_NAMES = [
+        'Niger' => 'NIG', 'Libya' => 'LBY', 'Sudan' => 'SDN', 'South Sudan' => 'SSD', 'Malawi' => 'MWI', 'Burundi' => 'BDI',
+        'Mauritania' => 'MTN', 'Eswatini' => 'SWZ', 'Swaziland' => 'SWZ', 'Rwanda' => 'RWA', 'Namibia' => 'NAM', 'Botswana' => 'BOT',
+        'Lesotho' => 'LES', 'Somalia' => 'SOM', 'Djibouti' => 'DJI', 'Eritrea' => 'ERI', 'Ivory Coast' => 'CIV', "Cote d'Ivoire" => 'CIV',
+        'DR Congo' => 'COD', 'Congo DR' => 'COD', 'Congo' => 'CGO', 'Cabo Verde' => 'CPV', 'The Gambia' => 'GAM', 'Tanzania' => 'TAN',
+        'Sao Tome and Principe' => 'STP',
+    ];
+
+    /** Corrects stored codes for players whose nationality is in AFRICAN_NAMES. Returns how many rows changed. */
+    public static function fixAfricanNationalityCodes(): int
+    {
+        $changed = 0;
+        foreach (self::AFRICAN_NAMES as $name => $code) {
+            $changed += \App\Models\Player::where('nationality', $name)->where(fn ($q) => $q->whereNull('nationality_code')->orWhere('nationality_code', '!=', $code))
+                ->update(['nationality_code' => $code]);
+        }
+
+        return $changed;
     }
 }
