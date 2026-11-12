@@ -209,7 +209,7 @@ class MatchController extends Controller
             $currentPrediction=auth()->check()?$predictions->firstWhere('user_id',auth()->id()):null;
             $guestPick=auth()->guest()?app(\App\Services\GuestPredictions::class)->current(request(),$match):null;
             $predictionOpen=$match->predictionsAreOpen();
-            $africanPlayers=Player::with('team')->active()->whereIn('team_id',[$match->home_team_id,$match->away_team_id])->whereIn('nationality_code',DiscoveryController::AFRICA)->get()->filter(fn($player)=>data_get($player->metadata,'api_football_lineup.match_id')===$match->id||data_get($player->metadata,'api_football_stats.match_id')===$match->id)->values();
+            $africanPlayers=\App\Support\AfricanScope::playersAt([$match->home_team_id,$match->away_team_id])->filter(fn($player)=>data_get($player->metadata,'api_football_lineup.match_id')===$match->id||data_get($player->metadata,'api_football_stats.match_id')===$match->id)->values();
 
             $voice = Griot::voiceFor(request());
             if (request()->has('voice')) {

@@ -49,6 +49,8 @@ Schedule::command('youtube:broadcasts')->everyTenMinutes()->withoutOverlapping(1
 Schedule::command('youtube:uploads')->everyFiveMinutes()->withoutOverlapping(30)->runInBackground()->name('youtube-shorts');
 // Colour slideshows (SLIDESHOW_ENABLED): previews each morning (Team of the Week on Mondays), post-match decks after
 // full time, rendered one a minute (highest priority first); editors approve them before the social queue and YouTube see them.
+// The weekly African players roster pages (cached; rebuilt every morning so the as-of date is never older than a day).
+Schedule::command('players:roster')->dailyAt('06:20')->timezone('Europe/London')->withoutOverlapping(30)->name('players-roster');
 Schedule::command('slideshow:photos')->dailyAt('05:10')->timezone('Europe/London')->withoutOverlapping(30)->runInBackground()->name('slideshow-photos');
 Schedule::command('slideshow:generate daily')->dailyAt('05:40')->timezone('Europe/London')->withoutOverlapping(30)->name('slideshow-daily');
 Schedule::command('slideshow:generate post_match')->everyTenMinutes()->withoutOverlapping(10)->name('slideshow-post-match');

@@ -128,7 +128,7 @@ class ApiFootballEnrichmentService
 
     private function africanPlayers(FootballMatch $match): Collection
     {
-        return Player::active()->whereIn('team_id',[$match->home_team_id,$match->away_team_id])->whereIn('nationality_code',DiscoveryController::AFRICA)->get();
+        return \App\Support\AfricanScope::playersAt([$match->home_team_id,$match->away_team_id]);
     }
     private function findPlayer(Collection $players,int $teamId,string $name): ?Player
     {

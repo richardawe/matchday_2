@@ -143,7 +143,10 @@ Route::get('/media/blog/{filename}', [\App\Http\Controllers\BlogController::clas
 Route::get('/blogs/{blog:slug}', [\App\Http\Controllers\BlogController::class, 'show'])->name('blogs.show');
 Route::get('/african-players', [DiscoveryController::class, 'index'])->name('discovery.index');
 Route::get('/african-players/history', [DiscoveryController::class, 'history'])->name('discovery.history');
-Route::get('/african-players/{player}', [DiscoveryController::class, 'show'])->name('discovery.show');
+Route::get('/african-players/premier-league', [DiscoveryController::class, 'roster'])->name('discovery.roster');
+Route::get('/african-players/league/{code}', [DiscoveryController::class, 'roster'])->where('code', '[A-Za-z0-9._-]+')->name('discovery.league');
+Route::get('/african-players/{player}/photo.jpg', [DiscoveryController::class, 'photoFile'])->whereNumber('player')->name('discovery.photo');
+Route::get('/african-players/{player}', [DiscoveryController::class, 'show'])->whereNumber('player')->name('discovery.show');
 Route::get('/supporters/{user}', [SupporterController::class, 'show'])->name('supporters.show');
 Route::get('/creators/{creator:slug}', [CreatorController::class, 'show'])->name('creators.show');
 Route::get('/shop', [CommerceController::class, 'shop'])->name('shop.index');

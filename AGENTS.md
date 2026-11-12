@@ -216,6 +216,22 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 - Local review tooling used on 3 Nov: a demo SQLite database plus Playwright scripts that screenshot every page at
   phone width and flag elements still in the classic serif/beige/Tailwind colours. Re-create them if needed; they are not in the repo.
 
+### African player pages and the weekly roster (12 Nov 2026, prompt 2 of 4)
+- In scope everywhere (index, player pages, roster, match pages, home focus, line-up enrichment, slideshows): an African
+  nationality or a **confirmed** `player_heritages` row with a source (`App\Support\AfricanScope`). `/african-players/{id}` 404s
+  for anyone else; "of {country} descent" only for confirmed rows; the source link shows to admins only.
+- `App\Services\PlayerPages`: page/landing URLs (`PlayerPages::url($player, 'tiktok')` adds social UTM), this season's league
+  numbers (goals/assists from events in the Premier League; starts and matchday squads from stored API-Football line-ups only
+  when every finished league match of the club has one; a missing number is left out, a real zero shown), club fixtures, the
+  next match to call. Pages: `/african-players/premier-league` and `/african-players/league/{code}` (roster grouped by club,
+  as-of date, cached 6 h, `players:roster` rebuilds it every morning at 06:20 London), `/african-players/{id}/photo.jpg` (the
+  credited Commons photo). Index/history/roster/player pages have their own titles (the old index set its title inside the
+  content section, so the home title showed).
+- Heritage seed: `php artisan players:heritage-import {file}` (default `database/seeders/data/african_heritage_epl.json`;
+  `AfricanHeritageSeeder` runs it). `to_verify` or source-less rows go in pending, the rest confirmed; editors' decisions are
+  never overwritten; unmatched names are reported. **The owner's `players_roster.md` has not been supplied yet**, so nothing is
+  seeded; convert it to that JSON (name, club, country, country_code, source_url, source_note, to_verify) and run the import.
+
 ### Colour slideshows (12 Nov 2026)
 - Built from the owner's prompt pack (prompt 1 of 4: slideshows; then player pages, UTM/CTAs, admin review queue). Off until
   `SLIDESHOW_ENABLED=true`, the migration, and the licensed track at `storage/app/music/hot-amapiano-beats.mp3`
