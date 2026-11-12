@@ -179,4 +179,57 @@ class PlayerPagesTest extends TestCase
         $this->assertSame("https://matchday.africa/african-players/{$this->partey->id}?utm_source=tiktok&utm_medium=social&utm_campaign=player&utm_content=player-{$this->partey->id}",
             PlayerPages::url($this->partey, 'tiktok'));
     }
+
+    public function test_a_sourced_international_stored_under_another_nationality_is_named_by_country_not_descent(): void
+    {
+        $wanBissaka = Player::create(['team_id' => $this->arsenal->id, 'name' => 'Aaron Wan-Bissaka', 'nationality' => 'England', 'nationality_code' => 'ENG', 'is_active' => true, 'shirt_number' => 29]);
+        PlayerHeritage::create(['player_id' => $wanBissaka->id, 'country' => 'DR Congo', 'country_code' => 'COD', 'kind' => 'international',
+            'source_url' => 'https://example.org/caps', 'status' => 'confirmed']);
+        $konsa = Player::create(['team_id' => $this->arsenal->id, 'name' => 'Ezri Konsa', 'nationality_code' => 'ENG', 'is_active' => true, 'shirt_number' => 4]);
+        foreach (['COD' => 'DR Congo', 'ANG' => 'Angola'] as $code => $country) {
+            PlayerHeritage::create(['player_id' => $konsa->id, 'country' => $country, 'country_code' => $code, 'source_url' => 'https://example.org/k', 'status' => 'confirmed']);
+        }
+
+        $this->assertSame('DR Congo', \App\Support\AfricanScope::label($wanBissaka));
+        $this->assertTrue(\App\Support\AfricanScope::isNational($wanBissaka));
+        $this->assertSame('of Congolese and Angolan descent', \App\Support\AfricanScope::label($konsa));
+        $this->get("/african-players/{$wanBissaka->id}")->assertOk()->assertSee('Aaron Wan-Bissaka: DR Congo, Arsenal', false)->assertDontSee('descent');
+    }
+
+    public function test_the_seed_roster_matches_the_owners_file(): void
+    {
+        $rows = collect(json_decode(file_get_contents(database_path('seeders/data/african_heritage_epl.json')), true));
+
+        $this->assertCount(36, $rows->where('kind', 'international')->unique('name'));
+        $this->assertCount(22, $rows->where('kind', 'descent')->unique('name'));
+        $this->assertSame(['Eberechi Eze', 'Thierno Barry', 'Ethan Ampadu', 'Jeremie Frimpong'], $rows->where('to_verify', true)->pluck('name')->values()->all());
+        foreach ($rows as $row) {
+            $this->assertNotNull(\App\Support\AfricanScope::nation($row['country_code']), $row['name']);
+            $this->assertMatchesRegularExpression('#^https://#', $row['source_url'], $row['name']);
+        }
+        $saka = $rows->firstWhere('name', 'Bukayo Saka');
+        $this->assertSame(['NGA', 'descent', false], [$saka['country_code'], $saka['kind'], $saka['to_verify']]);
+        $this->assertSame(['COD', 'ANG'], $rows->where('name', 'Ezri Konsa')->pluck('country_code')->values()->all());
+        $this->assertSame('international', $rows->firstWhere('name', 'Aaron Wan-Bissaka')['kind']);
+    }
+
+    public function test_the_import_matches_a_transferred_player_by_full_name_but_never_a_namesake(): void
+    {
+        $palace = Team::create(['name' => 'Crystal Palace FC']);
+        $guehi = Player::create(['team_id' => $palace->id, 'name' => 'Marc Guéhi', 'nationality_code' => 'ENG', 'is_active' => true, 'shirt_number' => 6]);
+        Player::create(['team_id' => Team::create(['name' => 'AC Pisa 1909'])->id, 'name' => 'Nicolas', 'nationality_code' => 'BRA', 'is_active' => true]);
+        $file = storage_path('app/testing-heritage.json');
+        file_put_contents($file, json_encode([
+            ['name' => 'Marc Guéhi', 'club' => 'Manchester City', 'country' => 'Ivory Coast', 'country_code' => 'CIV', 'kind' => 'descent', 'source_url' => 'https://example.org/g'],
+            ['name' => 'Nicolas Jackson', 'club' => 'Aston Villa', 'country' => 'Senegal', 'country_code' => 'SEN', 'kind' => 'international', 'source_url' => 'https://example.org/j'],
+        ]));
+
+        $this->artisan('players:heritage-import', ['file' => $file])
+            ->expectsOutputToContain('Marc Guéhi: listed at Manchester City, matched to the only Marc Guéhi we have')
+            ->expectsOutputToContain('Not matched to a player in our squads: Nicolas Jackson (Aston Villa)')->assertSuccessful();
+
+        $this->assertSame('of Ivorian descent', \App\Support\AfricanScope::label($guehi->fresh()));
+        $this->assertSame(1, PlayerHeritage::count());
+        File::delete($file);
+    }
 }

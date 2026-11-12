@@ -1,0 +1,592 @@
+[
+ {
+  "name": "Amine Adli",
+  "club": "AFC Bournemouth",
+  "country": "Morocco",
+  "country_code": "MAR",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Bukayo Saka",
+  "club": "Arsenal",
+  "country": "Nigeria",
+  "country_code": "NGA",
+  "kind": "descent",
+  "source_url": "https://www.bbc.com/sport/football/articles/c364gz4ekylo",
+  "source_note": "England international. First-person: both parents grew up in Nigeria. Sources: BBC Sport, 22 Nov 2025, https://www.bbc.com/sport/football/articles/c364gz4ekylo ; Arsenal.com, 24 Feb 2020, https://www.arsenal.com/feature/bukayo-saka-in-my-own-words-aVrRH4w4F9RY",
+  "to_verify": false
+ },
+ {
+  "name": "Eberechi Eze",
+  "club": "Arsenal",
+  "country": "Nigeria",
+  "country_code": "NGA",
+  "kind": "descent",
+  "source_url": "https://owngoalnigeria.com/2017/03/29/qpr-teen-wonder-ebere-eze-happy-to-train-with-super-eagles-in-london-reveals-his-state-of-origin/",
+  "source_note": "England international. First-person: “My parents are from Imo State, Mbaise.” Source is a weaker outlet; confirm before publishing descent wording. https://owngoalnigeria.com/2017/03/29/qpr-teen-wonder-ebere-eze-happy-to-train-with-super-eagles-in-london-reveals-his-state-of-origin/",
+  "to_verify": true
+ },
+ {
+  "name": "Noni Madueke",
+  "club": "Arsenal",
+  "country": "Nigeria",
+  "country_code": "NGA",
+  "kind": "descent",
+  "source_url": "https://guardian.ng/sport/football/nigerians-work-hard-to-make-things-happen-arsenals-madueke/",
+  "source_note": "England international. First-person: “I am from Nigeria and my parents are Nigerians.” Source: Guardian Nigeria, https://guardian.ng/sport/football/nigerians-work-hard-to-make-things-happen-arsenals-madueke/",
+  "to_verify": false
+ },
+ {
+  "name": "Ezri Konsa",
+  "club": "Arsenal",
+  "country": "DR Congo",
+  "country_code": "COD",
+  "kind": "descent",
+  "source_url": "https://www.premierleague.com/en/news/3952813",
+  "source_note": "England international. Father from the DR Congo, mother from Angola (Premier League feature). Source: https://www.premierleague.com/en/news/3952813",
+  "to_verify": false
+ },
+ {
+  "name": "Ezri Konsa",
+  "club": "Arsenal",
+  "country": "Angola",
+  "country_code": "ANG",
+  "kind": "descent",
+  "source_url": "https://www.premierleague.com/en/news/3952813",
+  "source_note": "England international. Father from the DR Congo, mother from Angola (Premier League feature). Source: https://www.premierleague.com/en/news/3952813",
+  "to_verify": false
+ },
+ {
+  "name": "Nicolas Jackson",
+  "club": "Aston Villa",
+  "country": "Senegal",
+  "country_code": "SEN",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Aaron Wan-Bissaka",
+  "club": "Aston Villa",
+  "country": "DR Congo",
+  "country_code": "COD",
+  "kind": "international",
+  "source_url": "https://www.bbc.com/sport/football/articles/c0k2d8ejr4do",
+  "source_note": "on the 3 Sep 2026 25-man list. Named in DR Congo’s 2026 World Cup squad and has senior caps (18 reported as of late September 2026). Source: BBC Sport, https://www.bbc.com/sport/football/articles/c0k2d8ejr4do",
+  "to_verify": false
+ },
+ {
+  "name": "El Hadji Malick Diouf",
+  "club": "Brentford",
+  "country": "Senegal",
+  "country_code": "SEN",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Dango Ouattara",
+  "club": "Brentford",
+  "country": "Burkina Faso",
+  "country_code": "BFA",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Mamadou Sangaré",
+  "club": "Brentford",
+  "country": "Mali",
+  "country_code": "MLI",
+  "kind": "international",
+  "source_url": "https://www.brentfordfc.com/en/news/first-team-brentford-mamadou-sangare-lens-club-record-transfer",
+  "source_note": "on the 3 Sep 2026 25-man list. Previously marked “confirm in the DB”: the local SQL dump predates this signing, but Brentford’s official announcement calls him a Mali international with senior caps, including the 2025 Africa Cup of Nations. Source: https://www.brentfordfc.com/en/news/first-team-brentford-mamadou-sangare-lens-club-record-transfer",
+  "to_verify": false
+ },
+ {
+  "name": "Yankuba Minteh",
+  "club": "Brighton & Hove Albion",
+  "country": "Gambia",
+  "country_code": "GAM",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Ibrahim Osman",
+  "club": "Brighton & Hove Albion",
+  "country": "Ghana",
+  "country_code": "GHA",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Jaouen Hadjam",
+  "club": "Brighton & Hove Albion",
+  "country": "Algeria",
+  "country_code": "ALG",
+  "kind": "international",
+  "source_url": "https://www.brightonandhovealbion.com/media-article/albion-sign-jaouen-hadjam-from-young-boys",
+  "source_note": "on the 3 Sep 2026 25-man list. Previously marked “confirm in the DB”: the local SQL dump predates this signing, but Brighton’s official announcement states he has senior Algeria caps (switched allegiance in 2023) and played at the 2026 World Cup. Source: https://www.brightonandhovealbion.com/media-article/albion-sign-jaouen-hadjam-from-young-boys",
+  "to_verify": false
+ },
+ {
+  "name": "Daniel Welbeck",
+  "club": "Chelsea",
+  "country": "Ghana",
+  "country_code": "GHA",
+  "kind": "descent",
+  "source_url": "https://www.theguardian.com/football/2012/feb/10/danny-welbeck-manchester-united-liverpool",
+  "source_note": "England international (historically). The Guardian reported that his parents emigrated from Ghana. Source: https://www.theguardian.com/football/2012/feb/10/danny-welbeck-manchester-united-liverpool",
+  "to_verify": false
+ },
+ {
+  "name": "Wesley Fofana",
+  "club": "Chelsea",
+  "country": "Ivory Coast",
+  "country_code": "CIV",
+  "kind": "descent",
+  "source_url": "https://www.chelseafc.com/en/news/article/everything-you-need-to-know-about-wesley-fofana",
+  "source_note": "France senior international. Chelsea’s official profile said he is eligible for Ivory Coast through his father. Source: https://www.chelseafc.com/en/news/article/everything-you-need-to-know-about-wesley-fofana",
+  "to_verify": false
+ },
+ {
+  "name": "Taiwo Awoniyi",
+  "club": "Coventry City",
+  "country": "Nigeria",
+  "country_code": "NGA",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Frank Onyeka",
+  "club": "Coventry City",
+  "country": "Nigeria",
+  "country_code": "NGA",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Ismaïla Sarr",
+  "club": "Crystal Palace",
+  "country": "Senegal",
+  "country_code": "SEN",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Evann Guessand",
+  "club": "Crystal Palace",
+  "country": "Ivory Coast",
+  "country_code": "CIV",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Cheick Doucouré",
+  "club": "Crystal Palace",
+  "country": "Mali",
+  "country_code": "MLI",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Eddie Nketiah",
+  "club": "Crystal Palace",
+  "country": "Ghana",
+  "country_code": "GHA",
+  "kind": "descent",
+  "source_url": "https://www.nbcsports.com/soccer/news/eddie-nketiah-on-returning-to-south-london-and-his-pride-and-passion-for-ghana",
+  "source_note": "England-capped; no senior Ghana cap found as of 12 Nov 2026 (reports of a possible allegiance switch remain uncompleted). He has spoken about growing up in a Ghanaian household and his pride in Ghana. If he is later capped by Ghana, move him to African internationals. Source: NBC Sports, 7 Mar 2025, https://www.nbcsports.com/soccer/news/eddie-nketiah-on-returning-to-south-london-and-his-pride-and-passion-for-ghana",
+  "to_verify": false
+ },
+ {
+  "name": "Thierno Barry",
+  "club": "Everton",
+  "country": "Guinea",
+  "country_code": "GUI",
+  "kind": "descent",
+  "source_url": "https://www.evertonfc.com/news/2025/december/17/Barry-Reveals-Key-Influence-Of-Sporting-Family-Member/",
+  "source_note": "On the 3 Sep 2026 25-man list. Everton’s official site describes his father, Amadou Korka Barry, as a Guinea national-team basketball player, which sources Guinean parentage. Senior Guinea *football* caps were not confirmed here (and should not be assumed); treat as descent until an editor confirms international football status. Source: https://www.evertonfc.com/news/2025/december/17/Barry-Reveals-Key-Influence-Of-Sporting-Family-Member/",
+  "to_verify": true
+ },
+ {
+  "name": "Alex Iwobi",
+  "club": "Fulham",
+  "country": "Nigeria",
+  "country_code": "NGA",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Calvin Bassey",
+  "club": "Fulham",
+  "country": "Nigeria",
+  "country_code": "NGA",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Semi Ajayi",
+  "club": "Hull City",
+  "country": "Nigeria",
+  "country_code": "NGA",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Mohamed Belloumi",
+  "club": "Hull City",
+  "country": "Algeria",
+  "country_code": "ALG",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list; senior Algeria caps in 2026 (Wikipedia / Transfermarkt cap records).",
+  "to_verify": false
+ },
+ {
+  "name": "Issahaku Abdul Fatawu",
+  "club": "Ipswich Town",
+  "country": "Ghana",
+  "country_code": "GHA",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Cédric Kipré",
+  "club": "Ipswich Town",
+  "country": "Ivory Coast",
+  "country_code": "CIV",
+  "kind": "international",
+  "source_url": "https://www.national-football-teams.com/player/99904/Cedric_Kipre.html",
+  "source_note": "on the 3 Sep 2026 25-man list. Previously marked “confirm in the DB”: the local SQL dump already stores him as nationality “Ivory Coast” (code `IVO`). Note that `DiscoveryController::AFRICA` lists FIFA `CIV`, not `IVO`, so he may be missing from `/african-players` until that code mismatch is fixed. Senior Ivory Coast debut: 7 June 2025 v New Zealand. Sources: site DB dump; https://www.national-football-teams.com/player/99904/Cedric_Kipre.html",
+  "to_verify": false
+ },
+ {
+  "name": "Chuba Akpom",
+  "club": "Ipswich Town",
+  "country": "Nigeria",
+  "country_code": "NGA",
+  "kind": "descent",
+  "source_url": "https://www.bbc.com/sport/football/49800012",
+  "source_note": "On the 3 Sep 2026 25-man list. Previously marked “confirm in the DB”: the local SQL dump stores him as England (`ENG`). He has no senior Nigeria cap as of 12 Nov 2026. In 2019 he told BBC Sport he had switched allegiance and said: “I'm Nigerian, and my whole family feel very Nigerian.” Source: https://www.bbc.com/sport/football/49800012",
+  "to_verify": false
+ },
+ {
+  "name": "Noah Okafor",
+  "club": "Leeds United",
+  "country": "Nigeria",
+  "country_code": "NGA",
+  "kind": "descent",
+  "source_url": "https://www.blick.ch/fr/sport/football/rencontre-avec-les-parents-de-noah-okafor-nouvelle-star-de-la-nati/82vqzv5",
+  "source_note": "Switzerland international. Blick interviewed his parents: Nigerian father (Christian) and Swiss mother (Nicole). Source: https://www.blick.ch/fr/sport/football/rencontre-avec-les-parents-de-noah-okafor-nouvelle-star-de-la-nati/82vqzv5",
+  "to_verify": false
+ },
+ {
+  "name": "Lukas Nmecha",
+  "club": "Leeds United",
+  "country": "Nigeria",
+  "country_code": "NGA",
+  "kind": "descent",
+  "source_url": "https://www.france24.com/en/20190327-city-talent-nmecha-chooses-germany-over-england",
+  "source_note": "Germany international. Reporting describes a Nigerian father and German mother; he chose Germany over England (and was eligible for Nigeria). Source: France 24, 27 Mar 2019, https://www.france24.com/en/20190327-city-talent-nmecha-chooses-germany-over-england",
+  "to_verify": false
+ },
+ {
+  "name": "Ethan Ampadu",
+  "club": "Leeds United",
+  "country": "Ghana",
+  "country_code": "GHA",
+  "kind": "descent",
+  "source_url": "https://www.pulse.com.gh/story/kwame-ampadu-meet-the-first-ghanaian-to-play-for-arsenal-2024080117263166227",
+  "source_note": "Wales international. His father, Kwame Ampadu, is widely described as Ghanaian (born in Bradford to a Ghanaian father). Confirm the heritage wording before publishing. Source: Pulse Ghana on Kwame Ampadu, https://www.pulse.com.gh/story/kwame-ampadu-meet-the-first-ghanaian-to-play-for-arsenal-2024080117263166227",
+  "to_verify": true
+ },
+ {
+  "name": "Alexander Isak",
+  "club": "Liverpool",
+  "country": "Eritrea",
+  "country_code": "ERI",
+  "kind": "descent",
+  "source_url": "https://www.espn.com/soccer/story/_/id/46223920/liverpool-alexander-isak-dortmund-willem-ii-arne-slot-real-sociedad-newcastle-transfers",
+  "source_note": "Sweden international. Both parents born in Eritrea; he has spoken about those roots. Sources: ESPN, https://www.espn.com/soccer/story/_/id/46223920/liverpool-alexander-isak-dortmund-willem-ii-arne-slot-real-sociedad-newcastle-transfers ; BBC Sport, 28 Feb 2020, https://www.bbc.com/sport/football/51720624",
+  "to_verify": false
+ },
+ {
+  "name": "Cody Gakpo",
+  "club": "Liverpool",
+  "country": "Togo",
+  "country_code": "TOG",
+  "kind": "descent",
+  "source_url": "https://www.independent.co.uk/sport/football/cody-gakpo-liverpool-interview-salah-van-dijk-netherlands-b2757147.html",
+  "source_note": "Netherlands international. His father, Johnny, was born in Togo (Dutch mother). Source: The Independent, https://www.independent.co.uk/sport/football/cody-gakpo-liverpool-interview-salah-van-dijk-netherlands-b2757147.html",
+  "to_verify": false
+ },
+ {
+  "name": "Jeremie Frimpong",
+  "club": "Liverpool",
+  "country": "Ghana",
+  "country_code": "GHA",
+  "kind": "descent",
+  "source_url": "https://www.ghanaweb.com/GhanaHomePage/SportsArchive/I-speak-Twi-at-home-Jeremie-Frimpong-on-Ghana-connections-1963776",
+  "source_note": "Netherlands international. He has spoken about Ghanaian roots and said he speaks Twi at home; confirm a first-person or club statement that names his parents’ country before treating the wording as final. Sources: GhanaWeb, https://www.ghanaweb.com/GhanaHomePage/SportsArchive/I-speak-Twi-at-home-Jeremie-Frimpong-on-Ghana-connections-1963776 ; Bayer 04, https://www.bayer04.de/en-us/news/bayer04/you-are-not-alone-frimpong-on-his-special-trip-to-ghana",
+  "to_verify": true
+ },
+ {
+  "name": "Antoine Semenyo",
+  "club": "Manchester City",
+  "country": "Ghana",
+  "country_code": "GHA",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Rayan Aït-Nouri",
+  "club": "Manchester City",
+  "country": "Algeria",
+  "country_code": "ALG",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Iliman Ndiaye",
+  "club": "Manchester City",
+  "country": "Senegal",
+  "country_code": "SEN",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Marc Guéhi",
+  "club": "Manchester City",
+  "country": "Ivory Coast",
+  "country_code": "CIV",
+  "kind": "descent",
+  "source_url": "https://www.englandfootball.com/articles/2023/Sep/08/marc-guehi-grassroots-story-20230908",
+  "source_note": "England international. First-person: “I moved to England when I was one from Abidjan in the Ivory Coast.” Source: England Football, 8 Sep 2023, https://www.englandfootball.com/articles/2023/Sep/08/marc-guehi-grassroots-story-20230908",
+  "to_verify": false
+ },
+ {
+  "name": "Jérémy Doku",
+  "club": "Manchester City",
+  "country": "Ghana",
+  "country_code": "GHA",
+  "kind": "descent",
+  "source_url": "https://www.nbcsports.com/soccer/news/manchester-citys-jeremy-doku-on-confidence-culture-and-competition",
+  "source_note": "Belgium international. First-person: “Yeah, my parents are from Ghana.” Source: NBC Sports, 16 May 2025, https://www.nbcsports.com/soccer/news/manchester-citys-jeremy-doku-on-confidence-culture-and-competition",
+  "to_verify": false
+ },
+ {
+  "name": "Bryan Mbeumo",
+  "club": "Manchester United",
+  "country": "Cameroon",
+  "country_code": "CMR",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Amad Diallo",
+  "club": "Manchester United",
+  "country": "Ivory Coast",
+  "country_code": "CIV",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Carlos Baleba",
+  "club": "Manchester United",
+  "country": "Cameroon",
+  "country_code": "CMR",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Noussair Mazraoui",
+  "club": "Manchester United",
+  "country": "Morocco",
+  "country_code": "MAR",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Patrick Dorgu",
+  "club": "Manchester United",
+  "country": "Nigeria",
+  "country_code": "NGA",
+  "kind": "descent",
+  "source_url": "https://www.telegraph.co.uk/football/2026/05/03/patrick-dorgu-interview-know-more-george-best-fifa-card/",
+  "source_note": "Denmark international. The Telegraph interview reports that his father, Paul, is from Enugu, Nigeria. Source: https://www.telegraph.co.uk/football/2026/05/03/patrick-dorgu-interview-know-more-george-best-fifa-card/",
+  "to_verify": false
+ },
+ {
+  "name": "Yoane Wissa",
+  "club": "Newcastle United",
+  "country": "DR Congo",
+  "country_code": "COD",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Anthony Elanga",
+  "club": "Newcastle United",
+  "country": "Cameroon",
+  "country_code": "CMR",
+  "kind": "descent",
+  "source_url": "https://www.telegraph.co.uk/football/2022/01/20/introducing-anthony-elanga-swedish-son-cameroon-international/",
+  "source_note": "Sweden international. Son of Joseph Elanga, a former Cameroon international. Source: The Telegraph, 20 Jan 2022, https://www.telegraph.co.uk/football/2022/01/20/introducing-anthony-elanga-swedish-son-cameroon-international/",
+  "to_verify": false
+ },
+ {
+  "name": "Ola Aina",
+  "club": "Nottingham Forest",
+  "country": "Nigeria",
+  "country_code": "NGA",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Ibrahim Sangaré",
+  "club": "Nottingham Forest",
+  "country": "Ivory Coast",
+  "country_code": "CIV",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Ousmane Diomandé",
+  "club": "Nottingham Forest",
+  "country": "Ivory Coast",
+  "country_code": "CIV",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Callum Hudson-Odoi",
+  "club": "Nottingham Forest",
+  "country": "Ghana",
+  "country_code": "GHA",
+  "kind": "descent",
+  "source_url": "https://www.chelseafc.com/en/news/article/hudson-odoi-making-a-difference-in-ghana",
+  "source_note": "England international (historically). Chelsea’s official site described Ghana as “his father’s homeland” and covered his work there. Source: https://www.chelseafc.com/en/news/article/hudson-odoi-making-a-difference-in-ghana",
+  "to_verify": false
+ },
+ {
+  "name": "Habib Diarra",
+  "club": "Sunderland",
+  "country": "Senegal",
+  "country_code": "SEN",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Noah Sadiki",
+  "club": "Sunderland",
+  "country": "DR Congo",
+  "country_code": "COD",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Reinildo Mandava",
+  "club": "Sunderland",
+  "country": "Mozambique",
+  "country_code": "MOZ",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Mohammed Kudus",
+  "club": "Tottenham Hotspur",
+  "country": "Ghana",
+  "country_code": "GHA",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Omar Marmoush",
+  "club": "Tottenham Hotspur",
+  "country": "Egypt",
+  "country_code": "EGY",
+  "kind": "international",
+  "source_url": "https://www.premierleague.com/en/news/4706139/see-all-the-202627-premier-league-squad-lists",
+  "source_note": "on the 3 Sep 2026 25-man list.",
+  "to_verify": false
+ },
+ {
+  "name": "Dominic Solanke",
+  "club": "Tottenham Hotspur",
+  "country": "Nigeria",
+  "country_code": "NGA",
+  "kind": "descent",
+  "source_url": "https://punchng.com/solanke-reveals-love-for-nigeria-plans-visit/",
+  "source_note": "England international. He has spoken about Nigerian roots and a Nigerian (Yoruba) father. Source: Punch, https://punchng.com/solanke-reveals-love-for-nigeria-plans-visit/",
+  "to_verify": false
+ },
+ {
+  "name": "Tosin Adarabioyo",
+  "club": "Tottenham Hotspur",
+  "country": "Nigeria",
+  "country_code": "NGA",
+  "kind": "descent",
+  "source_url": "https://punchng.com/i-would-be-delighted-to-wear-nigeria-jersey-adarabioyo/",
+  "source_note": "No senior Nigeria cap found as of 12 Nov 2026. He has said he would be “delighted” to wear a Nigeria jersey; earlier club material and reporting describe Nigerian parentage. Sources: Punch, https://punchng.com/i-would-be-delighted-to-wear-nigeria-jersey-adarabioyo/ ; Chelsea.com, https://www.chelseafc.com/en/news/article/tosin-adarabioyo-my-journey-to-chelsea",
+  "to_verify": false
+ }
+]
