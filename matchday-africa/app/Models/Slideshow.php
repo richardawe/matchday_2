@@ -78,7 +78,7 @@ class Slideshow extends Model
 
     public function title(): string
     {
-        return (string) ($this->slides[0]['title'] ?? data_get($this->facts, 'title') ?? $this->label());
+        return (string) (data_get($this->facts, 'title') ?? $this->label());
     }
 
     public function workDir(): string

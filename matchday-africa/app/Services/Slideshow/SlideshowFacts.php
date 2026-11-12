@@ -49,6 +49,10 @@ class SlideshowFacts
             'day' => $uk->format('D j M'),
             'uk' => $uk->format('H:i T'),
             'wat' => $ko->copy()->setTimezone('Africa/Lagos')->format('H:i').' WAT',
+            // As the hand-built decks write them: "Thursday 12 November", "3:00pm in the UK (GMT)", "4:00pm Nigerian time (WAT)".
+            'date' => $uk->format('l j F'),
+            'uk_long' => $uk->format('g:ia').' in the UK ('.$uk->format('T').')',
+            'wat_long' => $ko->copy()->setTimezone('Africa/Lagos')->format('g:ia').' Nigerian time (WAT)',
         ];
     }
 

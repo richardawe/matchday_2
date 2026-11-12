@@ -26,8 +26,8 @@ class CommonsPhotos
     private const COMMONS = 'https://commons.wikimedia.org/w/api.php';
     private const FOOTBALLER = 'Q937857';
 
-    /** Slide 01's photo window (width × height) the crop is made for. */
-    public const BOX = [784, 640];
+    /** Slide 01's round portrait is square. */
+    public const BOX = [600, 600];
 
     /** The stored photo, looking it up on first use: ['file', 'crop', 'credit', 'artist', 'licence', …] or null. */
     public function forPlayer(Player $player): ?array
@@ -106,25 +106,22 @@ class CommonsPhotos
     }
 
     /**
-     * The largest box of the window's shape inside the photo, centred across and a little above
-     * centre down (faces sit in the top third of portraits): ['x', 'y', 'w', 'h'].
+     * A square head-and-shoulders crop for the round portrait, as the hand-built decks crop by eye
+     * (about 0.6 of the width, near the top): tall photos are usually full length with the head high
+     * up; wider ones get a centred square. Returns ['x', 'y', 'w', 'h'].
      */
-    public static function crop(int $width, int $height, int $boxW, int $boxH): array
+    public static function crop(int $width, int $height, int $boxW = 600, int $boxH = 600): array
     {
-        $ratio = $boxW / $boxH;
-        if ($width / $height > $ratio) {
-            $h = $height;
-            $w = (int) round($h * $ratio);
-            $x = (int) round(($width - $w) / 2);
-            $y = 0;
+        if ($height > 1.3 * $width) {
+            $side = (int) round($width * 0.6);
+            $y = (int) round($height * 0.06);
         } else {
-            $w = $width;
-            $h = (int) round($w / $ratio);
-            $x = 0;
-            $y = (int) round(($height - $h) * 0.2);
+            $side = (int) round(min($width, $height) * 0.8);
+            $y = (int) round(max(0, ($height - $side) * 0.25));
         }
+        $x = (int) round(($width - $side) / 2);
 
-        return ['x' => $x, 'y' => $y, 'w' => $w, 'h' => $h];
+        return ['x' => $x, 'y' => min($y, $height - $side), 'w' => $side, 'h' => $side];
     }
 
     /** [Commons file name, Wikidata id] for the player's item, or [null, null]. */

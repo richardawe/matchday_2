@@ -180,7 +180,7 @@ class Slideshows
             $show->forceFill([
                 'status' => 'ready', 'error' => null, 'rendered_at' => now(),
                 'facts' => $deck['facts'] + ['zoom' => $made['zoom'], 'loudness' => $made['loudness']],
-                'slides' => array_map(fn ($s) => array_diff_key($s, ['photo' => 1, 'flag' => 1, 'home_flag' => 1, 'away_flag' => 1]), $deck['slides']),
+                'slides' => self::withoutPaths($deck['slides']),
                 'caption' => $deck['caption'], 'captions' => $deck['captions'], 'landing_path' => $deck['landing_path'],
                 'player_id' => $deck['player_id'], 'photo' => $deck['photo'], 'music' => $deck['music'],
                 'video_path' => "slideshows/{$show->id}/slideshow.mp4", 'poster_path' => "slideshows/{$show->id}/poster.jpg",
@@ -255,6 +255,21 @@ class Slideshows
     public function regenerate(Slideshow $show): void
     {
         $show->forceFill(['status' => 'pending', 'attempts' => 0, 'error' => null, 'approved' => false, 'approved_at' => null, 'approved_by' => null])->save();
+    }
+
+    /** The slides' copy for the record and the editor, without the server's file paths (photos, flags, cards). */
+    public static function withoutPaths(array $value): array
+    {
+        $root = base_path();
+        foreach ($value as $key => $item) {
+            if (is_array($item)) {
+                $value[$key] = self::withoutPaths($item);
+            } elseif (is_string($item) && str_starts_with($item, $root)) {
+                $value[$key] = basename($item);
+            }
+        }
+
+        return $value;
     }
 
     private function poster(string $png, string $jpg): void
