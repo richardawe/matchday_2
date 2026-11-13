@@ -1,5 +1,8 @@
 document.querySelectorAll('[data-radio-player]').forEach((player) => {
     const audio = player.querySelector('audio');
+    const source = audio.src;
+    let loading = false;
+    let loaded = false;
     const play = player.querySelector('[data-radio-play]');
     const label = player.querySelector('[data-radio-label]');
     const icon = player.querySelector('[data-radio-icon]');
@@ -15,7 +18,7 @@ document.querySelectorAll('[data-radio-player]').forEach((player) => {
         slides.forEach((slide, index) => { slide.hidden = index !== active; });
     };
     ['timeupdate', 'seeked', 'loadedmetadata'].forEach(event => audio.addEventListener(event, syncStory));
-    audio.addEventListener('play', () => { if (stories) { stories.hidden = false; syncStory(); } });
+    audio.addEventListener('play', () => { if (stories && !loading) { stories.hidden = false; syncStory(); } });
     if (play) {
         player.querySelector('[data-radio-controls]').hidden = false;
         audio.controls = false;
@@ -24,11 +27,38 @@ document.querySelectorAll('[data-radio-player]').forEach((player) => {
             feedback.textContent = '';
             if (!audio.paused) { audio.pause(); return; }
             if (audio.ended) audio.currentTime = 0;
+            loading = true;
+            play.disabled = true;
+            play.setAttribute('aria-busy', 'true');
             label.textContent = 'Loading…';
-            try { await audio.play(); }
-            catch { label.textContent = 'Try again'; feedback.textContent = 'Audio could not load. Tap to try again.'; }
+            try {
+                if (!loaded) {
+                    // Unlock this media element inside the tap for Safari, without fetching the bulletin twice.
+                    audio.src = player.dataset.radioUnlock;
+                    const unlock = audio.play().catch(() => {});
+                    const download = fetch(source, { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(45000) });
+                    const [, response] = await Promise.all([unlock, download]);
+                    audio.pause();
+                    if (!response.ok) throw new Error('Audio unavailable');
+                    const blob = await response.blob();
+                    if (!blob.size) throw new Error('Empty audio');
+                    // The host strips Range. A local Blob is fully seekable and downloaded only after a tap.
+                    audio.src = URL.createObjectURL(blob);
+                    loaded = true;
+                }
+                loading = false;
+                await audio.play();
+            } catch {
+                loading = false;
+                label.textContent = 'Try again';
+                feedback.textContent = 'Audio could not load. Tap to try again.';
+            } finally {
+                play.disabled = false;
+                play.removeAttribute('aria-busy');
+            }
         });
         const sync = () => {
+            if (loading) return;
             const playing = !audio.paused && !audio.ended;
             label.textContent = playing ? 'Pause' : audio.currentTime > 0 && !audio.ended ? 'Resume' : 'Listen now';
             icon.textContent = playing ? 'Ⅱ' : '▶';
@@ -41,9 +71,9 @@ document.querySelectorAll('[data-radio-player]').forEach((player) => {
             seek.value = String(audio.currentTime);
             elapsed.textContent = `${Math.floor(audio.currentTime / 60)}:${String(Math.floor(audio.currentTime % 60)).padStart(2, '0')}`;
         });
-        audio.addEventListener('play', () => { player.querySelector('[data-radio-progress]').hidden = false; });
+        audio.addEventListener('play', () => { if (!loading) player.querySelector('[data-radio-progress]').hidden = false; });
         seek.addEventListener('input', () => { if (Number.isFinite(audio.duration)) audio.currentTime = Number(seek.value); });
-        audio.addEventListener('error', () => { sync(); feedback.textContent = 'Audio could not load. Tap to try again.'; });
+        audio.addEventListener('error', () => { if (loading) return; sync(); feedback.textContent = 'Audio could not load. Tap to try again.'; });
     }
     player.querySelector('[data-radio-share]')?.addEventListener('click', async () => {
         const url = player.dataset.shareUrl;
