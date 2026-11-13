@@ -63,14 +63,27 @@ class AfricanScope
         return self::scope($query)->get();
     }
 
-    public static function confirmedHeritage(Player $player): ?PlayerHeritage
+    /** Every confirmed, sourced heritage row for an African country (internationals first). */
+    public static function confirmedHeritages(Player $player): \Illuminate\Support\Collection
     {
         if (!self::heritageReady()) {
-            return null;
+            return collect();
         }
         $rows = $player->relationLoaded('heritages') ? $player->heritages : $player->heritages()->get();
 
-        return $rows->first(fn (PlayerHeritage $h) => $h->isConfirmed() && self::nation($h->country_code));
+        return $rows->filter(fn (PlayerHeritage $h) => $h->isConfirmed() && self::nation($h->country_code))
+            ->sortBy(fn (PlayerHeritage $h) => [($h->kind ?? 'descent') === 'international' ? 0 : 1, $h->id])->values();
+    }
+
+    public static function confirmedHeritage(Player $player): ?PlayerHeritage
+    {
+        return self::confirmedHeritages($player)->first();
+    }
+
+    /** A confirmed row saying the player is a senior international for an African country (stored nationality aside). */
+    public static function internationalHeritage(Player $player): ?PlayerHeritage
+    {
+        return self::confirmedHeritages($player)->first(fn (PlayerHeritage $h) => ($h->kind ?? 'descent') === 'international');
     }
 
     public static function inScope(Player $player): bool
@@ -78,34 +91,37 @@ class AfricanScope
         return self::isAfricanCode($player->nationality_code) || self::confirmedHeritage($player) !== null;
     }
 
-    /** True for an African national; false for a player in scope only through confirmed heritage. */
+    /** True for an African national or a sourced African international; false when in scope only through descent. */
     public static function isNational(Player $player): bool
     {
-        return self::isAfricanCode($player->nationality_code);
+        return self::isAfricanCode($player->nationality_code) || self::internationalHeritage($player) !== null;
     }
 
     /**
-     * How copy may describe the player's African link: "Nigeria" for a Nigerian national, "of
-     * Nigerian descent" only with a confirmed heritage row. Null when out of scope.
+     * How copy may describe the player's African link: "Nigeria" for a Nigerian national or a sourced
+     * Nigeria international, "of Nigerian descent" (or "of Congolese and Angolan descent") only from
+     * confirmed descent rows. Null when out of scope.
      */
     public static function label(Player $player): ?string
     {
-        if (self::isNational($player)) {
+        if (self::isAfricanCode($player->nationality_code)) {
             return self::nation($player->nationality_code)['name'] ?? ($player->nationality ?: null);
         }
-        $heritage = self::confirmedHeritage($player);
-        if (!$heritage) {
+        if ($international = self::internationalHeritage($player)) {
+            return self::nation($international->country_code)['name'] ?? $international->country;
+        }
+        $demonyms = self::confirmedHeritages($player)->map(fn (PlayerHeritage $h) => self::nation($h->country_code)['demonym'] ?? $h->country)->unique()->values();
+        if ($demonyms->isEmpty()) {
             return null;
         }
-        $nation = self::nation($heritage->country_code);
 
-        return 'of '.($nation['demonym'] ?? $heritage->country).' descent';
+        return 'of '.($demonyms->count() > 1 ? $demonyms->slice(0, -1)->join(', ').' and '.$demonyms->last() : $demonyms->first()).' descent';
     }
 
-    /** The FIFA code of the player's African country (nationality first, else confirmed heritage). */
+    /** The FIFA code of the player's African country (nationality first, then a sourced international row, then descent). */
     public static function countryCode(Player $player): ?string
     {
-        if (self::isNational($player)) {
+        if (self::isAfricanCode($player->nationality_code)) {
             return strtoupper((string) $player->nationality_code);
         }
 

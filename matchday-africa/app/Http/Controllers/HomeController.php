@@ -136,9 +136,7 @@ class HomeController extends Controller
                 $match->setAttribute('war_away',$this->warriorFor($match->awayTeam?->name));
             });
             $todayTeamIds = $todaysMatches->flatMap(fn ($match) => [$match->home_team_id, $match->away_team_id])->filter()->unique();
-            $africanPlayersInFocus = Player::with('team')->active()
-                ->whereIn('team_id', $todayTeamIds)->whereIn('nationality_code', DiscoveryController::AFRICA)
-                ->orderBy('name')->get()
+            $africanPlayersInFocus = \App\Support\AfricanScope::playersAt($todayTeamIds->all())->sortBy('name')->values()
                 ->filter(fn($player)=>data_get($player->metadata,'api_football_lineup.date')===$today
                     || data_get($player->metadata,'api_football_stats.date')===$today)
                 ->take(18)->values();

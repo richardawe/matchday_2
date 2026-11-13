@@ -967,3 +967,27 @@
 .md-reel-card-title{padding:.55rem .7rem .65rem;display:grid;gap:.15rem}
 .md-reel-card-title b{font-size:.9rem;line-height:1.2}
 .md-reel-card-title small{font-size:.7rem;opacity:.8}
+
+/* African players: the weekly roster, league tabs, fixtures and the call to action (player pages). */
+.md-roster-tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem 0 1.5rem; }
+.md-roster-club { margin: 1.75rem 0; }
+.md-roster-club h2 { margin-bottom: .5rem; }
+.md-roster-table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+.md-roster-table th, .md-roster-table td { text-align: left; padding: .5rem .5rem .5rem 0; border-bottom: 1px solid rgba(0, 0, 0, .12); vertical-align: top; }
+.md-roster-table th { font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; opacity: .7; }
+@media (max-width: 640px) {
+    .md-roster-table thead { display: none; }
+    .md-roster-table tr { display: block; padding: .6rem 0; border-bottom: 1px solid rgba(0, 0, 0, .12); }
+    .md-roster-table td { display: block; border: 0; padding: .1rem 0; }
+    .md-roster-table td:first-child { font-weight: 700; }
+}
+.md-fixture-list { list-style: none; padding: 0; margin: .5rem 0 1.25rem; }
+.md-fixture-list li { padding: .4rem 0; border-bottom: 1px solid rgba(0, 0, 0, .1); }
+.md-fixture-list small { display: block; opacity: .7; }
+.md-player-cta { margin: 1.5rem 0; }
+.md-player-cta h2 { margin: .25rem 0 .5rem; }
+.md-player-hero figure { margin: 0; }
+.md-player-hero figcaption { margin-top: .35rem; max-width: 22rem; }
+.md-slideshow-credits { padding-left: 1.1rem; font-size: .9rem; }
+.md-player-hero figure img { width: 100%; max-height: 34rem; object-fit: cover; object-position: top; border: 1px solid var(--md-line); }
+.md-phase.md-phase-compact { min-height: 0; padding-bottom: 1rem; }

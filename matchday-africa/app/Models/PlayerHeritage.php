@@ -16,7 +16,10 @@ class PlayerHeritage extends Model
 {
     public const STATUSES = ['pending', 'confirmed', 'rejected'];
 
-    protected $fillable = ['player_id', 'country', 'country_code', 'source_url', 'source_note', 'status', 'confirmed_by', 'confirmed_at'];
+    /** descent: "of Nigerian descent"; international: a sourced senior cap for that country. */
+    public const KINDS = ['descent', 'international'];
+
+    protected $fillable = ['player_id', 'country', 'country_code', 'kind', 'source_url', 'source_note', 'status', 'confirmed_by', 'confirmed_at'];
 
     protected $casts = ['confirmed_at' => 'datetime'];
 

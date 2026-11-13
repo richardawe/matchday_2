@@ -590,8 +590,7 @@ class SlideshowDeck
 
     private function playerPath(Player $player, FootballMatch $match): string
     {
-        // Player pages show African nationals today; descent players get theirs with the player-pages work.
-        return AfricanScope::isNational($player) ? route('discovery.show', $player, false) : route('matches.show', $match, false);
+        return \App\Services\PlayerPages::landing($player, $match);
     }
 
     private function displayPath(string $path): string

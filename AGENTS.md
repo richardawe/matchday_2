@@ -216,6 +216,30 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 - Local review tooling used on 3 Nov: a demo SQLite database plus Playwright scripts that screenshot every page at
   phone width and flag elements still in the classic serif/beige/Tailwind colours. Re-create them if needed; they are not in the repo.
 
+### African player pages and the weekly roster (12 Nov 2026, prompt 2 of 4)
+- In scope everywhere (index, player pages, roster, match pages, home focus, line-up enrichment, slideshows): an African
+  nationality or a **confirmed** `player_heritages` row with a source (`App\Support\AfricanScope`). `/african-players/{id}` 404s
+  for anyone else; "of {country} descent" only for confirmed rows; the source link shows to admins only.
+- `App\Services\PlayerPages`: page/landing URLs (`PlayerPages::url($player, 'tiktok')` adds social UTM), this season's league
+  numbers (goals/assists from events in the Premier League; starts and matchday squads from stored API-Football line-ups only
+  when every finished league match of the club has one; a missing number is left out, a real zero shown), club fixtures, the
+  next match to call. Pages: `/african-players/premier-league` and `/african-players/league/{code}` (roster grouped by club,
+  as-of date, cached 6 h, `players:roster` rebuilds it every morning at 06:20 London), `/african-players/{id}/photo.jpg` (the
+  credited Commons photo). Index/history/roster/player pages have their own titles (the old index set its title inside the
+  content section, so the home title showed).
+- Heritage seed: the owner's `players_roster.md` (checked 12 Nov 2026: 36 African internationals, 22 players of African descent,
+  4 to verify) is converted to `database/seeders/data/african_heritage_epl.json` (59 rows; Konsa has two countries). A migration
+  imports it once; `players:heritage-import` re-runs it every Monday 05:00 after the squad sync for newly synced players, and by
+  hand. `to_verify` rows (Eze, Barry, Ampadu, Frimpong) go in pending, the rest confirmed; rows an editor confirmed (`confirmed_by`)
+  or rejected are never touched. Matching: same name at the same club; else, for transfers, the only player in the database with
+  the same full name (first initial + surname; a one-word namesake like "Nicolas" never matches). Against the 2025/26 dump in
+  `db/` it matched 45 of 59; the rest are summer 2026 signings the squad sync will bring in.
+- Heritage `kind`: `descent` ("of Nigerian descent", several countries joined: "of Congolese and Angolan descent") or
+  `international` for a sourced senior African cap when the stored nationality is another country (Wan-Bissaka, Hadjam,
+  Guessand): the page then names the country, never "descent".
+- The owner's reference pack (prompts, roster, hand slideshow builder, music licence) lives untracked in `matchday/` at the
+  repository root when supplied; it is excluded from git (`.git/info/exclude`) because it holds the MP3 and source photos.
+
 ### Colour slideshows (12 Nov 2026)
 - Built from the owner's prompt pack (prompt 1 of 4: slideshows; then player pages, UTM/CTAs, admin review queue). Off until
   `SLIDESHOW_ENABLED=true`, the migration, and the licensed track at `storage/app/music/hot-amapiano-beats.mp3`
