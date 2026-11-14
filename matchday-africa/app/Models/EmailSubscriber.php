@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 class EmailSubscriber extends Model
 {
-    protected $fillable = ['email', 'list', 'source', 'utm_source', 'utm_medium', 'utm_campaign', 'user_id', 'unsubscribe_token', 'consented_at', 'unsubscribed_at'];
+    protected $fillable = ['email', 'list', 'source', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'user_id', 'unsubscribe_token', 'consented_at', 'unsubscribed_at'];
 
     protected $casts = ['consented_at' => 'datetime', 'unsubscribed_at' => 'datetime'];
 

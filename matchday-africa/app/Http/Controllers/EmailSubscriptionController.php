@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\EmailSubscriber;
 use App\Support\Attribution;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /** The footer's optional "Get weekend fixtures + results" email signup. */
@@ -30,7 +31,8 @@ class EmailSubscriptionController extends Controller
             'unsubscribed_at' => null,
         ]);
         if (!$subscriber->exists) {
-            $subscriber->fill(['source' => $source, 'unsubscribe_token' => Str::random(48)] + array_intersect_key($touch, array_flip(['utm_source', 'utm_medium', 'utm_campaign'])));
+            $subscriber->fill(['source' => $source, 'unsubscribe_token' => Str::random(48)] + array_intersect_key($touch, array_flip(array_filter(['utm_source', 'utm_medium', 'utm_campaign',
+                Schema::hasColumn('email_subscribers', 'utm_content') ? 'utm_content' : null]))));
         }
         $subscriber->save();
 
