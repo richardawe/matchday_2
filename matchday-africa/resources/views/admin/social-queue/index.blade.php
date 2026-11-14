@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 @section('title','Social queue')
 @section('header')
-<div class="md-admin-heading"><div><p class="md-eyebrow">SOCIAL QUEUE</p><h1>Ready to post.</h1><p>Premier League reels and the generator's cards from the last {{ (int) config('social.queue_days', 14) }} days, newest first. The posting bot reads the same list from <code>/api/social-queue</code> and marks what it posts; you can mark posts by hand here. <a href="{{ route('admin.social-media.index') }}">Social media</a> · <a href="{{ route('admin.slideshows.index') }}">Slideshows to review</a></p></div></div>
+<div class="md-admin-heading"><div><p class="md-eyebrow">SOCIAL QUEUE</p><h1>Ready to post.</h1><p>Premier League reels and the generator's cards from the last {{ (int) config('social.queue_days', 14) }} days, newest first. The posting bot reads the same list from <code>/api/social-queue</code> and marks what it posts; you can mark posts by hand here. <a href="{{ route('admin.social-media.index') }}">Social media</a> · <a href="{{ route('admin.slideshows.index') }}">Slideshows to review</a> · <a href="{{ route('admin.videos.index') }}">Long videos</a></p></div></div>
 @endsection
 @section('content')
 <div class="md-xdesk md-signups">
@@ -23,8 +23,8 @@
   @foreach($items as $item)
    <tr id="{{ str_replace(':', '-', $item['id']) }}">
     <td>
-     <b>{{ $item['type'] === 'radio' ? 'Matchday Radio' : ucfirst($item['type']) }}</b> <small><code>{{ $item['id'] }}</code></small>
-     @if(!empty($item['edition']))<br>{{ $item['edition'] }}: {{ $item['title'] }}@endif
+     <b>{{ $item['type'] === 'radio' ? 'Matchday Radio' : ($item['type'] === 'video' ? 'Long video' : ucfirst($item['type'])) }}</b> <small><code>{{ $item['id'] }}</code></small>
+     @if(!empty($item['edition']))<br>{{ $item['edition'] }}: {{ $item['title'] }}@elseif($item['type'] === 'video')<br><a href="{{ $item['page_url'] }}" target="_blank" rel="noopener">{{ $item['title'] }}</a>@endif
      @if($item['match'])
       <br><a href="{{ $item['match']['url'] }}" target="_blank" rel="noopener">{{ $item['match']['home'] }}@if($item['match']['score'] !== null) {{ $item['match']['score'] }} @else v @endif{{ $item['match']['away'] }}</a>
       <br><small>{{ $item['match']['competition'] }} · {{ $item['match']['kickoff_uk'] }}</small>
@@ -37,7 +37,7 @@
       <br><input readonly value="{{ $item['reel_url'] }}" aria-label="Reel URL" onclick="this.select()" style="width:100%;min-width:14rem;font-family:monospace">
       <button type="button" data-copy="{{ $item['reel_url'] }}">Copy</button> <a href="{{ $item['reel_url'] }}" target="_blank" rel="noopener">Open</a>
      @endif
-     @if(in_array($item['type'], ['radio', 'slideshow'], true) && $item['reel_url'])<br><video controls preload="none" playsinline @if($item['image_url']) poster="{{ $item['image_url'] }}" @endif src="{{ $item['reel_url'] }}" style="width:9rem;aspect-ratio:9/16;background:#000;margin-top:.4rem"></video>@endif
+     @if(in_array($item['type'], ['radio', 'slideshow', 'video'], true) && $item['reel_url'])<br><video controls preload="none" playsinline @if($item['image_url']) poster="{{ $item['image_url'] }}" @endif src="{{ $item['reel_url'] }}" style="width:9rem;aspect-ratio:9/16;background:#000;margin-top:.4rem"></video>@endif
      @if(!empty($item['audio_url']))<br><a href="{{ $item['audio_url'] }}" target="_blank" rel="noopener">Radio mp3</a>@endif
      @if($item['youtube_url'])<br><a href="{{ $item['youtube_url'] }}" target="_blank" rel="noopener">YouTube Short</a>@endif
      @if($item['image_url'])<br><a href="{{ $item['image_url'] }}" target="_blank" rel="noopener">Card image</a>@endif

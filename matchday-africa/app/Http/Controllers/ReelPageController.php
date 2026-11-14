@@ -19,7 +19,9 @@ class ReelPageController extends Controller
 
         $slideshows = \App\Models\Slideshow::ready() ? \App\Models\Slideshow::published()->latest('approved_at')->limit(24)->get() : collect();
 
-        return view('reels.index', ['reels' => $all, 'slideshows' => $slideshows]);
+        $featured = app(\App\Services\SocialVideos::class)->row();
+
+        return view('reels.index', ['reels' => $all, 'slideshows' => $slideshows, 'featured' => $featured]);
     }
 
     public function show(FootballMatch $match, ReelService $reels, HomeShowcase $showcase)

@@ -36,6 +36,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/slideshows/{slideshow}/approve', [\App\Http\Controllers\Admin\SlideshowController::class, 'approve'])->name('slideshows.approve');
     Route::post('/slideshows/{slideshow}/unapprove', [\App\Http\Controllers\Admin\SlideshowController::class, 'unapprove'])->name('slideshows.unapprove');
     Route::post('/slideshows/{slideshow}/regenerate', [\App\Http\Controllers\Admin\SlideshowController::class, 'regenerate'])->name('slideshows.regenerate');
+    Route::get('/videos', [\App\Http\Controllers\Admin\VideoController::class, 'index'])->name('videos.index');
+    Route::post('/videos', [\App\Http\Controllers\Admin\VideoController::class, 'store'])->name('videos.store');
+    Route::post('/videos/pin', [\App\Http\Controllers\Admin\VideoController::class, 'pin'])->name('videos.pin');
+    Route::post('/videos/{video}', [\App\Http\Controllers\Admin\VideoController::class, 'update'])->whereNumber('video')->name('videos.update');
+    Route::post('/videos/{video}/status', [\App\Http\Controllers\Admin\VideoController::class, 'status'])->whereNumber('video')->name('videos.status');
+    Route::post('/videos/{video}/feature', [\App\Http\Controllers\Admin\VideoController::class, 'feature'])->whereNumber('video')->name('videos.feature');
     Route::get('/social-queue', [\App\Http\Controllers\Admin\SocialQueueController::class, 'index'])->name('social-queue.index');
     Route::post('/social-queue/posted', [\App\Http\Controllers\Admin\SocialQueueController::class, 'posted'])->name('social-queue.posted');
     Route::post('/social-queue/undo', [\App\Http\Controllers\Admin\SocialQueueController::class, 'undo'])->name('social-queue.undo');

@@ -23,7 +23,9 @@ use Throwable;
  *     per-platform captions, the landing page tagged per channel, and the music and photo credits;
  *   - every published Matchday Radio edition whose vertical video is rendered ("radio:<id>"), with the
  *     static mp4 and mp3, per-platform captions, the /listen page tagged utm_campaign=radio and the
- *     AI/Kokoro disclosure. Holding (withdrawing) an edition drops it.
+ *     AI/Kokoro disclosure. Holding (withdrawing) an edition drops it;
+ *   - every long video an editor or the bot put on the queue ("video:<id>", SocialVideos), with its
+ *     static mp4, per-platform captions, credits and the landing page tagged with its campaign.
  * Each channel's posted state comes from social_queue_posts (the bot or an admin marks it), else
  * from what the site sent itself earlier (growth_posts) or, for YouTube, the Shorts upload.
  * The admin page (/admin/social-queue) and the API (/api/social-queue) both read this.
@@ -45,6 +47,7 @@ class SocialQueue
     public function items(): Collection
     {
         $items = $this->reelItems()->concat($this->growthItems())->concat($this->slideshowItems())->concat($this->radioItems())
+            ->concat(app(SocialVideos::class)->queueItems($this->since()))
             ->sortByDesc(fn ($item) => $item['created_at'])->values();
         $posted = self::ready()
             ? SocialQueuePost::whereIn('subject', $items->pluck('id'))->get()->groupBy('subject')
@@ -268,8 +271,8 @@ class SocialQueue
             return $show->youtube_video_id ? ['posted' => true, 'posted_at' => self::iso($show->youtube_uploaded_at), 'external_post_id' => $show->youtube_video_id,
                 'url' => $item['youtube_url'], 'source' => 'youtube_upload'] : null;
         }
-        if (isset($item['_slideshow']) || isset($item['_radio'])) {
-            return null; // The site never posted slideshows or radio videos itself.
+        if (isset($item['_slideshow']) || isset($item['_radio']) || isset($item['_video'])) {
+            return null; // The site never posted slideshows, radio or long videos itself.
         }
         if ($channel === 'youtube') {
             $match = $item['_match'] ?? null;
