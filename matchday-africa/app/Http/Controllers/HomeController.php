@@ -135,20 +135,7 @@ class HomeController extends Controller
                 $match->setAttribute('war_home',$this->warriorFor($match->homeTeam?->name));
                 $match->setAttribute('war_away',$this->warriorFor($match->awayTeam?->name));
             });
-            $todayTeamIds = $todaysMatches->flatMap(fn ($match) => [$match->home_team_id, $match->away_team_id])->filter()->unique();
-            $africanPlayersInFocus = \App\Support\AfricanScope::playersAt($todayTeamIds->all())->sortBy('name')->values()
-                ->filter(fn($player)=>data_get($player->metadata,'api_football_lineup.date')===$today
-                    || data_get($player->metadata,'api_football_stats.date')===$today)
-                ->take(18)->values();
-            $matchByTeam=$todaysMatches->mapWithKeys(fn($match)=>[$match->home_team_id=>$match,$match->away_team_id=>$match]);
-            $africanPlayersInFocus->each(function($player)use($matchByTeam,$today){
-                $player->setAttribute('focus_match',$matchByTeam->get($player->team_id));
-                $fresh=data_get($player->metadata,'api_football_stats.date')===$today;
-                $stats=$fresh?data_get($player->metadata,'api_football_stats.statistics',[]):[];
-                $player->setAttribute('focus_stats',$stats);
-                $rows=collect($stats)->flatMap(fn($values,$group)=>is_array($values)?collect($values)->filter(fn($value)=>$value!==null&&$value!=='')->map(fn($value,$label)=>['label'=>Str::headline($group).' · '.Str::headline($label),'value'=>is_bool($value)?($value?'Yes':'No'):$value]):[])->values();
-                $player->setAttribute('focus_stat_rows',$rows);
-            });
+            $africanPlayersInFocus = \App\Services\AfricanFocus::today($todaysMatches, $today);
 
             $followedTeams = collect();
             $personalMatches = collect();
