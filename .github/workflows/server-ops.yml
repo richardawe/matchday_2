@@ -10,7 +10,7 @@ on:
       action:
         description: What to run
         type: choice
-        options: [status, buffer-channels, configure-buffer, plan-posts, clear-drafts, reel-check, configure-reel, reel-render, configure-espn, espn-sync, reel-queue, configure-home, configure-challenge, configure-stream, configure-youtube, configure-growth, radio-check, configure-radio, configure-radio-model, configure-radio-voice, configure-griot, configure-reel-voice, configure-release, radio-run, radio-refresh, radio-status, radio-voice, radio-publish, radio-retry, slideshow-check, configure-slideshows]
+        options: [status, buffer-channels, configure-buffer, plan-posts, clear-drafts, reel-check, configure-reel, reel-render, configure-espn, espn-sync, reel-queue, configure-home, configure-challenge, configure-stream, configure-youtube, configure-growth, radio-check, configure-radio, configure-radio-model, configure-radio-voice, configure-griot, configure-reel-voice, configure-release, radio-run, radio-refresh, radio-status, radio-voice, radio-publish, radio-retry, slideshow-check, configure-slideshows, configure-radio-video]
         default: status
       channel_x:
         description: "configure-buffer: Buffer channel ID for X (blank = leave as is)"
@@ -47,7 +47,7 @@ on:
         description: "reel-queue: last Lagos date, YYYY-MM-DD"
         required: false
       home_v2:
-        description: "configure-home: the reels-first homepage. configure-challenge: Beat the Griot and the banter cards. configure-stream: the /stream screen (and fill player photos). configure-youtube: automatic YouTube broadcasts (also copies the YOUTUBE_CLIENT_* secrets). configure-slideshows: colour slideshows"
+        description: "configure-home: the reels-first homepage. configure-challenge: Beat the Griot and the banter cards. configure-stream: the /stream screen (and fill player photos). configure-youtube: automatic YouTube broadcasts (also copies the YOUTUBE_CLIENT_* secrets). configure-slideshows: colour slideshows. configure-radio-video: vertical videos of published radio editions"
         type: choice
         options: ["off", "on"]
         default: "off"

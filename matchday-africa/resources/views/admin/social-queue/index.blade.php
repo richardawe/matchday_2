@@ -23,7 +23,8 @@
   @foreach($items as $item)
    <tr id="{{ str_replace(':', '-', $item['id']) }}">
     <td>
-     <b>{{ ucfirst($item['type']) }}</b> <small><code>{{ $item['id'] }}</code></small>
+     <b>{{ $item['type'] === 'radio' ? 'Matchday Radio' : ucfirst($item['type']) }}</b> <small><code>{{ $item['id'] }}</code></small>
+     @if(!empty($item['edition']))<br>{{ $item['edition'] }}: {{ $item['title'] }}@endif
      @if($item['match'])
       <br><a href="{{ $item['match']['url'] }}" target="_blank" rel="noopener">{{ $item['match']['home'] }}@if($item['match']['score'] !== null) {{ $item['match']['score'] }} @else v @endif{{ $item['match']['away'] }}</a>
       <br><small>{{ $item['match']['competition'] }} · {{ $item['match']['kickoff_uk'] }}</small>
@@ -32,10 +33,12 @@
     </td>
     <td>
      @if($item['reel_url'])
-      Reel ({{ $item['reel_duration_seconds'] !== null ? rtrim(rtrim(number_format($item['reel_duration_seconds'], 1), '0'), '.').' s' : 'length unknown' }}):
+      {{ $item['type'] === 'reel' ? 'Reel' : 'Video' }} ({{ $item['reel_duration_seconds'] !== null ? rtrim(rtrim(number_format($item['reel_duration_seconds'], 1), '0'), '.').' s' : 'length unknown' }}):
       <br><input readonly value="{{ $item['reel_url'] }}" aria-label="Reel URL" onclick="this.select()" style="width:100%;min-width:14rem;font-family:monospace">
       <button type="button" data-copy="{{ $item['reel_url'] }}">Copy</button> <a href="{{ $item['reel_url'] }}" target="_blank" rel="noopener">Open</a>
      @endif
+     @if(in_array($item['type'], ['radio', 'slideshow'], true) && $item['reel_url'])<br><video controls preload="none" playsinline @if($item['image_url']) poster="{{ $item['image_url'] }}" @endif src="{{ $item['reel_url'] }}" style="width:9rem;aspect-ratio:9/16;background:#000;margin-top:.4rem"></video>@endif
+     @if(!empty($item['audio_url']))<br><a href="{{ $item['audio_url'] }}" target="_blank" rel="noopener">Radio mp3</a>@endif
      @if($item['youtube_url'])<br><a href="{{ $item['youtube_url'] }}" target="_blank" rel="noopener">YouTube Short</a>@endif
      @if($item['image_url'])<br><a href="{{ $item['image_url'] }}" target="_blank" rel="noopener">Card image</a>@endif
     </td>

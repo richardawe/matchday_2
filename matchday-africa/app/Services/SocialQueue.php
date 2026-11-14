@@ -20,7 +20,10 @@ use Throwable;
  *   - every other post the generator planned in growth_posts ("growth:<id>", the X row of each
  *     subject): previews, fixtures, results, Beat the Griot, banter and news;
  *   - every colour slideshow an editor has approved ("slideshow:<id>"), with its static mp4,
- *     per-platform captions, the landing page tagged per channel, and the music and photo credits.
+ *     per-platform captions, the landing page tagged per channel, and the music and photo credits;
+ *   - every published Matchday Radio edition whose vertical video is rendered ("radio:<id>"), with the
+ *     static mp4 and mp3, per-platform captions, the /listen page tagged utm_campaign=radio and the
+ *     AI/Kokoro disclosure. Holding (withdrawing) an edition drops it.
  * Each channel's posted state comes from social_queue_posts (the bot or an admin marks it), else
  * from what the site sent itself earlier (growth_posts) or, for YouTube, the Shorts upload.
  * The admin page (/admin/social-queue) and the API (/api/social-queue) both read this.
@@ -41,7 +44,7 @@ class SocialQueue
     /** Every item, newest first. */
     public function items(): Collection
     {
-        $items = $this->reelItems()->concat($this->growthItems())->concat($this->slideshowItems())
+        $items = $this->reelItems()->concat($this->growthItems())->concat($this->slideshowItems())->concat($this->radioItems())
             ->sortByDesc(fn ($item) => $item['created_at'])->values();
         $posted = self::ready()
             ? SocialQueuePost::whereIn('subject', $items->pluck('id'))->get()->groupBy('subject')
@@ -198,6 +201,45 @@ class SocialQueue
             })->filter()->values();
     }
 
+    /** Published radio editions with a ready vertical video (RadioVideo). */
+    private function radioItems(): Collection
+    {
+        if (!RadioVideo::columnsReady()) {
+            return collect();
+        }
+
+        return \App\Models\RadioBulletin::published()->where('video_status', 'ready')
+            ->where('published_at', '>=', $this->since()->copy()->setTimezone(config('app.timezone')))
+            ->get()
+            ->filter(fn ($b) => $b->videoReady() && $b->audioFile())
+            ->map(function (\App\Models\RadioBulletin $b) {
+                $video = self::https($b->videoUrl());
+                $captions = RadioVideo::captions($b);
+
+                return [
+                    'id' => "radio:{$b->id}",
+                    'type' => 'radio',
+                    'match' => null,
+                    'edition' => $b->editionLabel(),
+                    'title' => $b->title,
+                    'reel_url' => $video,
+                    'video_url' => $video,
+                    'audio_url' => self::https($b->audioUrl()),
+                    'reel_duration_seconds' => $b->video_seconds !== null ? round((float) $b->video_seconds, 1) : self::duration($b->publicVideoPath()),
+                    'youtube_url' => null,
+                    'image_url' => $b->posterUrl() ? self::https($b->posterUrl()) : null,
+                    'caption' => $captions['instagram'],
+                    'captions' => $captions,
+                    'page_url' => self::https(route('radio.show', $b)),
+                    'landing_url' => self::https(route('radio.show', $b)),
+                    'landing_urls' => RadioVideo::landingUrls($b),
+                    'disclosure' => (string) config('radio.disclosure'),
+                    'created_at' => $b->video_rendered_at ?? $b->published_at,
+                    '_radio' => $b,
+                ];
+            })->values();
+    }
+
     /** Adds the channels' posted state, cleans the caption and formats times; drops internals. */
     private function finish(array $item, Collection $marks): array
     {
@@ -210,7 +252,7 @@ class SocialQueue
         }
         $created = $item['created_at'];
 
-        return array_merge(array_diff_key($item, ['_match' => 1, '_growth' => 1, '_slideshow' => 1]), [
+        return array_merge(array_diff_key($item, ['_match' => 1, '_growth' => 1, '_slideshow' => 1, '_radio' => 1]), [
             'caption' => self::plain((string) $item['caption']),
             'created_at' => self::iso($created),
             'channels' => $channels,
@@ -226,8 +268,8 @@ class SocialQueue
             return $show->youtube_video_id ? ['posted' => true, 'posted_at' => self::iso($show->youtube_uploaded_at), 'external_post_id' => $show->youtube_video_id,
                 'url' => $item['youtube_url'], 'source' => 'youtube_upload'] : null;
         }
-        if (isset($item['_slideshow'])) {
-            return null; // The site never posted slideshows itself.
+        if (isset($item['_slideshow']) || isset($item['_radio'])) {
+            return null; // The site never posted slideshows or radio videos itself.
         }
         if ($channel === 'youtube') {
             $match = $item['_match'] ?? null;

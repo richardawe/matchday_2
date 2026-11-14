@@ -393,7 +393,7 @@ class SlideshowVideo
      * Runs ffmpeg with $chunks written to its stdin. Blocking writes keep only one frame in memory at a
      * time; ffmpeg's log goes to a temporary file so a full stderr pipe can never stall it.
      */
-    private function pipe(array $args, iterable $chunks): void
+    public function pipe(array $args, iterable $chunks, ?int $timeout = null): void
     {
         if ($this->factory) {
             $process = ($this->factory)($args);
@@ -416,7 +416,7 @@ class SlideshowVideo
         if (!is_resource($proc)) {
             throw new RuntimeException('Could not start ffmpeg.');
         }
-        $deadline = microtime(true) + (int) config('slideshow.timeout', 300);
+        $deadline = microtime(true) + ($timeout ?? (int) config('slideshow.timeout', 300));
         try {
             foreach ($chunks as $chunk) {
                 if (microtime(true) > $deadline) {

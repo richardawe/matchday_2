@@ -46,7 +46,7 @@ class RadioController extends Controller
 
     public function action(Request $request, RadioBulletin $bulletin, RadioService $radio)
     {
-        $action = $request->validate(['action' => 'required|in:voice,publish,hold,retry'])['action'];
+        $action = $request->validate(['action' => 'required|in:voice,publish,hold,retry,video'])['action'];
 
         return $this->change(function () use ($action, $bulletin, $radio) {
             $bulletin->refresh();
@@ -59,6 +59,9 @@ class RadioController extends Controller
             } elseif ($action === 'hold') {
                 abort_if($bulletin->status === 'processing', 409);
                 $bulletin->update(['status' => 'held']);
+            } elseif ($action === 'video') {
+                abort_unless($bulletin->status === 'published' && \App\Services\RadioVideo::ready() && $bulletin->video_status === 'failed', 409);
+                $bulletin->update(['video_status' => null, 'video_attempts' => 0, 'video_error' => null]);
             } else {
                 abort_unless($bulletin->status === 'failed', 409);
                 $bulletin->update(['status' => 'queued', 'attempts' => 0, 'failure_reason' => null]);

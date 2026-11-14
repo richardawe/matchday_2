@@ -107,6 +107,7 @@ php artisan schedule:list
 # the music are ready (information only; never stops a deploy).
 php artisan slideshow:music || echo "Slideshow music not in place yet (see the line above)."
 php artisan slideshow:render --check || echo "Slideshows are not ready to render yet (see the line above)."
+php artisan radio:video --check || echo "Radio videos cannot render yet (see the line above)."
 
 echo "Restarting queue workers..."
 php artisan queue:restart

@@ -11,7 +11,7 @@ class RadioBulletin extends Model
 
     protected $casts = [
         'facts' => 'array', 'segments' => 'array', 'audio_cues' => 'array',
-        'recorded_at' => 'datetime', 'published_at' => 'datetime',
+        'recorded_at' => 'datetime', 'published_at' => 'datetime', 'video_rendered_at' => 'datetime', 'video_seconds' => 'float',
     ];
 
     public static function available(): bool
@@ -68,6 +68,42 @@ class RadioBulletin extends Model
         }
 
         return route('radio.audio', $this);
+    }
+
+    /** The vertical video's static file in the web root (served with byte ranges, like reels and slideshows). */
+    public function publicVideoPath(): string
+    {
+        return public_path('generated/radio/'.$this->id.'/radio.mp4');
+    }
+
+    public function publicPosterPath(): string
+    {
+        return public_path('generated/radio/'.$this->id.'/poster.jpg');
+    }
+
+    /** True when the video rendered and its static file is still there. */
+    public function videoReady(): bool
+    {
+        return $this->video_status === 'ready' && is_file($this->publicVideoPath())
+            && (!$this->video_bytes || filesize($this->publicVideoPath()) === (int) $this->video_bytes);
+    }
+
+    public function videoUrl(): ?string
+    {
+        return $this->videoReady() ? asset('generated/radio/'.$this->id.'/radio.mp4') : null;
+    }
+
+    public function posterUrl(): ?string
+    {
+        return $this->videoReady() && is_file($this->publicPosterPath()) ? asset('generated/radio/'.$this->id.'/poster.jpg') : null;
+    }
+
+    /** "Saturday midday edition" from the Lagos slot. */
+    public function editionLabel(): string
+    {
+        $slot = $this->slotTime();
+
+        return $slot->format('l').' '.match ($slot->hour) { 6 => 'morning', 12 => 'midday', 18 => 'evening', default => $slot->format('H:i') }.' edition';
     }
 
     public function getDurationLabelAttribute(): string
