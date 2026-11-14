@@ -50,6 +50,11 @@ Route::get('/sitemap.xml', App\Http\Controllers\SitemapController::class)->name(
 Route::post('/subscribe', [App\Http\Controllers\EmailSubscriptionController::class, 'store'])->middleware('throttle:6,1')->name('subscribe');
 Route::get('/unsubscribe/{token}', [App\Http\Controllers\EmailSubscriptionController::class, 'unsubscribe'])->where('token', '[A-Za-z0-9]{20,64}')->name('unsubscribe');
 
+// /start: the one landing page for social bios (see StartController); old bio links redirect with their UTM tags.
+Route::get('/start', [App\Http\Controllers\StartController::class, 'show'])->name('start');
+Route::get('/tiktok', [App\Http\Controllers\StartController::class, 'alias']);
+Route::get('/watch', [App\Http\Controllers\StartController::class, 'alias']);
+
 Route::get('/listen', [App\Http\Controllers\RadioController::class, 'index'])->name('radio.index');
 // Matchday Live: the vertical screen YouTube/TikTok live streams show (STREAM_PAGE).
 Route::get('/stream', [App\Http\Controllers\StreamController::class, 'show'])->name('stream.show');

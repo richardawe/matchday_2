@@ -10,9 +10,18 @@
             <h1 id="reel-title">{{ $reel['title'] }}</h1>
             <p class="md-reels-now">Every goal and red card from {{ $match->homeTeam?->name }} v {{ $match->awayTeam?->name }}, told in twenty seconds minutes after the final whistle.</p>
             <div class="md-home-actions">
-                <a class="md-primary" href="{{ $reel['link'] }}">Full story and stats</a>
+                @if($cta)
+                    <a class="md-primary" href="{{ $cta['href'] }}">{{ $cta['label'] }}</a>
+                    <a class="md-secondary" href="{{ $reel['link'] }}">Full story and stats</a>
+                @else
+                    <a class="md-primary" href="{{ $reel['link'] }}">Full story and stats</a>
+                @endif
                 <a class="md-secondary" href="{{ $reel['video'] }}" download>Save the video</a>
             </div>
+            @if($cta)<p class="md-reels-now">No account needed to make your call. Sign up to save your picks and get match alerts.</p>@endif
+            @guest
+                @include('partials.signup-options', ['return' => $cta['href'] ?? route('reels.show', $match, false)])
+            @endguest
             <x-share-bar :url="$reel['page']" :text="'Watch '.$reel['title'].' in 20 seconds.'" campaign="reel" />
             @if($more->isNotEmpty())
                 <p class="md-eyebrow">MORE REELS</p>

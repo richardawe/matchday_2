@@ -335,3 +335,16 @@ body.md-cartoon footer{background:var(--c-surface)!important}
 .md-cartoon .md-roster-table th,.md-cartoon .md-roster-table td{border-bottom-color:var(--c-ink)}
 @media (max-width: 640px){.md-cartoon .md-roster-table tr{border-bottom-color:var(--c-ink)}}
 .md-cartoon .md-fixture-list li{border-bottom-color:var(--c-ink)}
+.md-cartoon .md-start{background:var(--c-surface)}
+.md-cartoon .md-start h1{font-family:var(--c-display);font-weight:400}
+.md-cartoon .md-start-intro{color:var(--c-ink)}
+.md-cartoon .md-start-action{background:var(--c-surface)}
+.md-cartoon .md-start-alerts input[type=email]{background:var(--c-surface);border-color:var(--c-ink)}
+.md-cartoon .md-start-error{color:var(--c-ink)}
+.md-cartoon .md-start-done{color:var(--c-ink)}
+.md-cartoon .md-start-section{background:var(--c-surface)}
+.md-cartoon .md-start-section h2{font-family:var(--c-display);font-weight:400}
+.md-cartoon .md-start-players a{background:var(--c-surface)}
+.md-cartoon .md-start-players img,.md-cartoon .md-start-initial{background:var(--c-surface);font-family:var(--c-display);font-weight:400}
+.md-cartoon .md-start-fixtures a{background:var(--c-surface)}
+.md-cartoon .md-start-radio{background:var(--c-surface)}
