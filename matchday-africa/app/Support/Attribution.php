@@ -17,7 +17,7 @@ class Attribution
     public const COOKIE = 'md_attr';
     public const SESSION = 'md_attr';
     public const MINUTES = 60 * 24 * 90;
-    private const FIELDS = ['utm_source' => 100, 'utm_medium' => 100, 'utm_campaign' => 150];
+    public const FIELDS = ['utm_source' => 100, 'utm_medium' => 100, 'utm_campaign' => 150, 'utm_content' => 150];
 
     /**
      * www.matchday.africa and matchday.africa do not share a host-only cookie, and the
@@ -76,10 +76,15 @@ class Attribution
     /** Attribution columns for a new user, if the migration has run. */
     public static function forUser(?Request $request = null): array
     {
-        static $ready = null;
+        static $ready = null, $content = null;
         $ready ??= Schema::hasColumn('users', 'utm_source');
+        if (!$ready) {
+            return [];
+        }
+        $content ??= Schema::hasColumn('users', 'utm_content');
+        $touch = self::read($request);
 
-        return $ready ? self::read($request) : [];
+        return $content ? $touch : array_diff_key($touch, ['utm_content' => true]);
     }
 
     /** A readable source label: the UTM source, else the referring host, else "direct". */
