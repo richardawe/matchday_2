@@ -5,6 +5,9 @@
  <description>Football bulletins at 6am, noon and 6pm WAT. {{ config('radio.disclosure') }}</description>
  <atom:link href="{{ route('radio.feed') }}" rel="self" type="application/rss+xml" />
  <itunes:author>Matchday Africa</itunes:author><itunes:explicit>false</itunes:explicit>
+ @if(config('radio.cover') && is_file(public_path(config('radio.cover'))))<image><url>{{ asset(config('radio.cover')) }}</url><title>Matchday Africa Radio</title><link>{{ route('radio.index') }}</link></image>
+ <itunes:image href="{{ asset(config('radio.cover')) }}" />@endif
+ @if(config('radio.owner_email'))<itunes:owner><itunes:name>Matchday Africa</itunes:name><itunes:email>{{ config('radio.owner_email') }}</itunes:email></itunes:owner>@endif
  <itunes:category text="Sports"><itunes:category text="Soccer" /></itunes:category>
  @foreach($editions as $edition)
  <item><title>{{ $edition->title }} — {{ $edition->recorded_at->copy()->timezone('Africa/Lagos')->format('j M Y H:i') }} WAT</title>

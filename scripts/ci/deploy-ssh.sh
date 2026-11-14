@@ -322,6 +322,15 @@ elif [[ "$mode" == configure-slideshows ]]; then
         *) echo "home_v2 (the on/off switch) must be on or off."; exit 1 ;;
     esac
     printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php artisan migrate --force --no-ansi && php scripts/set-env.php && php artisan config:cache --no-ansi$after"
+elif [[ "$mode" == configure-radio-video ]]; then
+    # RADIO_VIDEO_ENABLED via the home_v2 on/off input (the workflow is at GitHub's 25-input limit):
+    # the vertical video of each published radio edition for the social queue. Migrates and checks ffmpeg.
+    case "${INPUT_HOME_V2:-}" in
+        on) json='{"RADIO_VIDEO_ENABLED":"true"}' ;;
+        off) json='{"RADIO_VIDEO_ENABLED":"false"}' ;;
+        *) echo "home_v2 (the on/off switch) must be on or off."; exit 1 ;;
+    esac
+    printf '%s' "$json" | ssh "${ssh_options[@]}" "$target" "cd $root && php artisan migrate --force --no-ansi && php scripts/set-env.php && php artisan config:cache --no-ansi && php artisan radio:video --check --no-ansi"
 elif [[ "$mode" == configure-stream ]]; then
     # The Matchday Live screen (/stream, STREAM_PAGE), via the home_v2 on/off input (the workflow is at
     # GitHub's 25-input limit). Turning it on also fills the Premier League's player photos once.

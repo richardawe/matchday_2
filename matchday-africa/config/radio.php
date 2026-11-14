@@ -18,5 +18,19 @@ return [
     'timeout' => 1200,
     'max_attempts' => 3,
     'bitrate' => 24,
+    // Vertical 1080x1920 video of each published edition for the social queue (radio:video, RADIO_VIDEO_ENABLED).
+    // Only editions longer than min_seconds are rendered (TikTok counts long posts from 60 s up).
+    'video' => [
+        'enabled' => (bool) env('RADIO_VIDEO_ENABLED', false),
+        'min_seconds' => 60,
+        'fps' => 30,
+        'size' => [1080, 1920],
+        'max_attempts' => 3,
+        'days' => 3,           // only editions published in the last N days are rendered
+        'timeout' => 900,
+    ],
+    // Podcast directory details for /listen/feed.xml: a crest-free square cover and the public contact from the site footer.
+    'cover' => 'images/radio/cover.png',
+    'owner_email' => env('RADIO_OWNER_EMAIL', 'info@3d7tech.com'),
     'disclosure' => 'This bulletin is written with AI and voiced using Kokoro, with synthesised music and sound effects. Scores and reports reflect the sources available at recording time.',
 ];

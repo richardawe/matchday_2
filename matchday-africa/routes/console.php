@@ -42,6 +42,8 @@ Schedule::command('news:publish-daily --limit=1')->dailyAt('16:30')->withoutOver
 // Three daily editions, not four: no midnight bulletin. Worker also services admin drafts.
 Schedule::command('radio:edition')->cron('0 6,12,18 * * *')->timezone('Africa/Lagos')->withoutOverlapping(5)->name('radio-editions');
 Schedule::command('radio:work')->everyMinute()->withoutOverlapping(30)->runInBackground()->name('radio-worker');
+// Vertical video of each published edition for the social queue (RADIO_VIDEO_ENABLED; one edition a run).
+Schedule::command('radio:video')->everyMinute()->withoutOverlapping(30)->runInBackground()->name('radio-video');
 // Beat the Griot: plan the next round's three calls, remind, score and draw the winners (GRIOT_CHALLENGE).
 // YouTube LIVE: a broadcast per matchday (YOUTUBE_AUTO) and ending finished ones; quiet until /admin/youtube is connected.
 Schedule::command('youtube:broadcasts')->everyTenMinutes()->withoutOverlapping(10)->name('youtube-broadcasts');
