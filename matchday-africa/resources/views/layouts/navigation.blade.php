@@ -108,6 +108,9 @@
                             <x-dropdown-link :href="route('admin.social-media.index')">
                                 {{ __('📣 Social media') }}
                             </x-dropdown-link>
+                            <x-dropdown-link :href="route('admin.videos.index')">
+                                {{ __('🎥 Long videos') }}
+                            </x-dropdown-link>
                             <x-dropdown-link :href="route('admin.social-queue.index')">
                                 {{ __('📤 Social queue') }}
                             </x-dropdown-link>
@@ -252,6 +255,9 @@
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.social-media.index')">
                         {{ __('📣 Social media') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('admin.videos.index')">
+                        {{ __('🎥 Long videos') }}
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.social-queue.index')">
                         {{ __('📤 Social queue') }}

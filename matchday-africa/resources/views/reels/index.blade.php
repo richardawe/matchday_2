@@ -3,6 +3,7 @@
 @section('meta_description', 'Every Premier League match told in 20 seconds, minutes after the final whistle. Watch, then share to WhatsApp Status, TikTok or Reels.')
 @section('content')
 <section class="md-phase"><div class="md-wrap">
+    @include('partials.featured-videos', ['featured' => $featured ?? collect()])
     <p class="md-eyebrow">THE 20-SECOND REELS</p>
     <h1>Every match, told in twenty seconds.</h1>
     <p class="md-lead">Premier League reels made minutes after each final whistle. Sized for WhatsApp Status, TikTok and Reels.</p>

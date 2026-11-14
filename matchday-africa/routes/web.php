@@ -127,6 +127,7 @@ Route::get('/matches/{match}/reel.mp4', [App\Http\Controllers\ReelController::cl
 Route::get('/matches/{match}/reel.jpg', [App\Http\Controllers\ReelController::class, 'poster'])->name('matches.reel-poster');
 Route::get('/reels', [App\Http\Controllers\ReelPageController::class, 'index'])->name('reels.index');
 Route::get('/slideshows/{slideshow}', [App\Http\Controllers\SlideshowPageController::class, 'show'])->whereNumber('slideshow')->name('slideshows.show');
+Route::get('/reels/videos/{video}', [App\Http\Controllers\SocialVideoPageController::class, 'show'])->whereNumber('video')->name('reels.video');
 Route::get('/reels/{match}', [App\Http\Controllers\ReelPageController::class, 'show'])->name('reels.show');
 Route::get('/reels/{match}/props', [App\Http\Controllers\ReelController::class, 'props'])->middleware('signed')->name('reels.props');
 Route::get('/moments/{moment}/card/{voice}/{format}.png', [App\Http\Controllers\MomentCardController::class, 'show'])
