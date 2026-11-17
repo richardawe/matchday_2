@@ -1,0 +1,439 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\FootballMatch;
+use App\Models\League;
+use App\Models\MatchEvent;
+use App\Models\Player;
+use App\Models\RadioBulletin;
+use App\Models\Standing;
+use App\Models\StoryVideo;
+use App\Models\Team;
+use App\Services\SocialQueue;
+use App\Services\Story\StoryFrames;
+use App\Services\Story\StoryPlanner;
+use App\Services\Story\StoryText;
+use App\Services\Story\StoryVideos;
+use App\Support\XText;
+use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use Symfony\Component\Process\Process;
+use Tests\TestCase;
+
+class StoryVideoTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private const TOKEN = 'story-test-token-0123456789-abcdefghijklmnop';
+
+    private League $pl;
+
+    private array $dirs = [];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->travelTo(Carbon::parse('2026-11-15 17:10:00', 'UTC')->setTimezone('Africa/Lagos'));
+        config(['app.url' => 'https://matchday.africa', 'story.enabled' => true, 'story.music.paths' => [],
+            'slideshow.commons.enabled' => false, 'social.queue_token' => self::TOKEN, 'social.autopost_enabled' => false,
+            'radio.enabled' => true, 'radio.video.enabled' => false]);
+        Http::preventStrayRequests();
+        $this->pl = League::create(['football_data_id' => 2021, 'short_code' => 'PL', 'name' => 'Premier League']);
+    }
+
+    protected function tearDown(): void
+    {
+        foreach ($this->dirs as $dir) {
+            File::deleteDirectory($dir);
+        }
+        foreach (StoryVideo::pluck('id') as $id) {
+            File::deleteDirectory(public_path("generated/stories/{$id}"));
+            File::deleteDirectory(storage_path("app/stories/{$id}"));
+        }
+        parent::tearDown();
+    }
+
+    public function test_a_finished_match_renders_a_61_to_75_second_story_into_the_social_queue(): void
+    {
+        $this->needsFfmpeg();
+        config(['story.fps' => 6]); // the full 30 fps render is covered by the timing test below; this keeps the suite quick
+        $match = $this->richMatch();
+        $this->photo($this->iwobi);
+
+        $this->artisan('story:render')->assertSuccessful();
+
+        $story = StoryVideo::where('match_id', $match->id)->firstOrFail();
+        $this->assertSame('ready', $story->status, (string) $story->error);
+        $file = $story->publicVideoPath();
+        $this->assertFileExists($file);
+        $this->assertFileExists($story->publicCoverPath());
+        $seconds = SocialQueue::mp4Seconds($file);
+        $this->assertGreaterThanOrEqual(61.0, $seconds);
+        $this->assertLessThanOrEqual(75.0, $seconds);
+        $probe = new Process(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_name,width,height,pix_fmt', '-of', 'json', $file]);
+        $probe->mustRun();
+        $streams = collect(json_decode($probe->getOutput(), true)['streams']);
+        $video = $streams->firstWhere('codec_name', 'h264');
+        $this->assertSame([1080, 1920, 'yuv420p'], [$video['width'], $video['height'], $video['pix_fmt']]);
+        $this->assertNotNull($streams->firstWhere('codec_name', 'aac'));
+
+        // The public URL is a static file: 200 video/mp4.
+        $response = $this->get("/generated/stories/{$story->id}/story.mp4");
+        $response->assertOk();
+        $response->baseResponse->prepare(\Illuminate\Http\Request::create("/generated/stories/{$story->id}/story.mp4"));
+        $this->assertSame('video/mp4', $response->baseResponse->headers->get('Content-Type'));
+
+        // The photo credit and the hook are stored; the featured player is the African one.
+        $this->assertSame('Alex Iwobi', data_get($story->facts, 'featured_player'));
+        $this->assertSame('Jane Doe / Wikimedia Commons / CC BY-SA 4.0', $story->photo['credit']);
+        $this->assertSame('Late drama! Alex Iwobi levels it in the 89th minute', $story->hookLine());
+
+        // The social queue item.
+        $item = collect($this->withToken(self::TOKEN)->getJson('/api/social-queue')->assertOk()->json('items'))->firstWhere('id', "story:{$story->id}");
+        $this->assertSame('match_story', $item['type']);
+        $this->assertSame('ready', $item['status']);
+        $this->assertSame($story->hookLine(), $item['hook']);
+        $this->assertEqualsWithDelta($seconds, $item['duration_seconds'], 0.2);
+        $this->assertSame("https://matchday.africa/generated/stories/{$story->id}/story.mp4", $item['video_url']);
+        $this->assertStringEndsWith('/cover.jpg', $item['cover_url']);
+        $this->assertSame('Jane Doe / Wikimedia Commons / CC BY-SA 4.0', $item['photo_credit']);
+        $this->assertSame(['tiktok', 'instagram', 'x', 'youtube'], array_keys($item['captions']));
+        foreach (['tiktok', 'instagram', 'x', 'youtube'] as $channel) {
+            $this->assertStringContainsString("utm_source={$channel}&utm_medium=social&utm_campaign=story&utm_content=match-{$match->id}", $item['captions'][$channel]);
+            $this->assertStringContainsString('#MatchdayAfrica', $item['captions'][$channel]);
+        }
+        $this->assertLessThanOrEqual(280, XText::length($item['captions']['x']));
+        $this->assertStringContainsString('Photo: Jane Doe', $item['captions']['instagram']);
+        $this->assertStringContainsString("89' Alex Iwobi", $item['captions']['tiktok']);
+        $this->assertSame('Arsenal', $item['match']['home']);
+
+        // The bot marks it posted like any other item.
+        $this->withToken(self::TOKEN)->postJson("/api/social-queue/story:{$story->id}/posted", ['channel' => 'tiktok', 'external_post_id' => 't1'])
+            ->assertOk()->assertJsonPath('channels.tiktok.posted', true);
+    }
+
+    public function test_a_full_30_fps_story_draws_fast_enough_for_the_ten_minute_window(): void
+    {
+        $match = $this->richMatch();
+        $plan = app(StoryPlanner::class)->plan($match);
+        $frames = app(StoryFrames::class);
+        $started = microtime(true);
+        $n = 0;
+        // Ten seconds of the real timeline at 30 fps.
+        $beats = [];
+        $at = 0.0;
+        foreach ($plan['beats'] as $beat) {
+            if ($at >= 10) {
+                break;
+            }
+            $beats[] = ['start' => $at] + $beat;
+            $at += $beat['seconds'];
+        }
+        foreach ($frames->frames($beats, 30) as $jpeg) {
+            $n++;
+        }
+        $perFrame = (microtime(true) - $started) / max(1, $n);
+        // 75 s at 30 fps must draw well inside the window, leaving room for x264 and other matches.
+        $this->assertLessThan(0.12, $perFrame, sprintf('%.0f ms a frame', $perFrame * 1000));
+    }
+
+    public function test_every_story_lasts_61_to_75_seconds_with_cuts_of_3_to_5_seconds(): void
+    {
+        // A goalless match with no history, stats or table: padded with verified recaps.
+        $quiet = $this->match('Burnley', 'Brentford', [0, 0]);
+        // A nine-goal match with red cards: shrunk, optional beats dropped.
+        $wild = $this->match('Spurs', 'Leeds', [6, 3]);
+        foreach ([[19, 'home'], [22, 'away'], [30, 'home'], [35, 'home'], [44, 'away'], [51, 'home'], [60, 'home'], [77, 'away'], [88, 'home']] as $i => [$min, $side]) {
+            $this->event($wild, 'goal', $side, $min, 'Player '.$i);
+        }
+        $this->event($wild, 'red_card', 'away', 70, 'Defender');
+        $this->event($wild, 'red_card', 'home', 81, 'Midfielder');
+        $this->standings($wild, 4, 18);
+
+        foreach ([$quiet, $wild, $this->richMatch()] as $match) {
+            $plan = app(StoryPlanner::class)->plan($match);
+            $total = array_sum(array_column($plan['beats'], 'seconds'));
+            $this->assertGreaterThanOrEqual(61, $total, "match {$match->id}");
+            $this->assertLessThanOrEqual(75, $total, "match {$match->id}");
+            $this->assertSame('hook', $plan['beats'][0]['type']);
+            $this->assertEquals(3.0, $plan['beats'][0]['seconds']);
+            $this->assertSame('close', end($plan['beats'])['type']);
+            foreach ($plan['beats'] as $beat) {
+                $this->assertGreaterThanOrEqual(3.0, $beat['seconds'], $beat['type']);
+                $this->assertLessThanOrEqual(5.0, $beat['seconds'], $beat['type']);
+            }
+            // Every goal and red card has its own beat.
+            $events = MatchEvent::where('match_id', $match->id)->count();
+            $this->assertSame($events, collect($plan['beats'])->whereIn('type', ['goal', 'red'])->count());
+            // And every cut lays out inside the TikTok safe zone (scene() throws otherwise).
+            foreach ($plan['beats'] as $beat) {
+                [$bg, $items] = app(StoryFrames::class)->scene($beat);
+                imagedestroy($bg);
+                foreach ($items as $item) {
+                    if ($item['text'] !== '') {
+                        $this->assertGreaterThanOrEqual(150, $item['top']);
+                        $this->assertLessThanOrEqual(1540, $item['bottom']);
+                        $this->assertLessThanOrEqual(940, $item['x'] + $item['width']);
+                    }
+                }
+            }
+        }
+        $quietPlan = app(StoryPlanner::class)->plan($quiet);
+        $this->assertTrue(collect($quietPlan['beats'])->contains('padding', true));
+        $this->assertSame('Ninety minutes, zero goals. The nets stayed dry.', $quietPlan['banter']);
+        $this->assertSame('Down to ten: Defender sent off', app(StoryPlanner::class)->plan($wild)['hook']);
+    }
+
+    public function test_hooks_come_from_the_data(): void
+    {
+        $planner = app(StoryPlanner::class);
+        $brace = $this->match('Arsenal', 'Wolves', [2, 0]);
+        $this->event($brace, 'goal', 'home', 12, 'Bukayo Saka');
+        $this->event($brace, 'goal', 'home', 70, 'Bukayo Saka');
+        $this->assertSame('Brace for Bukayo Saka', $planner->plan($brace)['hook']);
+
+        $red = $this->match('Everton', 'Fulham', [1, 0]);
+        $this->event($red, 'goal', 'home', 30, 'Iliman Ndiaye');
+        $this->event($red, 'red_card', 'away', 50, 'Calvin Bassey');
+        $this->assertSame('Down to ten: Calvin Bassey sent off', $planner->plan($red)['hook']);
+
+        $upset = $this->match('Burnley', 'Liverpool', [1, 0]);
+        $this->event($upset, 'goal', 'home', 30, 'Lyle Foster');
+        $this->standings($upset, 19, 1);
+        $this->assertSame('Upset! 19th-placed Burnley beat Liverpool', $planner->plan($upset)['hook']);
+
+        $winner = $this->match('Brighton', 'Villa', [2, 1]);
+        $this->event($winner, 'goal', 'home', 10, 'Danny Welbeck');
+        $this->event($winner, 'goal', 'away', 60, 'Ollie Watkins');
+        $this->event($winner, 'goal', 'home', 90, 'Kaoru Mitoma', extra: 4);
+        $this->assertSame('Kaoru Mitoma wins it in stoppage time (90+4)', $planner->plan($winner)['hook']);
+
+        // An editor's hook and banter replace the generated ones on screen, not in the record.
+        $plan = $planner->plan($brace, 'en', 'Saka on fire', 'Wolves, call a taxi');
+        $this->assertSame('Saka on fire', $plan['beats'][0]['line']);
+        $this->assertSame('Wolves, call a taxi', collect($plan['beats'])->firstWhere('type', 'banter')['line']);
+        $this->assertSame('Brace for Bukayo Saka', $plan['hook']);
+    }
+
+    public function test_french_puts_the_on_screen_text_and_captions_in_french(): void
+    {
+        $match = $this->richMatch();
+        $plan = app(StoryPlanner::class)->plan($match, 'fr');
+        $this->assertSame('Fin de match folle ! Alex Iwobi égalise à la 89e minute', $plan['hook']);
+        $this->assertSame('BUT', StoryText::for('fr')->t('goal'));
+        $this->assertSame('Abonnez-vous pour la suite', end($plan['beats'])['follow']);
+        $this->assertSame('L\'enjeu', $plan['beats'][1]['title']);
+
+        $story = StoryVideo::create(['kind' => 'match_story', 'match_id' => $match->id, 'lang' => 'fr', 'status' => 'ready',
+            'generated_hook' => $plan['hook'], 'facts' => $plan['facts'] + ['question' => $plan['question']]]);
+        $captions = app(StoryVideos::class)->captions($story->fresh('match'));
+        $this->assertStringContainsString('Fin du match : Arsenal 2-2 Chelsea (Premier League).', $captions['instagram']);
+        $this->assertStringContainsString('utm_campaign=story', $captions['x']);
+    }
+
+    public function test_finished_matches_are_queued_after_full_time_and_only_while_switched_on(): void
+    {
+        $match = $this->richMatch();
+        $other = League::create(['football_data_id' => 2015, 'short_code' => 'FL1', 'name' => 'Ligue 1']);
+        $french = $this->match('Lyon', 'Lens', [1, 1], league: $other);
+        $live = $this->match('Bournemouth', 'Wolves', [0, 0]);
+        $live->update(['status' => 'IN_PLAY']);
+
+        config(['story.enabled' => false]);
+        $this->artisan('story:render')->expectsOutputToContain('off')->assertSuccessful();
+        $this->assertSame(0, StoryVideo::count());
+
+        config(['story.enabled' => true]);
+        $added = app(StoryVideos::class)->queueFinished();
+        $this->assertSame(1, $added);
+        $story = StoryVideo::firstOrFail();
+        $this->assertSame([$match->id, 'pending', 'auto', 'en'], [$story->match_id, $story->status, $story->source, $story->lang]);
+        $this->assertSame(0, StoryVideo::where('match_id', $french->id)->count());
+        // Queued once only.
+        $this->assertSame(0, app(StoryVideos::class)->queueFinished());
+
+        // A story drawn before a late VAR change is drawn again, once.
+        $story->update(['status' => 'ready', 'rendered_at' => now(), 'fingerprint' => 'old']);
+        $this->assertSame(1, app(StoryVideos::class)->queueFinished());
+        $this->assertSame(['pending', 1], [$story->fresh()->status, $story->fresh()->refreshes]);
+        $story->update(['status' => 'ready', 'rendered_at' => now(), 'fingerprint' => 'old again']);
+        $this->assertSame(0, app(StoryVideos::class)->queueFinished());
+    }
+
+    public function test_renders_run_in_parallel_up_to_the_concurrency_and_failures_retry(): void
+    {
+        config(['story.concurrency' => 2]);
+        $a = app(StoryVideos::class)->request('match_story', $this->match('A', 'B', [1, 0])->id);
+        $b = app(StoryVideos::class)->request('match_story', $this->match('C', 'D', [1, 0])->id);
+        $c = app(StoryVideos::class)->request('match_story', $this->match('E', 'F', [1, 0])->id);
+        $this->assertSame($a->id, app(StoryVideos::class)->claimNext()->id);
+        $this->assertSame($b->id, app(StoryVideos::class)->claimNext()->id);
+        $this->assertNull(app(StoryVideos::class)->claimNext());
+        $a->update(['status' => 'failed', 'error' => 'x', 'updated_at' => now()->subMinutes(5)]);
+        $this->assertSame($c->id, app(StoryVideos::class)->claimNext()->id);
+        StoryVideo::whereKey($b->id)->update(['status' => 'failed', 'updated_at' => now()->subMinutes(5)]);
+        StoryVideo::whereKey($c->id)->update(['status' => 'ready']);
+        $this->assertContains(app(StoryVideos::class)->claimNext()->id, [$a->id, $b->id]);
+    }
+
+    public function test_a_radio_edition_gets_a_radio_video_with_its_own_audio_and_replaces_the_radio_queue_item(): void
+    {
+        $this->needsFfmpeg();
+        config(['story.fps' => 5]);
+        $player = $this->iwobiAt(Team::firstOrCreate(['name' => 'Fulham']));
+        $this->photo($player);
+        $b = $this->edition(64, "Alex Iwobi scored again for Fulham on Saturday, his fourth goal of the season.");
+
+        $story = app(StoryVideos::class)->request('radio_video', $b->id, 'en', [], 'api');
+        $this->assertTrue(app(StoryVideos::class)->render($story));
+
+        $story->refresh();
+        $this->assertSame('ready', $story->status, (string) $story->error);
+        $this->assertEqualsWithDelta(64.0, SocialQueue::mp4Seconds($story->publicVideoPath()), 0.6);
+        $this->assertSame($player->id, $story->player_id);
+        $this->assertSame('Jane Doe / Wikimedia Commons / CC BY-SA 4.0', $story->photo['credit']);
+        $this->assertNull($story->music);
+        $items = collect($this->withToken(self::TOKEN)->getJson('/api/social-queue')->json('items'));
+        $item = $items->firstWhere('id', "story:{$story->id}");
+        $this->assertSame('radio_video', $item['type']);
+        $this->assertStringContainsString('utm_campaign=story', $item['captions']['tiktok']);
+        $this->assertStringContainsString((string) config('radio.disclosure'), $item['captions']['instagram']);
+        $this->assertNull($items->firstWhere('id', "radio:{$b->id}"));
+    }
+
+    public function test_radio_captions_are_drawn_word_by_word_and_cover_the_whole_edition(): void
+    {
+        $b = $this->edition(64, 'Short news.', real: false);
+        $scenes = app(\App\Services\RadioVideo::class)->scenes($b, 64.0);
+        $beat = ['type' => 'radio', 'start' => 0, 'seconds' => 4.0, 'caption' => 'Arsenal beat Chelsea two one at the Emirates',
+            'title' => 'Arsenal 2-1 Chelsea', 'edition' => 'Saturday midday edition', 'photo' => null, 'art' => null, 'lang' => 'en', 'sides' => null];
+        [$bg, $items] = app(StoryFrames::class)->scene($beat);
+        imagedestroy($bg);
+        $words = collect($items)->filter(fn ($i) => in_array($i['text'], ['Arsenal', 'beat', 'Chelsea', 'Emirates'], true));
+        $this->assertCount(4, $words);
+        $this->assertTrue($words->pluck('delay')->sort()->values()->all() === $words->pluck('delay')->values()->all());
+        $this->assertEqualsWithDelta(64.0, end($scenes)['end'], 0.001);
+    }
+
+    public function test_silence_is_a_valid_wav_and_music_is_looped_and_normalised(): void
+    {
+        $file = storage_path('app/testing/silence.wav');
+        File::ensureDirectoryExists(dirname($file));
+        StoryVideos::writeSilence($file, 2.0);
+        $this->assertSame('RIFF', substr((string) file_get_contents($file), 0, 4));
+        $this->assertSame(44 + 3 * 24000 * 2, filesize($file));
+        File::delete($file);
+
+        $args = app(StoryVideos::class)->args('/music.mp3', true, 68.0, '/out.mp4');
+        $this->assertSame('-stream_loop', $args[array_search('/music.mp3', $args, true) - 3]);
+        $this->assertStringContainsString('loudnorm=I=-14', $args[array_search('-af', $args, true) + 1]);
+        $this->assertSame('68', $args[array_search('-t', $args, true) + 1]);
+        $this->assertNotContains('-stream_loop', app(StoryVideos::class)->args('/radio.mp3', false, 68.0, '/out.mp4'));
+    }
+
+    // ------------------------------------------------------------------ fixtures
+
+    private Player $iwobi;
+
+    /** Arsenal 2-2 Chelsea: goals with assists, a red card, a late equaliser by an African player, stats, table, history, next fixtures. */
+    private function richMatch(): FootballMatch
+    {
+        $match = $this->match('Arsenal', 'Chelsea', [2, 2]);
+        $match->update(['home_possession' => 58, 'away_possession' => 42, 'home_shots' => 14, 'away_shots' => 9,
+            'home_shots_on_target' => 6, 'away_shots_on_target' => 3, 'home_corners' => 7, 'away_corners' => 2,
+            'venue_name' => 'Emirates Stadium', 'referee_name' => 'Michael Oliver', 'attendance' => 60112, 'home_score_ht' => 1, 'away_score_ht' => 0]);
+        $this->iwobi = $this->iwobiAt($match->awayTeam);
+        $this->event($match, 'goal', 'home', 23, 'Bukayo Saka', 'Martin Ødegaard');
+        $this->event($match, 'red_card', 'away', 55, 'Moisés Caicedo');
+        $this->event($match, 'goal', 'away', 61, 'Cole Palmer');
+        $this->event($match, 'goal', 'home', 77, 'Kai Havertz');
+        $this->event($match, 'goal', 'away', 89, 'Alex Iwobi', 'Cole Palmer');
+        $this->standings($match, 2, 7);
+        $old = $this->match('Chelsea', 'Arsenal', [0, 1], when: '2026-03-01 15:00:00');
+        $old->update(['status' => 'FINISHED']);
+        FootballMatch::create(['league_id' => $this->pl->id, 'home_team_id' => $match->home_team_id, 'away_team_id' => Team::firstOrCreate(['name' => 'Spurs'])->id,
+            'match_date' => '2026-11-23 16:30:00', 'status' => 'SCHEDULED']);
+
+        return $match->fresh(['homeTeam', 'awayTeam', 'league']);
+    }
+
+    private function iwobiAt(Team $team): Player
+    {
+        return Player::create(['team_id' => $team->id, 'name' => 'Alex Iwobi', 'nationality' => 'Nigeria', 'nationality_code' => 'NGA', 'is_active' => true, 'position' => 'Midfielder']);
+    }
+
+    private function match(string $home, string $away, array $score, ?League $league = null, string $when = '2026-11-15 15:00:00'): FootballMatch
+    {
+        return FootballMatch::create([
+            'league_id' => ($league ?? $this->pl)->id, 'home_team_id' => Team::firstOrCreate(['name' => $home])->id,
+            'away_team_id' => Team::firstOrCreate(['name' => $away])->id, 'match_date' => $when, 'status' => 'FINISHED',
+            'home_score' => $score[0], 'away_score' => $score[1], 'last_api_update' => now()->subMinutes(5),
+        ]);
+    }
+
+    private function event(FootballMatch $match, string $type, string $side, int $minute, string $player, ?string $assist = null, ?int $extra = null): void
+    {
+        MatchEvent::create(['football_data_id' => 900000 + MatchEvent::count(), 'match_id' => $match->id, 'team_id' => $side === 'home' ? $match->home_team_id : $match->away_team_id,
+            'type' => $type, 'minute' => $minute, 'extra_minute' => $extra, 'player_name' => $player, 'assist_player_name' => $assist]);
+    }
+
+    private function standings(FootballMatch $match, int $home, int $away): void
+    {
+        foreach ([[$match->home_team_id, $home], [$match->away_team_id, $away]] as [$team, $pos]) {
+            Standing::create(['league_id' => $match->league_id, 'team_id' => $team, 'position' => $pos, 'points' => 40 - $pos,
+                'matches_played' => 12, 'season_year' => 2026, 'season' => '2026/27', 'is_current' => true, 'league_football_data_id' => 2021,
+                'team_football_data_id' => $team, 'wins' => 5, 'draws' => 3, 'losses' => 4, 'goals_for' => 20, 'goals_against' => 15,
+                'goal_difference' => 5, 'calculation_date' => '2026-11-10']);
+        }
+    }
+
+    /** A licensed Commons photo already in the media library (as CommonsPhotos stores it). */
+    private function photo(Player $player): void
+    {
+        $path = "slideshow-photos/{$player->id}.jpg";
+        File::ensureDirectoryExists(storage_path('app/slideshow-photos'));
+        $img = imagecreatetruecolor(900, 1200);
+        imagefill($img, 0, 0, imagecolorallocate($img, 90, 120, 160));
+        imagejpeg($img, storage_path("app/{$path}"));
+        imagedestroy($img);
+        $this->dirs[] = storage_path("app/{$path}");
+        $player->forceFill(['metadata' => ['commons_photo' => ['status' => 'ok', 'path' => $path, 'crop' => ['x' => 180, 'y' => 72, 'w' => 540, 'h' => 540],
+            'title' => 'File:Iwobi.jpg', 'source_url' => 'https://commons.wikimedia.org/wiki/File:Iwobi.jpg', 'licence' => 'CC BY-SA 4.0',
+            'licence_url' => 'https://creativecommons.org/licenses/by-sa/4.0', 'artist' => 'Jane Doe', 'credit' => 'Jane Doe / Wikimedia Commons / CC BY-SA 4.0']]])->saveQuietly();
+    }
+
+    private function edition(int $seconds, string $lead, bool $real = true): RadioBulletin
+    {
+        $facts = [['key' => 'news:1', 'kind' => 'news', 'headline' => 'Iwobi scores again', 'text' => $lead, 'source' => 'BBC Sport', 'url' => 'https://example.test/1']];
+        $segments = [['fact_keys' => ['news:1'], 'text' => $lead]];
+        $b = RadioBulletin::create(['slot' => '2026-11-15-18', 'title' => 'The evening update', 'status' => 'published', 'stage' => 'audio',
+            'recorded_at' => now(), 'published_at' => now()->subMinutes(5), 'facts' => $facts, 'segments' => $segments,
+            'script' => "Welcome to Matchday Radio.\n\n{$lead}\n\nThat's Matchday Radio.", 'audio_cues' => [['paragraph' => 1, 'start' => 4.0, 'end' => $seconds - 5.0]]]);
+        $relative = 'radio/'.$b->id.'/'.Str::uuid().'.mp3';
+        $file = storage_path('app/'.$relative);
+        File::ensureDirectoryExists(dirname($file));
+        $this->dirs[] = dirname($file);
+        $this->dirs[] = public_path("generated/radio/{$b->id}");
+        if ($real) {
+            (new Process(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', "sine=frequency=220:duration={$seconds}",
+                '-ac', '1', '-b:a', '24k', $file]))->mustRun();
+        } else {
+            File::put($file, str_repeat('x', 2048));
+        }
+        $b->update(['audio_path' => $relative, 'audio_bytes' => filesize($file), 'duration_seconds' => $seconds, 'voice' => 'griot']);
+
+        return $b->fresh();
+    }
+
+    private function needsFfmpeg(): void
+    {
+        $missing = app(StoryVideos::class)->missing();
+        if ($missing) {
+            $this->markTestSkipped('ffmpeg for story videos is not available here: '.implode(', ', $missing));
+        }
+    }
+}
