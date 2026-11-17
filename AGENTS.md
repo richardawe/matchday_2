@@ -226,7 +226,7 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 ### Match-story videos and the agent role (17 Nov 2026)
 - Built from the owner's two-part brief. Stories use only stored data and the licence-checked Commons photos (credit on screen,
   in the record and in every caption); no crests, footage or agency photos. Music: only the owner's
-  `matchday_original_beat_v1.mp3` (not in the repo yet; stories are silent until it is added). Captions use `utm_campaign=story`.
+  `matchday_original_beat_v1.mp3` (supplied 17 Nov, 2:00, 320 kbps, in `resources/audio/`; renders measure −14.0 LUFS, −1.7 dBFS peak). Captions use `utm_campaign=story`.
 - Rendering draws every frame in PHP/GD and streams JPEGs into ffmpeg (no xfade/zoompan needed). The Ken Burns layer is redrawn
   every 3rd frame and identical frames reuse their JPEG; crop+imagescale is ~2x faster than imagecopyresampled at 1080x1920.
 - The agent account must be its own user (an existing admin or member email is refused). Tokens are shown once
