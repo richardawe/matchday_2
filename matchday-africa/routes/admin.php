@@ -36,6 +36,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/slideshows/{slideshow}/approve', [\App\Http\Controllers\Admin\SlideshowController::class, 'approve'])->name('slideshows.approve');
     Route::post('/slideshows/{slideshow}/unapprove', [\App\Http\Controllers\Admin\SlideshowController::class, 'unapprove'])->name('slideshows.unapprove');
     Route::post('/slideshows/{slideshow}/regenerate', [\App\Http\Controllers\Admin\SlideshowController::class, 'regenerate'])->name('slideshows.regenerate');
+    Route::get('/studio', [\App\Http\Controllers\Admin\StudioController::class, 'index'])->name('studio.index');
+    Route::post('/studio/render', [\App\Http\Controllers\Admin\StudioController::class, 'render'])->name('studio.render');
+    Route::post('/studio/{story}', [\App\Http\Controllers\Admin\StudioController::class, 'update'])->whereNumber('story')->name('studio.update');
+    Route::get('/agent', [\App\Http\Controllers\Admin\AgentAccessController::class, 'index'])->name('agent.index');
+    Route::post('/agent', [\App\Http\Controllers\Admin\AgentAccessController::class, 'store'])->name('agent.store');
+    Route::post('/agent/{user}/token', [\App\Http\Controllers\Admin\AgentAccessController::class, 'token'])->whereNumber('user')->name('agent.token');
+    Route::post('/agent/tokens/{token}/revoke', [\App\Http\Controllers\Admin\AgentAccessController::class, 'revoke'])->whereNumber('token')->name('agent.revoke');
     Route::get('/social-queue', [\App\Http\Controllers\Admin\SocialQueueController::class, 'index'])->name('social-queue.index');
     Route::post('/social-queue/posted', [\App\Http\Controllers\Admin\SocialQueueController::class, 'posted'])->name('social-queue.posted');
     Route::post('/social-queue/undo', [\App\Http\Controllers\Admin\SocialQueueController::class, 'undo'])->name('social-queue.undo');

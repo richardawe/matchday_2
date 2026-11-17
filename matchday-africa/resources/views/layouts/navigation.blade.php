@@ -88,6 +88,12 @@
                             {{ __('👥 Teams') }}
                         </a>
 
+                        @if(auth()->user()?->isAgent())
+                            <div class="border-t border-gray-100"></div>
+                            <x-dropdown-link :href="route('admin.studio.index')">
+                                {{ __('🎬 Content studio') }}
+                            </x-dropdown-link>
+                        @endif
                         @if(auth()->user()?->isAdmin())
                             <div class="border-t border-gray-100"></div>
                             <div class="px-4 py-2">
@@ -110,6 +116,9 @@
                             </x-dropdown-link>
                             <x-dropdown-link :href="route('admin.social-queue.index')">
                                 {{ __('📤 Social queue') }}
+                            </x-dropdown-link>
+                            <x-dropdown-link :href="route('admin.studio.index')">
+                                {{ __('🎬 Content studio') }}
                             </x-dropdown-link>
                             <x-dropdown-link :href="route('admin.slideshows.index')">
                                 {{ __('🎞️ Slideshows') }}
@@ -255,6 +264,9 @@
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.social-queue.index')">
                         {{ __('📤 Social queue') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('admin.studio.index')">
+                        {{ __('🎬 Content studio') }}
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.slideshows.index')">
                         {{ __('🎞️ Slideshows') }}
