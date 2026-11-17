@@ -196,7 +196,7 @@ A `match_story` item:
 
 ## 3. Match-story videos (how they are made)
 
-* After full time (`story:render`, every minute, `STORY_VIDEOS=true`): finished matches in `STORY_COMPETITIONS`
+* After full time (`story:render`, every minute; on in production because every deploy writes `STORY_VIDEOS=true`, unless the repository variable `STORY_VIDEOS` is `false`): finished matches in `STORY_COMPETITIONS`
   (default `PL,eng.1`) are queued `STORY_DELAY_MINUTES` (2) after the last update, and rendered up to
   `STORY_CONCURRENCY` (2) at a time. A Premier League Saturday's six 15:00 matches are ready within about
   five minutes of the whistle. If the score or goals change within 45 minutes, the story is drawn again once.
