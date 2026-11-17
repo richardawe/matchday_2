@@ -243,6 +243,8 @@ jobs:
           SOCIAL_AUTOPOST_ENABLED: ${{ vars.SOCIAL_AUTOPOST_ENABLED || 'false' }}
           # The bot's bearer token for /api/social-queue; blank leaves the server's value alone.
           SOCIAL_QUEUE_TOKEN: ${{ secrets.SOCIAL_QUEUE_TOKEN }}
+          # Match-story videos after full time (story:render); unset leaves the server's value alone, true or false sets it.
+          STORY_VIDEOS: ${{ vars.STORY_VIDEOS }}
         run: bash scripts/ci/deploy-ssh.sh deploy
       - name: Verify the public release and application routes
         env:
