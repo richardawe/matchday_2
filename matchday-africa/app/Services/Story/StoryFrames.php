@@ -18,6 +18,7 @@ class StoryFrames extends Film
         'hook' => 'hook', 'buildup' => 'matchup', 'goal' => 'goal', 'red' => 'red_card', 'stats' => 'stat_bars',
         'player' => 'profile', 'h2h' => 'head_to_head', 'form' => 'form_chips', 'table' => 'mini_table', 'next' => 'fixtures',
         'banter' => 'banter', 'close' => 'closing', 'recap' => 'score_block', 'facts' => 'fact_list', 'radio' => 'radio_cover',
+        'record' => 'fact_list', 'elsewhere' => 'results',
     ];
 
     public function __construct(Components $kit)
@@ -33,6 +34,9 @@ class StoryFrames extends Film
     /** The side a hook leans to: the featured player's, else the winner's. */
     private function focus(array $b): string
     {
+        if (!empty($b['player']['side'])) {
+            return $b['player']['side'];
+        }
         if (!empty($b['player'])) {
             return ($b['player']['club'] ?? null) === ($b['sides']['away']['name'] ?? false) ? 'away' : 'home';
         }
@@ -67,7 +71,9 @@ class StoryFrames extends Film
                 'colours' => ($b['club'] ?? null) === ($sides['away']['name'] ?? false) ? $sides['away']['colours'] : $sides['home']['colours']],
             'h2h' => ['title' => $b['title'], 'sub' => $b['sub'] ?? null, 'counts' => $b['counts'], 'lines' => $b['lines'] ?? []],
             'form' => ['title' => $b['title'], 'form' => $b['form']],
-            'table' => ['title' => $b['title'], 'rows' => $b['rows'], 'played_label' => $t->t('played_short'), 'points_label' => ucfirst($t->t('pts'))],
+            'table' => ['title' => $b['title'], 'rows' => $b['rows'], 'played_label' => $t->t('played_short'), 'points_label' => ucfirst($t->t('pts')), 'note' => $b['note'] ?? null],
+            'record' => ['title' => $b['title'], 'lines' => $b['lines']],
+            'elsewhere' => ['title' => $b['title'], 'results' => $b['results'], 'part' => $b['part'] ?? 1],
             'next' => ['title' => $b['title'], 'lines' => $b['lines']],
             'banter' => ['title' => $b['title'], 'line' => $b['line'], 'score' => $b['score'] ?? null],
             'close' => ['title' => $t->t('question'), 'question' => $b['question'], 'cta' => $b['cta'], 'follow' => $b['follow'], 'url' => $b['url']],

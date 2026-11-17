@@ -62,15 +62,17 @@ class DesignCheck
                 $row['problems'][] = "colour {$colour} is not a token or a team colour";
             }
             $hash = $this->hash($img);
-            foreach ($hashes as [$ot, $oh, $ocut]) {
+            foreach ($hashes as [$ot, $oh, $ocut, $ocutData]) {
                 if ($ocut !== null && $cut !== null && $ocut === ($cut['group'] ?? $cut['key'] ?? null)) {
                     continue; // the same card sampled twice (or a radio story still being read out)
                 }
-                if ($this->distance($hash, $oh) < 0.02) {
+                // Same look and (with a manifest) mostly the same words, team names aside: a repeat. Two goals
+                // or two pages of results share a layout but not their content.
+                if ($this->distance($hash, $oh) < 0.02 && ($cut === null || $ocutData === null || $this->overlap($cut, $ocutData) >= 0.7)) {
                     $row['problems'][] = "looks the same as the frame at {$ot}s (repeated card)";
                 }
             }
-            $hashes[] = [$row['t'], $hash, $cut['group'] ?? $cut['key'] ?? null];
+            $hashes[] = [$row['t'], $hash, $cut['group'] ?? $cut['key'] ?? null, $cut];
             $frames[] = $row + ['image' => $img];
         }
         foreach ($frames as $row) {
@@ -238,6 +240,24 @@ class DesignCheck
         imagedestroy($small);
 
         return $out;
+    }
+
+    /** Share of the smaller card's words the other card also shows (team names and punctuation left out). */
+    private function overlap(array $a, array $b): float
+    {
+        $words = function (array $cut) {
+            $teams = collect($cut['teams'] ?? [])->flatMap(fn ($n) => preg_split('/\s+/u', mb_strtolower((string) $n)))->filter()->all();
+            $all = collect($cut['text'] ?? [])->flatMap(fn ($t) => preg_split('/\s+/u', mb_strtolower((string) $t['text'])))
+                ->map(fn ($w) => trim($w, " \t.,:;!?·–-'’()"))->filter(fn ($w) => $w !== '' && !in_array($w, $teams, true));
+
+            return $all->unique()->values()->all();
+        };
+        [$x, $y] = [$words($a), $words($b)];
+        if (!$x || !$y) {
+            return 1.0;
+        }
+
+        return count(array_intersect($x, $y)) / min(count($x), count($y));
     }
 
     private function distance(array $a, array $b): float

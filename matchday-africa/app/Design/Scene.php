@@ -266,8 +266,9 @@ final class Scene
      * A licensed photo (or one of our renders) in a box, pushed in or out over the cut (Ken Burns).
      * Checks the images rule. False when there is no readable file.
      */
-    public function photo(?string $file, ?array $crop, int $x, int $y, int $w, int $h, ?string $credit, bool $zoomIn = true, bool $contain = false): bool
+    public function photo(?string $file, ?array $crop, int $x, int $y, int $w, int $h, ?string $credit, bool $zoomIn = true, bool $contain = false, bool $useCrop = true): bool
     {
+        $crop = $useCrop ? $crop : null;
         $src = $file ? Canvas::load($file) : null;
         if (!$src) {
             return false;

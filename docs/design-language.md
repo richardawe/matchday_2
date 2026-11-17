@@ -96,7 +96,7 @@ holds).
 
 | Component | Reference | In | Used by |
 |---|---|---|---|
-| `hook` — full-bleed licensed photo (or our own render: the sides' colours on a diagonal with both flags), scoreboard with both flags, hook in yellow on black, credit | ![](design/hook.png) | Visible from frame 0, settles in | story, slideshow |
+| `hook` — the featured player's licensed photo filling the top 62% (y 0–1200) with Ken Burns, scoreboard with both flags, the hook (96–120 px, at most 8 words) centred over the photo on black bands, the player's name below, the credit; without a licensed photo the sides' colours with both flags and the name in hook size (never a letter or an empty box) | ![](design/hook.png) | Visible from frame 0, settles in | story, slideshow |
 | `matchup` — competition, both sides as colour bands, context lines | ![](design/matchup.png) | Words rise, bands grow | story (build-up), slideshow (preview) |
 | `score_block` — label, names row, two-colour score block, lines | ![](design/score_block.png) | Punch-in | story (recaps, last meeting), slideshow |
 | `goal` — side chip + minute tag, "Goal!" on the side's colour, scorer, score counter ticking over | ![](design/goal.png) | Yellow flash, punch, counter | story |
@@ -108,7 +108,8 @@ holds).
 | `profile` — photo area, name with flag, label, numbers, credit | ![](design/profile.png) | Photo pushes in, words rise | story, slideshow (Team of the Week, milestones) |
 | `roster` — several players with a line each | ![](design/roster.png) | Rows rise | slideshow |
 | `fixtures` — next match for each side | ![](design/fixtures.png) | Rows rise | story |
-| `fact_list` — titled facts | ![](design/fact_list.png) | Lines rise | story |
+| `fact_list` — titled facts (match facts, the scorer's record) | ![](design/fact_list.png) | Lines rise | story |
+| `results` — other results that day, the score on a yellow chip between the names | ![](design/results.png) | Rows rise, scores punch in | story |
 | `banter` — yellow card, black words one by one, the sides' colour bands | ![](design/banter.png) | Words rise | story |
 | `closing` — question word by word, comment ask, follow ask, logo + matchday.africa | ![](design/closing.png) | Kinetic, follow ask punches in | story, slideshow |
 | `radio_cover` — Matchday Radio chip and edition, the story's headline card (or photo/cover art), caption words as they are spoken | ![](design/radio_cover.png) | Words appear with the voice | radio video (story `radio_video` and `radio:video`) |
@@ -140,9 +141,29 @@ The reference images use `resources/design/samples.json`: the Niger v Morocco nu
 | Images: licensed player photos with a credit, or our own renders. No crests, club logos, broadcast footage, agency or watermarked images | `Canvas::assertImage`: anything under `images.banned_dirs` (`public/war/warriors`, `public/generated/players`) fails; files outside `images.own_render_dirs` need a licence credit. Photos come only from `CommonsPhotos` (CC0/PD/CC BY/CC BY-SA). A card that shows a licensed photo must show its credit line (`Film::check`) |
 | Facts only from our data | The planners (`StoryPlanner`, `SlideshowDeck`, `RadioVideo`) read the database only; missing facts drop the line or card |
 | Banned copy: "quietly", "it's not X, it's Y", "most people…", emoji arrows, sirens, all-caps sentences | `CopyRules` (patterns in `tokens.copy`) on every on-screen text item and every phrase before it is split into words; a hit fails the render. `CopyRules::clean` strips arrows and sirens |
-| Never repeat the same card within one video | `Film::assertNoRepeats` (component + content); the design check also compares frames from different cards on the pixels. Story padding uses distinct verified cards only, so a match with little data makes a shorter story (as long as its distinct cards allow, never over 75 s) rather than repeat one |
+| Never repeat the same card within one video | `Film::assertNoRepeats` (component + content); the design check also flags frames from different cards that look alike and share most of their words (team names aside). Stories reach 61–75 s only with new verified beats; without enough of them the render fails with `StoryTooShort` and the reason |
 
-## 6. The design check
+## 6. Match stories: opening, hooks and length
+
+- **Featured player** (`StoryPlanner::leadPlayer`): the scorer of the winning goal (the last goal in a draw), else the
+  match's top scorer, else the best-rated African player in the line-up. When the generated hook names a player, the
+  story opens on that player. The photo comes from the player's row (`CommonsPhotos::forPlayer`) or, by name, from the
+  player media library (`CommonsPhotos::forName`: Wikidata query service, then Commons search; CC0, PD, CC BY, CC BY-SA;
+  at least 700 px wide; licence, author and credit kept in `storage/app/player-media/{slug}.json`; misses remembered for
+  14 days). Pin one by hand with `php artisan story:photo "Player Name" "File:Name.jpg"`.
+- **Hooks** (`StoryPlanner::hook`, sentence case, at most 8 words, the surname when the full name is too long):
+  late winner or equaliser (80'+) "<Player> broke <team> hearts at <minute>"; upset (winner 4+ places lower) "Nobody saw
+  <team> doing this"; red card "<team> down to ten, then this happened"; brace or hat-trick "<Player> could not stop
+  scoring"; 1-0 "One moment from <Player> settled it"; 0-0 "<team> had chances. Where was the finish?" (the side with more
+  shots); otherwise "Who saw <winner> <score> coming?" / "<home> v <away>: who really deserved it?". An editor's hook
+  (studio or `POST /api/agent/render`) always replaces it.
+- **Beats after the goals**, best first: the scorer's record in our data, the featured player's profile, the table, the
+  next fixtures, other results in the competition that day (four to a card), head-to-head (3+ meetings only), key stats,
+  form; then the final score and the match facts once each. Cuts of 3–5 s; over 75 s the lowest ranks drop.
+- **Captions:** the hook, the result, one question, the tagged link, 2–4 hashtags including #MatchdayAfrica; the photo
+  credit last when there is a licensed photo. No music credit (our own track).
+
+## 7. The design check
 
 ```
 php artisan design:check --story=12            # a rendered match story or radio video
@@ -163,7 +184,7 @@ Renderers save the layout record as `design.json` next to their work files
 (`storage/app/stories/{id}/`, the slideshow work folder). A video without one still gets the pixel
 checks (emptiness, near-identical frames). Exit code 1 when anything fails.
 
-## 7. Renderers on the system
+## 8. Renderers on the system
 
 | Renderer | How it uses the design language |
 |---|---|

@@ -192,6 +192,7 @@ class Film
                 'component' => $scene->component, 'key' => $scene->key, 'group' => (string) ($cut['group'] ?? $scene->key), 'start' => (float) $cut['start'], 'seconds' => (float) $cut['seconds'],
                 'backdrop' => Canvas::hex($scene->backdrop), 'settled' => round($scene->settled, 2), 'credit' => $scene->credit,
                 'photos' => array_map(fn ($p) => ['file' => $p['file'] ? basename((string) $p['file']) : null, 'credit' => $p['credit'], 'own' => $p['own'], 'box' => $p['box']], $scene->photos),
+                'teams' => array_values(array_filter([data_get($cut, 'sides.home.name'), data_get($cut, 'sides.home.full'), data_get($cut, 'sides.away.name'), data_get($cut, 'sides.away.full')])),
                 'team_colours' => array_values(array_unique(array_filter(array_merge(
                     (array) data_get($cut, 'sides.home.colours', []), (array) data_get($cut, 'sides.away.colours', []))))),
                 'text' => collect($scene->items)->where('kind', 'text')->map(fn ($i) => [

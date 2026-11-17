@@ -2,6 +2,7 @@
 
 namespace App\Services\Story;
 
+use App\Design\CopyRules;
 use App\Models\FootballMatch;
 use App\Models\Player;
 use App\Models\RadioBulletin;
@@ -214,8 +215,8 @@ class StoryVideos
             if ($length === null || abs($length - $seconds) > 1.0) {
                 throw new RuntimeException('The video length ('.($length === null ? 'unreadable' : round($length, 1).' s').") does not match the plan ({$seconds} s).");
             }
-            // 61-75 s, or shorter when the match's data runs out of distinct cards (a card is never repeated).
-            $floor = min((float) config('story.min_seconds', 61), $seconds);
+            // 61-75 s (the planner fails earlier, with the reason, when the data has too few distinct cards).
+            $floor = (float) config('story.min_seconds', 61);
             if ($story->kind === 'match_story' && ($length < $floor - 0.05 || $length > (float) config('story.max_seconds', 75) + 0.5)) {
                 throw new RuntimeException('The story is '.round($length, 1).' s; it must be 61-75 s.');
             }
@@ -413,32 +414,22 @@ class StoryVideos
         $page = route('matches.show', $match);
         $link = fn (string $c) => SocialLink::to($page, $c, 'story', "match-{$match->id}");
         $score = "{$match->home_score}-{$match->away_score}";
-        $lines = [$story->hookLine(), $t->t('cap_full_time', ['home' => ClubName::full($match->homeTeam), 'away' => ClubName::full($match->awayTeam),
-            'score' => $score, 'competition' => $match->league?->name ?: 'Football'])];
-        $goals = collect($facts['goals'] ?? [])->map(fn ($g) => trim(($g['minute_label'] ?? '').' '.($g['player'] ?? '').(!empty($g['own_goal']) ? ' (og)' : (!empty($g['penalty']) ? ' (pen)' : ''))))->filter();
-        if ($goals->isNotEmpty()) {
-            $lines[] = $t->t('cap_scorers', ['list' => $goals->join(', ')]);
-        }
-        $reds = collect($facts['red_cards'] ?? [])->map(fn ($r) => trim(($r['minute_label'] ?? '').' '.($r['player'] ?? '')))->filter();
-        if ($reds->isNotEmpty()) {
-            $lines[] = $t->t('cap_red', ['list' => $reds->join(', ')]);
-        }
-        $question = (string) ($facts['question'] ?? '');
-        $credits = array_values(array_filter([
-            !empty($story->photo['credit']) ? $t->t('cap_photo', ['credit' => $story->photo['credit']]) : null,
-            $story->music ? $t->t('cap_music', ['title' => $story->music['title'] ?? 'Matchday original beat']) : null,
-        ]));
-        $tags = trim(config('story.hashtags').' '.app(\App\Services\Slideshow\SlideshowDeck::class)->competitionTag($match));
-        $body = SocialQueue::plain(implode("\n", array_filter($lines)));
-        $long = fn (string $c) => SocialQueue::plain(trim("{$body}\n\n{$question}\n\n{$t->t('cap_watch')} {$link($c)}\n\n"
-            .($credits ? implode("\n", $credits)."\n\n" : '').$tags));
-        $short = SocialQueue::plain(implode(' ', array_filter([$story->hookLine(), "{$match->homeTeam?->name} {$score} {$match->awayTeam?->name}."])));
-        $xTail = trim((!empty($story->photo['credit']) ? 'Photo: '.Str::limit($story->photo['credit'], 60)."\n" : '').'#MatchdayAfrica');
+        // Hook first, then the result, one question, the link and 2-4 hashtags. The music is our own
+        // track: no credit line. A licensed photo keeps its attribution as the last line.
+        $hook = CopyRules::clean((string) $story->hookLine());
+        $result = $t->t('cap_full_time', ['home' => ClubName::full($match->homeTeam), 'away' => ClubName::full($match->awayTeam),
+            'score' => $score, 'competition' => $match->league?->name ?: 'Football']);
+        $question = CopyRules::clean((string) ($facts['question'] ?? ''));
+        $tags = collect(preg_split('/\s+/', trim(config('story.hashtags').' '.app(\App\Services\Slideshow\SlideshowDeck::class)->competitionTag($match))))
+            ->filter()->unique()->take(4)->implode(' ');
+        $credit = !empty($story->photo['credit']) ? $t->t('cap_photo', ['credit' => $story->photo['credit']]) : null;
+        $long = fn (string $c) => SocialQueue::plain(trim(implode("\n\n", array_filter([$hook, $result, $question, $link($c), $tags, $credit]))));
+        $xTail = trim($tags.(!empty($story->photo['credit']) ? "\nPhoto: ".Str::limit($story->photo['credit'], 60) : ''));
 
         return [
             'tiktok' => $long('tiktok'),
             'instagram' => $long('instagram'),
-            'x' => SocialQueue::plain(XText::compose($short.' '.$question, $link('x'), $xTail)),
+            'x' => SocialQueue::plain(XText::compose(trim("{$hook}\n{$result} {$question}"), $link('x'), $xTail)),
             'youtube' => $long('youtube'),
         ];
     }

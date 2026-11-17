@@ -236,6 +236,18 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   pass `design:check`; contact sheets in `docs/design/checks/`. Re-render them on the server after deploy (Content studio).
 - Not done: the still cards' layouts and font sizes and the reel's layout are not on the shared components yet (they read the tokens).
 
+### Match-story fixes (18 Nov 2026, owner's review of story:10 = match 5212)
+- Opening card: featured player = winning/last scorer, else top scorer, else best-rated African in the line-up; the hook's
+  named player wins. Photo from the player row or the new name-based library (`CommonsPhotos::forName`,
+  `storage/app/player-media/`, Wikidata query service then Commons search, free licences only, >= 700 px; pin with
+  `story:photo`). No photo: both flags + the name big, never a letter.
+- Hooks rewritten (owner's rules, `docs/design-language.md` section 6), <= 8 words. Captions: hook, result, question, link,
+  2-4 hashtags; the music credit is gone.
+- No padding with repeats: new beats (scorer record, profile, table + note, next fixtures, other results that day,
+  head-to-head only with 3+ meetings); a match without enough distinct cards fails with `StoryTooShort`.
+- Wikimedia rate-limits the cloud container quickly (429): `forName` never caches a transient failure. Match 5212's scorer
+  (Abdellah Ouazane) has no free-licence photo on Commons or Wikidata (checked 18 Nov); Patrick Dorgu's only one is 353 px.
+
 ### Match-story videos and the agent role (17 Nov 2026)
 - Built from the owner's two-part brief. Stories use only stored data and the licence-checked Commons photos (credit on screen,
   in the record and in every caption); no crests, footage or agency photos. Music: only the owner's

@@ -14,7 +14,7 @@ namespace App\Design;
 final class Components
 {
     public const ALL = ['hook', 'matchup', 'score_block', 'goal', 'red_card', 'stat_bars', 'mini_table', 'form_chips', 'head_to_head',
-        'profile', 'roster', 'fixtures', 'fact_list', 'banter', 'closing', 'radio_cover'];
+        'profile', 'roster', 'fixtures', 'fact_list', 'results', 'banter', 'closing', 'radio_cover'];
 
     /** Builds the named component's scene from $d. */
     public function make(string $component, array $d): Scene
@@ -37,43 +37,65 @@ final class Components
 
     // ---------------------------------------------------------------- cards
 
-    /** Full-bleed player photo, the scoreboard with both flags, the hook in yellow on black, the credit. Visible from frame 0. */
+    /**
+     * The opening card, visible from frame 0: the featured player's licensed photo filling the top of
+     * the frame (grid.hook_photo, at least 60%) with a slow Ken Burns push, the scoreboard with both
+     * flags, the hook centred over the photo on black bands, the player's name below and the credit.
+     * Without a licensed photo: both sides' colours with both flags filling the same area and the
+     * player's name big underneath. Never a single letter or an empty box.
+     */
     public function hook(array $d): Scene
     {
         $sides = $this->sides($d);
         $focus = $d['focus'] ?? 'home';
         $s = new Scene('hook', self::key('hook', $d), 'black', $sides[$focus]['colours'][0]);
-        [$w, $h] = [$s->w, $s->h];
+        $w = $s->w;
+        $photoBottom = (int) Tokens::get('grid.hook_photo.bottom');
         $photo = $d['photo'] ?? null;
-        if (!$s->photo($photo['file'] ?? null, $photo['crop'] ?? null, 0, 0, $w, (int) Tokens::get('grid.caption.top'), $photo['credit'] ?? null)) {
-            if (!empty($d['player'])) {
-                $s->monogram((string) $d['player']['name'], $d['player']['flag'] ?? $sides[$focus]['flag'] ?? null,
-                    0, 0, $w, (int) Tokens::get('grid.caption.top'), $sides[$focus]['colours']);
-            } else {
-                Canvas::versus($s->bg, $sides['home'], $sides['away'], 0, 0, $w, (int) Tokens::get('grid.caption.top'));
-                $s->photos[] = ['file' => null, 'credit' => null, 'box' => [0, 0, $w, (int) Tokens::get('grid.caption.top')], 'own' => true];
-            }
+        $hasPhoto = $s->photo($photo['file'] ?? null, $photo['crop'] ?? null, 0, 0, $w, $photoBottom, $photo['credit'] ?? null, useCrop: false);
+        if (!$hasPhoto) {
+            Canvas::versus($s->bg, $sides['home'], $sides['away'], 0, 0, $w, $photoBottom, 300);
+            $s->photos[] = ['file' => null, 'credit' => null, 'box' => [0, 0, $w, $photoBottom], 'own' => true];
         }
         $s->scoreboard($sides, (string) ($d['score'] ?? 'v'), 0.0);
-        // The caption area: a black panel from the caption top to the bottom of the frame.
-        $capTop = (int) Tokens::get('grid.caption.top');
-        $s->panel(0, $capTop - 8, $w, $h, 'black', 0.0, 'none', 0);
-        $s->panel(0, $capTop - 8, $w, $capTop, $sides[$focus]['colours'][0], 0.0, 'none', 0);
-        $width = $s->width();
+        // The hook, centred over the photo below the scoreboard, each line on a black band.
+        $top = (int) Tokens::get('grid.scoreboard.top') + (int) Tokens::get('grid.scoreboard.height') + 30;
+        // Without a photo the flags take the bottom of the colour field; the hook sits above them.
+        $hookBottom = $hasPhoto ? $photoBottom - 40 : $photoBottom - 300;
+        $hook = Canvas::fitBox((string) $d['line'], 'hook', $s->width() - 48, $hookBottom - $top, 4);
+        $lead = (float) Tokens::get('type.hook.leading');
+        $height = $s->linesHeight($hook, 'hook');
+        $y = $top + intdiv($hookBottom - $top - $height, 2);
+        $type = Tokens::type('hook');
+        foreach ($hook as [$line, $px]) {
+            [$tw] = Canvas::measure($line, $type['file'], $px);
+            $x = $s->L + intdiv($s->width() - $tw, 2);
+            $lineH = (int) round($px * $lead);
+            $s->panel($x - 24, $y + 4, $x + $tw + 24, $y + $lineH + 4, 'black', 0.0, 'none', 10);
+            $y = $s->paragraph([[$line, $px]], 'hook', $x, $y + 6, 'yellow', 'black', 0.0, motion: 'punch', visible: true) - 6;
+        }
+        // Below the photo: who it is, big; the credit small at its fixed place.
+        $s->panel(0, $photoBottom, $w, $s->h, 'black', 0.0, 'none', 0);
+        $s->panel(0, $photoBottom, $w, $photoBottom + 10, $sides[$focus]['colours'][0], 0.0, 'none', 0);
+        $creditRoom = !empty($photo['credit']) && $hasPhoto ? 44 : 0;
         $who = $d['player']['name'] ?? null;
         $sub = $who ? implode(' · ', array_filter([$d['player']['label'] ?? null, $d['player']['club'] ?? null])) : null;
-        $creditRoom = !empty($photo['credit']) ? 48 : 0;
-        $room = $s->bottom - $creditRoom - ($capTop + 24) - ($who ? 84 : 0) - ($sub ? 66 : 0);
-        $hook = Canvas::fitBox((string) $d['line'], 'hook', $width, $room, 3);
+        $flagRoom = !empty($d['player']['flag']) ? 120 : 0;
+        $nameStyle = $hasPhoto ? 'headline' : 'hook';
+        $name = $who ? Canvas::fitBox($who, $nameStyle, $s->width() - $flagRoom, $s->bottom - $creditRoom - $photoBottom - 40 - ($sub ? 60 : 0), 2) : [];
         $s->stack([
-            ['h' => $s->linesHeight($hook, 'hook'), 'draw' => fn ($y) => $s->paragraph($hook, 'hook', $s->L, $y, 'yellow', 'black', 0.0, motion: 'punch', visible: true)],
-            $who ? ['h' => 70, 'draw' => function ($y) use ($s, $who, $d) {
-                $s->text($who, 'headline', $s->L, $y + 58, 'white', 'black', 0.2, maxWidth: $s->width() - (!empty($d['player']['flag']) ? 110 : 0),
-                    px: 60, flag: $d['player']['flag'] ?? null);
+            $name ? ['h' => $s->linesHeight($name, $nameStyle), 'draw' => function ($y) use ($s, $name, $nameStyle, $d) {
+                foreach ($name as $i => [$line, $px]) {
+                    $s->text($line, $nameStyle, $s->L, $y + $s->ascent($nameStyle, $px), 'white', 'black', 0.15, px: $px,
+                        flag: $i === 0 ? ($d['player']['flag'] ?? null) : null);
+                    $y += (int) round($px * (float) Tokens::get("type.{$nameStyle}.leading"));
+                }
             }] : null,
             $sub ? ['h' => 52, 'draw' => fn ($y) => $s->text($sub, 'body', $s->L, $y + 40, 'grey', 'black', 0.3, maxWidth: $s->width())] : null,
-        ], $capTop + 24, $s->bottom - $creditRoom, 14);
-        $s->credit($photo['credit'] ?? null);
+        ], $photoBottom + 24, $s->bottom - $creditRoom, 10);
+        if ($hasPhoto) {
+            $s->credit($photo['credit'] ?? null);
+        }
 
         return $s;
     }
@@ -243,6 +265,10 @@ final class Components
                 }
             }];
         }
+        if (!empty($d['note'])) {
+            $note = $this->bodyLines([$d['note']], $s->width() - 88, 2);
+            $blocks[] = ['h' => $this->linesBlockHeight($s, $note), 'draw' => fn ($y, $h) => $this->linesPanel($s, $note, $y, $h, 0.9, 'yellow')];
+        }
         $s->stack($blocks, (int) Tokens::get('grid.body.top'), $s->bottom, 16);
 
         return $s;
@@ -327,7 +353,9 @@ final class Components
         $bottom = (int) Tokens::get('grid.photo.bottom');
         Canvas::rect($s->bg, $s->L - 12, $top - 12, $s->R + 12, $bottom + 12, $colours[0]);
         if (!$s->photo($photo['file'] ?? null, $photo['crop'] ?? null, $s->L, $top, $s->width(), $bottom - $top, $photo['credit'] ?? null)) {
-            $s->monogram((string) $d['name'], $d['flag'] ?? null, $s->L, $top, $s->width(), $bottom - $top, $colours);
+            // Our own render, never a letter: the player's colours with their flag large.
+            Canvas::flagField($s->bg, $d['flag'] ?? null, $colours, $s->L, $top, $s->width(), $bottom - $top);
+            $s->photos[] = ['file' => null, 'credit' => null, 'box' => [$s->L, $top, $s->width(), $bottom - $top], 'own' => true];
         }
         if (!empty($d['chip'])) {
             $s->chip((string) $d['chip'], $s->L + 24, $top + 24);
@@ -438,6 +466,33 @@ final class Components
                 $s->panel($s->L, $y, $s->R, $y + $h, 'surface', $delay);
                 $s->panel($s->L, $y, $s->L + 14, $y + $h, 'yellow', $delay, 'none', 0);
                 $s->paragraph($fitted, 'strong', $s->L + 44, $y + intdiv($h - $s->linesHeight($fitted, 'strong'), 2), 'white', 'surface', $delay + 0.05);
+            }];
+        }
+        $s->stack($blocks, (int) Tokens::get('grid.body.top'), $s->bottom, 18);
+
+        return $s;
+    }
+
+    /** Other results that day: one row per match, the score on a yellow chip between the names. */
+    public function results(array $d): Scene
+    {
+        $sides = $this->sides($d);
+        $s = new Scene('results', self::key('results', $d), 'black', Tokens::colour('yellow'));
+        $s->chip((string) $d['title'], $s->L);
+        $blocks = [];
+        foreach (array_slice((array) $d['results'], 0, 4) as $i => $r) {
+            $blocks[] = ['h' => 150, 'flex' => 1, 'draw' => function ($y, $h) use ($s, $r, $i) {
+                $delay = 0.15 + (float) Tokens::motion('item_stagger') * $i;
+                $s->panel($s->L, $y, $s->R, $y + $h, 'surface', $delay);
+                $mid = intdiv($s->L + $s->R, 2);
+                $chip = 170;
+                $s->panel($mid - intdiv($chip, 2), $y + 22, $mid + intdiv($chip, 2), $y + $h - 22, 'yellow', $delay + 0.1, 'pop', 14);
+                $base = $y + intdiv($h, 2) + 24;
+                $s->text(str_replace('-', '–', (string) $r['score']), 'headline', $mid - intdiv($chip, 2), $base + 4, 'black', 'yellow', $delay + 0.1,
+                    maxWidth: $chip - 20, align: 'center', box: [$mid - intdiv($chip, 2), $mid + intdiv($chip, 2)], motion: 'punch');
+                $side = intdiv($s->width() - $chip, 2) - 40;
+                $s->text((string) $r['home'], 'strong', $s->L + 24, $base, 'white', 'surface', $delay, maxWidth: $side, align: 'right', box: [$s->L + 24, $mid - intdiv($chip, 2) - 16]);
+                $s->text((string) $r['away'], 'strong', $mid + intdiv($chip, 2) + 16, $base, 'white', 'surface', $delay, maxWidth: $side);
             }];
         }
         $s->stack($blocks, (int) Tokens::get('grid.body.top'), $s->bottom, 18);

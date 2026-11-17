@@ -381,8 +381,12 @@ final class Canvas
         imagecopy($img, self::$logos[$size], $x, $y, 0, 0, $size, $size);
     }
 
-    /** Both sides as our own render: home colour top left, away bottom right on a diagonal, each with its flag or swatch. */
-    public static function versus(GdImage $img, array $home, array $away, int $x, int $y, int $w, int $h): void
+    /**
+     * Both sides as our own render: home colour top left, away bottom right on a diagonal with a
+     * yellow seam, and both flags (or kit swatches) large side by side in a band at the bottom,
+     * $band px tall, so text can sit in the space above them.
+     */
+    public static function versus(GdImage $img, array $home, array $away, int $x, int $y, int $w, int $h, int $band = 300): void
     {
         [$ha] = self::teamColours($home['colours'] ?? null, 'home');
         [$aa] = self::teamColours($away['colours'] ?? null, 'away');
@@ -390,9 +394,33 @@ final class Canvas
         imagefilledpolygon($img, [$x, $y + (int) ($h * 0.78), $x + $w, $y + (int) ($h * 0.42), $x + $w, $y + $h, $x, $y + $h], self::col($img, $aa));
         $edge = (int) Tokens::get('motion.band.edge');
         imagefilledpolygon($img, [$x, $y + (int) ($h * 0.78), $x + $w, $y + (int) ($h * 0.42), $x + $w, $y + (int) ($h * 0.42) + $edge, $x, $y + (int) ($h * 0.78) + $edge], self::col($img, 'yellow'));
-        $size = (int) ($w * 0.3);
-        self::swatch($img, $home, $x + (int) ($w * 0.12), $y + (int) ($h * 0.22), $size);
-        self::swatch($img, $away, $x + $w - $size - (int) ($w * 0.12), $y + (int) ($h * 0.62), $size);
+        $safe = Tokens::safe();
+        $gap = 40;
+        $size = (int) min(($safe['right'] - $safe['left'] - $gap) / 2, ($band - 40) / 0.75);
+        $top = $y + $h - $band + intdiv($band - (int) round($size * 0.75), 2);
+        $left = $safe['left'] + intdiv($safe['right'] - $safe['left'] - 2 * $size - $gap, 2);
+        foreach ([[$home, $left], [$away, $left + $size + $gap]] as [$side, $fx]) {
+            self::rect($img, $fx - 8, $top - 8, $fx + $size + 8, $top + (int) round($size * 0.75) + 8, 'black');
+            if (!empty($side['flag']) && is_file($side['flag'])) {
+                self::flag($img, $side['flag'], $fx, $top, $size);
+            } else {
+                [$a, $b] = self::teamColours($side['colours'] ?? null);
+                self::rect($img, $fx, $top, $fx + $size, $top + (int) round($size * 0.75), $a);
+                imagefilledpolygon($img, [$fx, $top + (int) round($size * 0.75), $fx + $size, $top, $fx + $size, $top + (int) round($size * 0.75)], self::col($img, $b));
+            }
+        }
+    }
+
+    /** Our own render for a player without a licensed photo: their colours on a diagonal and their flag, large. */
+    public static function flagField(GdImage $img, ?string $flag, array $colours, int $x, int $y, int $w, int $h): void
+    {
+        [$a, $b] = self::teamColours($colours);
+        self::rect($img, $x, $y, $x + $w, $y + $h, $a);
+        imagefilledpolygon($img, [$x, $y + (int) ($h * 0.7), $x + $w, $y + (int) ($h * 0.35), $x + $w, $y + $h, $x, $y + $h], self::col($img, $b));
+        if ($flag && is_file($flag)) {
+            $fw = (int) min($w * 0.6, $h * 0.8 / 0.75);
+            self::flag($img, $flag, $x + intdiv($w - $fw, 2), $y + intdiv($h - (int) ($fw * 0.75), 2), $fw);
+        }
     }
 
     /** Initials on the side's colours with the flag: our own render when there is no licensed photo. */
