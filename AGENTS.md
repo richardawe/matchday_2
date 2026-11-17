@@ -1,7 +1,7 @@
 # Matchday Africa: agent guide
 
 Read this first. It is the project memory for coding agents (Codex reads `AGENTS.md`; Claude Code
-reads `CLAUDE.md`, which points here). Last updated 17 Nov 2026 (match-story videos, the agent role and /api/agent); before that 8 Nov 2026, after the social queue for the posting bot (social autopost off), Beat the Griot, the stream screen, YouTube LIVE
+reads `CLAUDE.md`, which points here). Last updated 17 Nov 2026 (match-story videos, the agent role and /api/agent: deployed, see section 7); before that 8 Nov 2026, after the social queue for the posting bot (social autopost off), Beat the Griot, the stream screen, YouTube LIVE
 and Shorts, player photos, social media uploads (PRs #55–#66), and club and player names in the Griot's words with a
 20-second commentary reel (see section 7 "Griot names and the commentary reel").
 
@@ -233,6 +233,14 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   (`/admin/agent` or `php artisan agent:create` in a private terminal, never a CI log).
 - `users.role` was `enum('user','admin')`; the migration widens it to include `agent`.
 - Owner (17 Nov): story videos on in production without editing `.env`: the deploy writes `STORY_VIDEOS=true` (variable `STORY_VIDEOS=false` turns them off).
+- **Deployed 17 Nov 2026 ~22:12 UTC** (PR #76, merge `c19ca11`, CI/CD run 242 green; `/deploy-version.txt` matched). Checked on the live
+  site: `/api/agent/matches` answers 401 without a token, `/admin/studio` asks for a login. The deploy wrote `STORY_VIDEOS=true`.
+- Still to do by the owner: create the agent login and issue its token at `/admin/agent` (not done at the time of writing);
+  watch `/admin/studio` after the next Premier League full time for the first automatic stories (the server's ffmpeg has not
+  rendered a story yet: if the page lists missing ffmpeg features, compare `php artisan story:render --check` with
+  `slideshow:render --check`). Not verified on the server: render speed on the shared host (77 s per 67 s story was measured on
+  a 4-core container) and Commons photo coverage for featured players (no photo = a monogram tile with initials and flag).
+- French captions and on-screen text (`StoryText`) need a native speaker's review.
 
 ### African player pages and the weekly roster (12 Nov 2026, prompt 2 of 4)
 - In scope everywhere (index, player pages, roster, match pages, home focus, line-up enrichment, slideshows): an African
