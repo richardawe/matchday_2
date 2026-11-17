@@ -1,0 +1,24 @@
+No readable manifest at matchday-africa/storage/app/stories/2/design.json: text, fonts and credits are not checked.
+
+   RuntimeException 
+
+  No video at matchday-africa/public/generated/stories/2/story.mp4.
+
+  at app/Design/DesignCheck.php:35
+     31▕      */
+     32▕     public function run(string $file, ?array $manifest = null, ?string $sheet = null, float $every = 5.0): array
+     33▕     {
+     34▕         if (!is_file($file)) {
+  ➜  35▕             throw new RuntimeException("No video at {$file}.");
+     36▕         }
+     37▕         $seconds = $this->duration($file);
+     38▕         $problems = [];
+     39▕         if ($manifest !== null) {
+
+  1   app/Console/Commands/DesignCheckCommand.php:38
+      App\Design\DesignCheck::run()
+      [2m+13 vendor frames [22m
+
+  15  artisan:16
+      Illuminate\Foundation\Application::handleCommand()
+
