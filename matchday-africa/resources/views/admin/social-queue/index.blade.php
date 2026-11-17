@@ -23,7 +23,7 @@
   @foreach($items as $item)
    <tr id="{{ str_replace(':', '-', $item['id']) }}">
     <td>
-     <b>{{ $item['type'] === 'radio' ? 'Matchday Radio' : ucfirst($item['type']) }}</b> <small><code>{{ $item['id'] }}</code></small>
+     <b>{{ ['radio' => 'Matchday Radio', 'match_story' => 'Match story', 'radio_video' => 'Radio video'][$item['type']] ?? ucfirst($item['type']) }}</b> <small><code>{{ $item['id'] }}</code></small>
      @if(!empty($item['edition']))<br>{{ $item['edition'] }}: {{ $item['title'] }}@endif
      @if($item['match'])
       <br><a href="{{ $item['match']['url'] }}" target="_blank" rel="noopener">{{ $item['match']['home'] }}@if($item['match']['score'] !== null) {{ $item['match']['score'] }} @else v @endif{{ $item['match']['away'] }}</a>
@@ -37,7 +37,7 @@
       <br><input readonly value="{{ $item['reel_url'] }}" aria-label="Reel URL" onclick="this.select()" style="width:100%;min-width:14rem;font-family:monospace">
       <button type="button" data-copy="{{ $item['reel_url'] }}">Copy</button> <a href="{{ $item['reel_url'] }}" target="_blank" rel="noopener">Open</a>
      @endif
-     @if(in_array($item['type'], ['radio', 'slideshow'], true) && $item['reel_url'])<br><video controls preload="none" playsinline @if($item['image_url']) poster="{{ $item['image_url'] }}" @endif src="{{ $item['reel_url'] }}" style="width:9rem;aspect-ratio:9/16;background:#000;margin-top:.4rem"></video>@endif
+     @if(in_array($item['type'], ['radio', 'slideshow', 'match_story', 'radio_video'], true) && $item['reel_url'])<br><video controls preload="none" playsinline @if($item['image_url']) poster="{{ $item['image_url'] }}" @endif src="{{ $item['reel_url'] }}" style="width:9rem;aspect-ratio:9/16;background:#000;margin-top:.4rem"></video>@endif
      @if(!empty($item['audio_url']))<br><a href="{{ $item['audio_url'] }}" target="_blank" rel="noopener">Radio mp3</a>@endif
      @if($item['youtube_url'])<br><a href="{{ $item['youtube_url'] }}" target="_blank" rel="noopener">YouTube Short</a>@endif
      @if($item['image_url'])<br><a href="{{ $item['image_url'] }}" target="_blank" rel="noopener">Card image</a>@endif
@@ -52,7 +52,7 @@
        @if($state['posted'])
         Posted @if($state['posted_at']){{ \Carbon\Carbon::parse($state['posted_at'])->setTimezone('Europe/London')->format('j M H:i') }}@endif
         @if($state['url'])<a href="{{ $state['url'] }}" target="_blank" rel="noopener">view</a>@endif
-        @if($state['source'] === 'queue')
+        @if($state['source'] === 'queue' && auth()->user()->isAdmin())
          <form method="POST" action="{{ route('admin.social-queue.undo') }}" style="display:inline">@csrf
           <input type="hidden" name="id" value="{{ $item['id'] }}"><input type="hidden" name="channel" value="{{ $channel }}">
           <button type="submit">Undo</button></form>

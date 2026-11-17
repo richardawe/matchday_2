@@ -19,6 +19,7 @@ class CaptureAttribution
             }
             if (!$request->is('admin', 'admin/*', 'api/*')) {
                 $this->remember($request);
+                \App\Support\UtmVisits::count($request);
             }
         }
 

@@ -365,7 +365,7 @@ elif [[ "$mode" == configure-growth ]]; then
 else
     [[ "${GITHUB_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || { echo "Missing release commit SHA."; exit 1; }
     # YouTube settings from GitHub (secrets YOUTUBE_CLIENT_ID/SECRET, variables YOUTUBE_CHANNEL_ID and
-    # YOUTUBE_UPLOADS) and the social switches (variable SOCIAL_AUTOPOST_ENABLED, secret SOCIAL_QUEUE_TOKEN) into the server .env before deploy-production.sh rebuilds the config cache.
+    # YOUTUBE_UPLOADS), the social switches (variable SOCIAL_AUTOPOST_ENABLED, secret SOCIAL_QUEUE_TOKEN) and match-story videos (variable STORY_VIDEOS) into the server .env before deploy-production.sh rebuilds the config cache.
     # Keys are added or replaced in place (never duplicated); blank ones leave the server's value alone.
     # Values travel as JSON on stdin, so they never appear in a command line or the log.
     # shellcheck disable=SC2016 # the single-quoted program is PHP, not shell
@@ -379,6 +379,9 @@ if (isset($set["YOUTUBE_CHANNEL_ID"]) && !preg_match("/^UC[A-Za-z0-9_-]{22}$/", 
 $autopost = strtolower(trim((string) getenv("SOCIAL_AUTOPOST_ENABLED")));
 if (in_array($autopost, ["true", "false"], true)) { $set["SOCIAL_AUTOPOST_ENABLED"] = $autopost; }
 elseif ($autopost !== "") { fwrite(STDERR, "SOCIAL_AUTOPOST_ENABLED must be true or false.\n"); exit(1); }
+$stories = strtolower(trim((string) getenv("STORY_VIDEOS")));
+if (in_array($stories, ["true", "false"], true)) { $set["STORY_VIDEOS"] = $stories; }
+elseif ($stories !== "") { fwrite(STDERR, "STORY_VIDEOS must be true or false.\n"); exit(1); }
 $token = trim((string) getenv("SOCIAL_QUEUE_TOKEN"));
 if ($token !== "" && !preg_match("/^[A-Za-z0-9_-]{32,}$/", $token)) { fwrite(STDERR, "SOCIAL_QUEUE_TOKEN must be at least 32 letters, digits, - or _ (value not shown).\n"); exit(1); }
 if ($token !== "") { $set["SOCIAL_QUEUE_TOKEN"] = $token; }

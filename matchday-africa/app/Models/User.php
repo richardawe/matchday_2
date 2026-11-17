@@ -95,12 +95,29 @@ class User extends Authenticatable
         return $this->is_admin || $this->role === 'admin';
     }
 
+    public const ROLE_AGENT = 'agent';
+
+    /**
+     * The social media assistant's role: reads content data, requests renders and drafts articles
+     * through the Content studio and /api/agent; never billing, payments, users, secrets or deletes
+     * (AdminMiddleware::AGENT_ROUTES lists the admin pages it may open).
+     */
+    public function isAgent(): bool
+    {
+        return !$this->isAdmin() && $this->role === self::ROLE_AGENT;
+    }
+
+    public function apiTokens()
+    {
+        return $this->hasMany(ApiToken::class);
+    }
+
     /**
      * Check if user is a regular user
      */
     public function isUser(): bool
     {
-        return !$this->isAdmin();
+        return !$this->isAdmin() && !$this->isAgent();
     }
 
     /**
@@ -116,7 +133,7 @@ class User extends Authenticatable
      */
     public function scopeUsers($query)
     {
-        return $query->where('is_admin', false)->where('role', '!=', 'admin');
+        return $query->where('is_admin', false)->whereNotIn('role', ['admin', self::ROLE_AGENT]);
     }
 
     /**

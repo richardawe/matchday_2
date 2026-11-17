@@ -3,13 +3,20 @@
         <div class="flex justify-between h-16">
             <!-- Logo -->
             <div class="flex items-center">
-                <a href="{{ route('admin.dashboard') }}" class="matchday-wordmark">
+                <a href="{{ Auth::user()->isAgent() ? route('admin.studio.index') : route('admin.dashboard') }}" class="matchday-wordmark">
                     <span class="matchday-monogram">MD</span><span>MATCHDAY<small>COMMAND DESK</small></span>
                 </a>
             </div>
 
             <!-- Navigation Links -->
             <div class="hidden md:flex items-center space-x-8">
+                @if(Auth::user()->isAgent())
+                {{-- The agent role sees only the pages it may open (AdminMiddleware::AGENT_ROUTES). --}}
+                <a href="{{ route('admin.studio.index') }}" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700">🎬 Content studio</a>
+                <a href="{{ route('admin.social-queue.index') }}" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700">📤 Social queue</a>
+                <a href="{{ route('admin.blogs.index') }}" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700">📰 Articles</a>
+                <a href="{{ route('admin.slideshows.index') }}" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700">🎞️ Slideshows</a>
+                @else
                 <!-- Dashboard -->
                 <a href="{{ route('admin.dashboard') }}" 
                    class="px-3 py-2 rounded-md text-sm font-medium {{ request()->routeIs('admin.dashboard') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:text-white hover:bg-gray-700' }}">
@@ -33,6 +40,8 @@
                         <a href="{{ route('admin.match-previews.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">⚽ Match Previews</a>
                         <a href="{{ route('admin.reels.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🎬 Reels</a>
                         <a href="{{ route('admin.radio.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">📻 Radio</a>
+                        <a href="{{ route('admin.studio.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🎬 Content studio</a>
+                        <a href="{{ route('admin.agent.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🤖 Agent access</a>
                         <a href="{{ route('admin.twitter.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">📣 Social posts</a>
                         <a href="{{ route('admin.griot.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🥁 Beat the Griot</a>
                         <a href="{{ route('admin.messages.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🔔 Messages to users</a>
@@ -83,6 +92,7 @@
                         </form>
                     </div>
                 </div>
+                @endif
             </div>
 
             <!-- User Menu -->

@@ -44,6 +44,9 @@ Schedule::command('radio:edition')->cron('0 6,12,18 * * *')->timezone('Africa/La
 Schedule::command('radio:work')->everyMinute()->withoutOverlapping(30)->runInBackground()->name('radio-worker');
 // Vertical video of each published edition for the social queue (RADIO_VIDEO_ENABLED; one edition a run).
 Schedule::command('radio:video')->everyMinute()->withoutOverlapping(30)->runInBackground()->name('radio-video');
+// Match-story videos (61-75 s, STORY_VIDEOS): queued after full time, one render started a minute while fewer than
+// STORY_CONCURRENCY run, so a full Saturday's stories are ready within minutes. No withoutOverlapping: renders claim rows.
+Schedule::command('story:render')->everyMinute()->runInBackground()->name('story-videos');
 // Beat the Griot: plan the next round's three calls, remind, score and draw the winners (GRIOT_CHALLENGE).
 // YouTube LIVE: a broadcast per matchday (YOUTUBE_AUTO) and ending finished ones; quiet until /admin/youtube is connected.
 Schedule::command('youtube:broadcasts')->everyTenMinutes()->withoutOverlapping(10)->name('youtube-broadcasts');

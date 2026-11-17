@@ -17,3 +17,22 @@ Route::middleware(['throttle:social-queue-read', SocialQueueToken::class])->grou
     Route::get('/radio-export/{edition}/audio.mp3', [App\Http\Controllers\Api\RadioExportController::class, 'audio'])->whereNumber('edition')->name('api.radio-export.audio');
     Route::get('/radio-export/{edition}/video.mp4', [App\Http\Controllers\Api\RadioExportController::class, 'video'])->whereNumber('edition')->name('api.radio-export.video');
 });
+
+// The agent API (the social media assistant): bearer token from api_tokens (agent:token), per-token
+// limits, every request audit-logged. Read content data, request renders, draft articles. docs/agent-api.md.
+Route::prefix('agent')->name('api.agent.')->middleware(['throttle:agent-api', App\Http\Middleware\AgentApiToken::class])
+    ->controller(App\Http\Controllers\Api\AgentController::class)->group(function () {
+        Route::get('/matches', 'matches')->name('matches');
+        Route::get('/players', 'players')->name('players');
+        Route::get('/radio', 'radio')->name('radio');
+        Route::get('/articles', 'articles')->name('articles');
+        Route::get('/predictions', 'predictions')->name('predictions');
+        Route::get('/analytics', 'analytics')->name('analytics');
+        Route::get('/render/{id}', 'renderStatus')->where('id', '(story|slideshow):[0-9]+')->name('render.show');
+        Route::get('/social-queue', 'socialQueue')->name('social-queue');
+        Route::middleware('throttle:agent-api-write')->group(function () {
+            Route::post('/render', 'render')->name('render');
+            Route::post('/social-queue/{id}/posted', 'socialQueuePosted')->where('id', '[A-Za-z]+:[0-9]+')->name('social-queue.posted');
+            Route::post('/articles', 'storeArticle')->name('articles.store');
+        });
+    });

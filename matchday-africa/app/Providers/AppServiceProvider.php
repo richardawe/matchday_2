@@ -40,6 +40,11 @@ class AppServiceProvider extends ServiceProvider
 
         // The posting bot's API (/api/social-queue), per IP.
         \Illuminate\Support\Facades\RateLimiter::for('social-queue-read', fn ($request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by($request->ip()));
+        // The agent API: per token (by IP when there is none).
+        \Illuminate\Support\Facades\RateLimiter::for('agent-api', fn ($request) => \Illuminate\Cache\RateLimiting\Limit::perMinute((int) config('agent.per_minute', 120))
+            ->by('agent:'.($request->bearerToken() ? hash('sha256', $request->bearerToken()) : $request->ip())));
+        \Illuminate\Support\Facades\RateLimiter::for('agent-api-write', fn ($request) => \Illuminate\Cache\RateLimiting\Limit::perMinute((int) config('agent.writes_per_minute', 20))
+            ->by('agent-write:'.hash('sha256', (string) $request->bearerToken())));
         \Illuminate\Support\Facades\RateLimiter::for('social-queue-write', fn ($request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(30)->by($request->ip()));
 
         // A visitor's guest picks and league invite follow them into their account.
