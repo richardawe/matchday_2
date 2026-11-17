@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Design\Canvas;
+use App\Design\Tokens;
 use App\Models\FootballMatch;
 use App\Support\Armies;
 use Carbon\Carbon;
@@ -39,37 +41,37 @@ class FixtureCardRenderer extends StoryCardRenderer
 
         $img = imagecreatetruecolor($w, $h);
         imagealphablending($img, true);
-        imagefill($img, 0, 0, $this->color($img, [7, 8, 7]));
-        $this->glow($img, (int) ($w * 0.6), (int) ($h * 0.45), (int) ($w * 0.36), $home['glow'] ?? '#d2a052');
-        $this->glow($img, (int) ($w * 0.88), (int) ($h * 0.45), (int) ($w * 0.36), $away['glow'] ?? '#8c6a33');
+        imagefill($img, 0, 0, $this->color($img, self::tone('black')));
+        $this->glow($img, (int) ($w * 0.6), (int) ($h * 0.45), (int) ($w * 0.36), $home['glow'] ?? Tokens::colour('yellow'));
+        $this->glow($img, (int) ($w * 0.88), (int) ($h * 0.45), (int) ($w * 0.36), $away['glow'] ?? Tokens::colour('grey'));
         $this->army($img, $home, $h * 0.98, $w * 0.6, $h, flip: true);
         $this->army($img, $away, $h * 0.98, $w * 0.88, $h);
         $this->fade($img, 0, 0, (int) ($w * 0.64), $h, 'right', 12, 127);
 
         $pad = 60;
         $textWidth = (int) ($w * 0.56);
-        $this->text($img, 'mono', 20, self::MUTED, $pad, $pad + 10, $this->fit(mb_strtoupper((string) ($match->league?->name ?: 'Football')), 'mono', 20, $textWidth));
+        $this->text($img, 'mono', 20, self::tone('grey'), $pad, $pad + 10, $this->fit(((string) ($match->league?->name ?: 'Football')), 'mono', 20, $textWidth));
 
         $result = $this->result($match);
-        $tag = $result ? 'FULL TIME' : 'MATCH PREVIEW';
+        $tag = $result ? 'Full time' : 'Match preview';
         $box = imagettfbbox(22, 0, $this->font('mono'), $tag);
         imagesetthickness($img, 2);
-        imagerectangle($img, $pad, $pad + 38, $pad + $box[2] - $box[0] + 36, $pad + 86, $this->color($img, self::GOLD));
-        $this->text($img, 'mono', 22, self::GOLD, $pad + 18, $pad + 72, $tag);
+        imagerectangle($img, $pad, $pad + 38, $pad + $box[2] - $box[0] + 36, $pad + 86, $this->color($img, self::tone('yellow')));
+        $this->text($img, 'mono', 22, self::tone('yellow'), $pad + 18, $pad + 72, $tag);
 
         $band = 14;
-        $this->kente($img, $h - $band, $w, $band, $home['colours'] ?? ['#d2a052', '#e8e1d3']);
+        $this->kente($img, $h - $band, $w, $band, $home['colours'] ?? [Tokens::colour('yellow'), Tokens::colour('white')]);
         $y = $h - $band - 34;
-        $this->text($img, 'mono', 16, self::MUTED, $pad, $y, $result ? 'MATCHDAY.AFRICA  ·  THE STORY IN 20 SECONDS' : 'MATCHDAY.AFRICA  ·  WHO WINS? CALL IT');
+        $this->text($img, 'mono', 16, self::tone('grey'), $pad, $y, $result ? 'MATCHDAY.AFRICA  ·  THE STORY IN 20 SECONDS' : 'MATCHDAY.AFRICA  ·  WHO WINS? CALL IT');
 
         $kickoff = Carbon::parse($match->match_date->format('Y-m-d H:i:s'), 'UTC')->setTimezone(config('buffer.x.timezone'));
         $y -= 50;
-        $this->text($img, 'mono', 24, self::GOLD, $pad, $y, $result
-            ? 'FINAL SCORE  ·  '.mb_strtoupper($kickoff->format('D j M'))
-            : 'KICK-OFF '.$kickoff->format('H:i').' WAT  ·  '.mb_strtoupper($kickoff->format('D j M')));
+        $this->text($img, 'mono', 24, self::tone('yellow'), $pad, $y, $result
+            ? 'Final score  ·  '.($kickoff->format('D j M'))
+            : 'Kick-off '.$kickoff->format('H:i').' WAT  ·  '.($kickoff->format('D j M')));
 
         $y -= 52;
-        $name = fn ($team) => mb_strtoupper(trim(preg_replace('/\s+FC$/i', '', (string) $team?->name)) ?: 'TBC');
+        $name = fn ($team) => (trim(preg_replace('/\s+FC$/i', '', (string) $team?->name)) ?: 'TBC');
         // Long names ("Brighton & Hove Albion") step down in size before they are shortened.
         $width = fn (string $text, int $size) => ($box = imagettfbbox($size, 0, $this->font('display'), $text))[2] - $box[0];
         foreach ([$name($match->awayTeam), $result ?? 'V', $name($match->homeTeam)] as $i => $row) {
@@ -77,7 +79,7 @@ class FixtureCardRenderer extends StoryCardRenderer
             while ($i !== 1 && $size > 38 && $width($row, $size) > $textWidth) {
                 $size -= 2;
             }
-            $this->text($img, 'display', $size, $i === 1 ? self::GOLD : self::PAPER, $pad, $y, $this->fit($row, 'display', $size, $textWidth));
+            $this->text($img, 'display', $size, $i === 1 ? self::tone('yellow') : self::tone('white'), $pad, $y, $this->fit($row, 'display', $size, $textWidth));
             $y -= $i === 0 ? 92 : 58;
         }
 
@@ -102,12 +104,6 @@ class FixtureCardRenderer extends StoryCardRenderer
         return config('site.style') === 'cartoon';
     }
 
-    protected const INK = [11, 11, 11];
-    protected const SUN = [255, 210, 63];
-    protected const RAY = [255, 196, 31];
-    protected const CREAM = [255, 248, 231];
-    protected const RED = [255, 75, 62];
-    protected const SOFT = [58, 51, 40];
 
     /**
      * The cartoon card: a sunburst, a cream comic panel with the fixture, and each club's army
@@ -120,11 +116,11 @@ class FixtureCardRenderer extends StoryCardRenderer
         [$w, $h] = self::SIZE;
         $img = imagecreatetruecolor($w, $h);
         imagealphablending($img, true);
-        imagefill($img, 0, 0, $this->color($img, self::SUN));
+        imagefill($img, 0, 0, $this->color($img, self::tone('yellow')));
 
         // Sunburst from behind the armies.
         [$cx, $cy] = [930, 330];
-        $ray = $this->color($img, self::RAY);
+        $ray = $this->color($img, self::tone('yellow'));
         for ($i = 0; $i < 24; $i += 2) {
             $a1 = deg2rad($i * 15);
             $a2 = deg2rad(($i + 1) * 15);
@@ -139,18 +135,18 @@ class FixtureCardRenderer extends StoryCardRenderer
 
         // The comic panel.
         [$px, $py, $pw, $ph] = [44, 44, 620, 575];
-        $this->panel($img, $px, $py, $pw, $ph, self::CREAM, 6, 12);
+        $this->panel($img, $px, $py, $pw, $ph, self::tone('white'), 6, 12);
         $pad = 40;
         $x = $px + $pad;
         $textWidth = $pw - 2 * $pad;
-        $this->text($img, 'mono', 18, self::SOFT, $x, $py + 52, $this->fit(mb_strtoupper((string) ($match->league?->name ?: 'Football')), 'mono', 18, $textWidth));
+        $this->text($img, 'mono', 18, self::tone('black'), $x, $py + 52, $this->fit(((string) ($match->league?->name ?: 'Football')), 'mono', 18, $textWidth));
 
-        $tag = $result ? 'FULL TIME' : 'MATCH PREVIEW';
+        $tag = $result ? 'Full time' : 'Match preview';
         $box = imagettfbbox(24, 0, $this->font('display'), $tag);
-        $this->panel($img, $x, $py + 72, $box[2] - $box[0] + 32, 52, self::RED, 4, 5);
-        $this->text($img, 'display', 24, [255, 255, 255], $x + 16, $py + 112, $tag);
+        $this->panel($img, $x, $py + 72, $box[2] - $box[0] + 32, 52, self::tone('red'), 4, 5);
+        $this->text($img, 'display', 24, self::tone('white'), $x + 16, $py + 112, $tag);
 
-        $name = fn ($team) => mb_strtoupper(trim(preg_replace('/\s+(FC|AFC)$/i', '', (string) $team?->name)) ?: 'TBC');
+        $name = fn ($team) => (trim(preg_replace('/\s+(FC|AFC)$/i', '', (string) $team?->name)) ?: 'TBC');
         $width = fn (string $text, int $size) => ($b = imagettfbbox($size, 0, $this->font('display'), $text))[2] - $b[0];
         $sized = function (string $text) use ($width, $textWidth) {
             $size = 54;
@@ -163,19 +159,19 @@ class FixtureCardRenderer extends StoryCardRenderer
 
         $y = $py + 220;
         [$homeName, $size] = $sized($name($match->homeTeam));
-        $this->text($img, 'display', $size, self::INK, $x, $y, $homeName);
+        $this->text($img, 'display', $size, self::tone('black'), $x, $y, $homeName);
         $middle = $result ?? 'V';
         $mw = $width($middle, 34) + 30;
-        $this->panel($img, $x, $y + 22, $mw, 62, self::SUN, 4, 0);
-        $this->text($img, 'display', 34, self::INK, $x + 15, $y + 70, $middle);
+        $this->panel($img, $x, $y + 22, $mw, 62, self::tone('yellow'), 4, 0);
+        $this->text($img, 'display', 34, self::tone('black'), $x + 15, $y + 70, $middle);
         [$awayName, $size] = $sized($name($match->awayTeam));
-        $this->text($img, 'display', $size, self::INK, $x, $y + 168, $awayName);
+        $this->text($img, 'display', $size, self::tone('black'), $x, $y + 168, $awayName);
 
         $kickoff = Carbon::parse($match->match_date->format('Y-m-d H:i:s'), 'UTC')->setTimezone(config('buffer.x.timezone'));
-        $line = $result ? 'FINAL SCORE · '.mb_strtoupper($kickoff->format('D j M')) : 'KICK-OFF '.$kickoff->format('H:i').' WAT · '.mb_strtoupper($kickoff->format('D j M'));
-        $this->text($img, 'mono', 20, self::INK, $x, $py + $ph - 82, $this->fit($line, 'mono', 20, $textWidth));
-        imagefilledrectangle($img, $x, $py + $ph - 64, $x + $textWidth, $py + $ph - 61, $this->color($img, self::INK));
-        $this->text($img, 'mono', 16, self::SOFT, $x, $py + $ph - 30, $result ? 'MATCHDAY.AFRICA  ·  THE STORY IN 20 SECONDS' : 'MATCHDAY.AFRICA  ·  WHO WINS? CALL IT');
+        $line = $result ? 'Final score · '.($kickoff->format('D j M')) : 'Kick-off '.$kickoff->format('H:i').' WAT · '.($kickoff->format('D j M'));
+        $this->text($img, 'mono', 20, self::tone('black'), $x, $py + $ph - 82, $this->fit($line, 'mono', 20, $textWidth));
+        imagefilledrectangle($img, $x, $py + $ph - 64, $x + $textWidth, $py + $ph - 61, $this->color($img, self::tone('black')));
+        $this->text($img, 'mono', 16, self::tone('black'), $x, $py + $ph - 30, $result ? 'MATCHDAY.AFRICA  ·  THE STORY IN 20 SECONDS' : 'MATCHDAY.AFRICA  ·  WHO WINS? CALL IT');
 
         return $img;
     }
@@ -183,7 +179,7 @@ class FixtureCardRenderer extends StoryCardRenderer
     /** A filled box with an ink border and an offset ink shadow. */
     protected function panel(GdImage $img, int $x, int $y, int $w, int $h, array $fill, int $border, int $shadow): void
     {
-        $ink = $this->color($img, self::INK);
+        $ink = $this->color($img, self::tone('black'));
         if ($shadow) {
             imagefilledrectangle($img, $x + $shadow, $y + $shadow, $x + $w + $shadow, $y + $h + $shadow, $ink);
         }
@@ -196,7 +192,7 @@ class FixtureCardRenderer extends StoryCardRenderer
     {
         $army = Armies::for($team);
         $file = $army && $army['art'] ? public_path(config('armies.optimised')."/moods/{$army['art']}-{$mood}.webp") : null;
-        $this->panel($img, $x, $y, $size, $size, self::INK, 6, 12);
+        $this->panel($img, $x, $y, $size, $size, self::tone('black'), 6, 12);
         if ($file && is_file($file) && ($art = @imagecreatefromwebp($file))) {
             imagecopyresampled($img, $art, $x + 6, $y + 6, 0, 0, $size - 12, $size - 12, imagesx($art), imagesy($art));
 
@@ -206,7 +202,7 @@ class FixtureCardRenderer extends StoryCardRenderer
         $letters = mb_strtoupper(count($words) > 1 ? mb_substr($words[0], 0, 1).mb_substr($words[1], 0, 1) : mb_substr($words[0] ?? '', 0, 3)) ?: '?';
         $fontSize = mb_strlen($letters) > 2 ? 78 : 104;
         $box = imagettfbbox($fontSize, 0, $this->font('display'), $letters);
-        $this->text($img, 'display', $fontSize, self::SUN, $x + (int) (($size - ($box[2] - $box[0])) / 2), $y + (int) (($size + ($box[1] - $box[7])) / 2), $letters);
+        $this->text($img, 'display', $fontSize, self::tone('yellow'), $x + (int) (($size - ($box[2] - $box[0])) / 2), $y + (int) (($size + ($box[1] - $box[7])) / 2), $letters);
     }
 
     /** "2–1" once the match is finished, so the shared card shows the result; null before. */

@@ -13,6 +13,10 @@
 |
 */
 
+// Sizes, the safe zone, cut lengths, colours and the music bed come from the design tokens
+// (resources/design/tokens.json, docs/design-language.md); nothing visual is set here.
+$design = json_decode((string) file_get_contents(__DIR__.'/../resources/design/tokens.json'), true);
+
 return [
     'enabled' => (bool) env('STORY_VIDEOS', false),
 
@@ -30,38 +34,29 @@ return [
     // Radio videos for published editions from the last N days.
     'radio_days' => 3,
 
-    'size' => [1080, 1920],
-    'fps' => (int) env('STORY_FPS', 30),
+    'size' => [$design['canvas']['width'], $design['canvas']['height']],
+    'fps' => (int) env('STORY_FPS', $design['canvas']['fps']),
     'timeout' => (int) env('STORY_TIMEOUT', 900),
     'crf' => 26,
-    // The Ken Burns background is redrawn every N frames (3 = ten times a second); identical frames reuse their JPEG.
-    'zoom_every' => max(1, (int) env('STORY_ZOOM_EVERY', 3)),
 
     // Length rules for match stories (seconds): never under min, aim for the target window, never over max.
     'min_seconds' => 61,
     'target' => [65, 75],
     'max_seconds' => 75,
-    // Each cut lasts between these (the hook is fixed).
-    'cut' => [3.0, 5.0],
-    'hook_seconds' => 3.0,
+    // Each cut lasts between these (the hook is fixed): design tokens motion.cut.
+    'cut' => [$design['motion']['cut']['min'], $design['motion']['cut']['max']],
+    'hook_seconds' => $design['motion']['cut']['hook'],
 
-    // TikTok/Reels/Shorts safe zone for text: top 150 px, bottom 380 px and right 140 px stay clear.
-    'safe' => ['left' => 90, 'right' => 940, 'top' => 150, 'bottom' => 1540],
+    // TikTok/Reels/Shorts safe zone for text (design tokens grid.safe): top 250 px, bottom 380 px and right 140 px stay clear.
+    'safe' => $design['grid']['safe'],
 
-    'colours' => ['ink' => '#0B0B0B', 'yellow' => '#FFD23F', 'paper' => '#FFFFFF', 'muted' => '#A7A7A7'],
-
-    // Our own music, nobody else's. The owner adds the file; until then stories render silent and
-    // the Content studio says so. Looked for in this order (relative to the app root).
+    // Our own music, nobody else's (design tokens music). STORY_MUSIC_PATH can point at another copy of the same track.
     'music' => [
-        'title' => 'Matchday original beat v1',
-        'paths' => array_values(array_filter([
-            env('STORY_MUSIC_PATH'),
-            'resources/audio/matchday_original_beat_v1.mp3',
-            'storage/app/music/matchday_original_beat_v1.mp3',
-            'public/assets/matchday_original_beat_v1.mp3',
-        ])),
-        'loudness' => ['i' => -14, 'tp' => -2, 'lra' => 11],
-        'fade_out' => 2.0,
+        'title' => $design['music']['title'],
+        'paths' => array_values(array_filter([env('STORY_MUSIC_PATH'), $design['music']['file']])),
+        'loudness' => $design['music']['loudness'],
+        'fade_in' => $design['music']['fade_in'],
+        'fade_out' => $design['music']['fade_out'],
     ],
 
     'languages' => ['en', 'fr'],

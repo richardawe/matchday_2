@@ -101,7 +101,7 @@ class Slideshows
         if (empty($track['download_url'])) {
             return [false, is_file($file) ? "{$file} is not the expected file and there is no download link." : 'No music file and no download link: upload it at /admin/slideshows.'];
         }
-        $target = storage_path('app/'.ltrim((string) $track['path'], '/'));
+        $target = str_starts_with((string) $track['path'], '/') ? (string) $track['path'] : storage_path('app/'.ltrim((string) $track['path'], '/'));
         File::ensureDirectoryExists(dirname($target));
         $part = "{$target}.part";
         try {
@@ -124,7 +124,8 @@ class Slideshows
     public static function musicFile(): string
     {
         $key = (string) config('slideshow.music.track');
-        $configured = storage_path('app/'.ltrim((string) config("slideshow.music.tracks.{$key}.path"), '/'));
+        $path = (string) config("slideshow.music.tracks.{$key}.path");
+        $configured = str_starts_with($path, '/') ? $path : storage_path('app/'.ltrim($path, '/'));
         $uploaded = self::uploaded()['file'] ?? null;
 
         return !is_file($configured) && $uploaded && is_file(storage_path('app/'.$uploaded)) ? storage_path('app/'.$uploaded) : $configured;
@@ -174,12 +175,21 @@ class Slideshows
             File::ensureDirectoryExists($dir);
             $slides = $this->renderer->render($deck['slides'], $dir);
             $track = (array) config('slideshow.music.tracks.'.config('slideshow.music.track'));
-            $made = $this->video->make($slides, self::musicFile(), (float) ($track['start_seconds'] ?? 0), "{$dir}/slideshow.mp4");
+            $made = $this->video->make($deck['slides'], self::musicFile(), (float) ($track['start_seconds'] ?? 0), "{$dir}/slideshow.mp4");
             $this->poster($slides[0]['file'], "{$dir}/poster.jpg");
+            // The layout record the design check reads (php artisan design:check --slideshow=ID).
+            $at = 0.0;
+            $timed = array_map(function ($cut) use (&$at) {
+                $cut += ['start' => $at, 'seconds' => (float) \App\Design\Tokens::get('motion.cut.default')];
+                $at += $cut['seconds'];
+
+                return $cut;
+            }, $deck['slides']);
+            File::put("{$dir}/design.json", json_encode(self::withoutPaths(app(\App\Design\Film::class)->manifest($timed)), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
             $show->forceFill([
                 'status' => 'ready', 'error' => null, 'rendered_at' => now(),
-                'facts' => $deck['facts'] + ['zoom' => $made['zoom'], 'loudness' => $made['loudness']],
+                'facts' => $deck['facts'] + ['loudness' => $made['loudness']],
                 'slides' => self::withoutPaths($deck['slides']),
                 'caption' => $deck['caption'], 'captions' => $deck['captions'], 'landing_path' => $deck['landing_path'],
                 'player_id' => $deck['player_id'], 'photo' => $deck['photo'], 'music' => $deck['music'],

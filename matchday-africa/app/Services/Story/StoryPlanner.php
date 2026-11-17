@@ -2,6 +2,7 @@
 
 namespace App\Services\Story;
 
+use App\Design\Tokens;
 use App\Models\FootballMatch;
 use App\Models\MatchEvent;
 use App\Models\Player;
@@ -62,7 +63,7 @@ class StoryPlanner
         if ($featured && ($lines = $this->playerLines($featured, $match, $t))) {
             $beats[] = ['type' => 'player', 'keep' => false, 'rank' => 75, 'name' => $player->name, 'label' => AfricanScope::label($player),
                 'club' => ClubName::short($player->team), 'lines' => $lines,
-                'photo' => $photo ? ['file' => $photo['file'], 'crop' => $photo['crop'] ?? null] : null,
+                'photo' => $photo ? ['file' => $photo['file'], 'crop' => $photo['crop'] ?? null, 'credit' => $photo['credit'] ?? null] : null,
                 'flag' => AfricanScope::nation(AfricanScope::countryCode($player))['flag'] ?? null];
         }
         if ($h2h = $this->headToHead($match, $t, $sides)) {
@@ -78,7 +79,7 @@ class StoryPlanner
         if ($next = $this->nextFixtures($match, $t)) {
             $beats[] = ['type' => 'next', 'keep' => false, 'rank' => 50, 'title' => $t->t('next_fixture'), 'lines' => $next];
         }
-        $beats[] = ['type' => 'banter', 'keep' => true, 'rank' => 85, 'title' => $t->t('banter'), 'line' => $banterLine];
+        $beats[] = ['type' => 'banter', 'keep' => true, 'rank' => 85, 'title' => $t->t('banter'), 'line' => $banterLine, 'score' => $score];
         $beats[] = ['type' => 'close', 'keep' => true, 'rank' => 100, 'question' => $question, 'cta' => $t->t('cta_comment'),
             'follow' => $t->t('follow'), 'url' => $url];
 
@@ -156,11 +157,13 @@ class StoryPlanner
                     $beats[$i]['seconds'] = $hi;
                 }
             }
-            // Still short: verified recap cuts before the banter (final score with scorers, match facts).
+            // Still short: distinct verified recap cuts before the banter (final score with scorers, match
+            // facts, the verdict, one stat at a time). Never the same card twice: when they run out, the
+            // story is as long as the data allows.
             $pads = $this->padding($match, $t, $sides, $goals);
             $n = 0;
-            while ($total() < $targetLo && $n < 40) {
-                $pad = $pads[$n % count($pads)] + ['keep' => false, 'rank' => 10, 'seconds' => $hi, 'padding' => true];
+            while ($total() < $targetLo && $n < count($pads)) {
+                $pad = $pads[$n] + ['keep' => false, 'rank' => 10, 'seconds' => $hi, 'padding' => true];
                 $at = array_search('banter', array_column($beats, 'type'), true);
                 array_splice($beats, $at === false ? count($beats) - 1 : $at, 0, [$pad]);
                 $n++;
@@ -217,7 +220,19 @@ class StoryPlanner
         $pads[] = ['type' => 'facts', 'title' => $t->t('match_facts'), 'lines' => $facts];
         $winner = $match->home_score === $match->away_score ? $t->t('draw')
             : $t->t('win_for', ['club' => $match->home_score > $match->away_score ? $sides['home']['name'] : $sides['away']['name']]);
-        $pads[] = ['type' => 'recap', 'title' => $t->t('full_time'), 'score' => "{$match->home_score}-{$match->away_score}", 'lines' => [$winner]];
+        // The previous meeting on record, with its scorers (from the right side's point of view).
+        $last = FootballMatch::with(['homeTeam', 'awayTeam'])->where('id', '!=', $match->id)->where('match_date', '<', $match->match_date)
+            ->where(fn ($q) => $q->where(fn ($q) => $q->where('home_team_id', $match->home_team_id)->where('away_team_id', $match->away_team_id))
+                ->orWhere(fn ($q) => $q->where('home_team_id', $match->away_team_id)->where('away_team_id', $match->home_team_id)))
+            ->whereIn('status', ['FINISHED', 'FT', 'AWARDED'])->whereNotNull('home_score')->whereNotNull('away_score')
+            ->orderByDesc('match_date')->first();
+        if ($last) {
+            $swap = $last->home_team_id !== $match->home_team_id;
+            $scorers = $this->incidents($last)->where('type', 'goal')->map(fn ($g) => trim(($g['minute_label'] ?? '').' '.$g['player'].($g['own_goal'] ? ' (og)' : '')))->filter()->values()->all();
+            $pads[] = ['type' => 'recap', 'title' => $t->t('last_meetings', [], 1).' · '.SlideshowFacts::kickoff($last)->format('j M Y'),
+                'score' => "{$last->home_score}-{$last->away_score}", 'lines' => array_slice($scorers ?: [$t->t('no_goals')], 0, 4),
+                'sides' => $swap ? ['home' => $sides['away'], 'away' => $sides['home']] : $sides];
+        }
 
         return $pads;
     }
@@ -233,10 +248,10 @@ class StoryPlanner
             return ['name' => ClubName::short($team), 'full' => ClubName::full($team), 'flag' => $nation['flag'] ?? null,
                 'colours' => array_values(SlideshowFacts::colours($team) ?? $fallback)];
         };
-        $home = $side($match->homeTeam, ['#E8E8E8', '#0B0B0B']);
-        $away = $side($match->awayTeam, ['#3A86FF', '#FFFFFF']);
+        $home = $side($match->homeTeam, Tokens::teamFallback('home'));
+        $away = $side($match->awayTeam, Tokens::teamFallback('away'));
         if (strcasecmp($home['colours'][0], $away['colours'][0]) === 0) {
-            $away['colours'] = [$away['colours'][1] ?? '#FFFFFF', $away['colours'][0]];
+            $away['colours'] = [$away['colours'][1] ?? Tokens::colour('white'), $away['colours'][0]];
         }
 
         return ['home' => $home, 'away' => $away];

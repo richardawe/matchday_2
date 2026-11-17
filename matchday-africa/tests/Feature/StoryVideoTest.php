@@ -157,7 +157,9 @@ class StoryVideoTest extends TestCase
         foreach ([$quiet, $wild, $this->richMatch()] as $match) {
             $plan = app(StoryPlanner::class)->plan($match);
             $total = array_sum(array_column($plan['beats'], 'seconds'));
-            $this->assertGreaterThanOrEqual(61, $total, "match {$match->id}");
+            // A card is never repeated: a match with almost no data ends when its distinct cards run out.
+            $this->assertGreaterThanOrEqual($match->is($quiet) ? 25 : 61, $total, "match {$match->id}");
+            app(StoryFrames::class)->assertNoRepeats($plan['beats']);
             $this->assertLessThanOrEqual(75, $total, "match {$match->id}");
             $this->assertSame('hook', $plan['beats'][0]['type']);
             $this->assertEquals(3.0, $plan['beats'][0]['seconds']);
@@ -224,7 +226,7 @@ class StoryVideoTest extends TestCase
         $match = $this->richMatch();
         $plan = app(StoryPlanner::class)->plan($match, 'fr');
         $this->assertSame('Fin de match folle ! Alex Iwobi égalise à la 89e minute', $plan['hook']);
-        $this->assertSame('BUT', StoryText::for('fr')->t('goal'));
+        $this->assertSame('But', StoryText::for('fr')->t('goal'));
         $this->assertSame('Abonnez-vous pour la suite', end($plan['beats'])['follow']);
         $this->assertSame('L\'enjeu', $plan['beats'][1]['title']);
 
@@ -289,7 +291,7 @@ class StoryVideoTest extends TestCase
         $b = $this->edition(64, "Alex Iwobi scored again for Fulham on Saturday, his fourth goal of the season.");
 
         $story = app(StoryVideos::class)->request('radio_video', $b->id, 'en', [], 'api');
-        $this->assertTrue(app(StoryVideos::class)->render($story));
+        $this->assertTrue(app(StoryVideos::class)->render($story), (string) $story->fresh()->error);
 
         $story->refresh();
         $this->assertSame('ready', $story->status, (string) $story->error);

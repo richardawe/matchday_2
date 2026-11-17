@@ -10,7 +10,7 @@ class StoryText
 {
     private const T = [
         'en' => [
-            'full_time' => 'Full time', 'goal' => 'GOAL', 'own_goal' => 'OWN GOAL', 'penalty' => 'PENALTY', 'red_card' => 'RED CARD',
+            'full_time' => 'Full time', 'goal' => 'Goal', 'own_goal' => 'Own goal', 'penalty' => 'Penalty', 'red_card' => 'Red card',
             'assist' => 'Assist: :name', 'sent_off' => ':name is sent off', 'scores_for' => ':name scores for :club',
             'own_goal_for' => 'Own goal, :name. :club benefit', 'what_at_stake' => 'What was at stake',
             'table_going_in' => 'Going in: :home :hpos, :away :apos', 'table_now' => 'In the table: :home :hpos, :away :apos',
@@ -48,7 +48,7 @@ class StoryText
             'radio' => 'Matchday Radio', 'radio_listen' => 'Listen to the full edition',
         ],
         'fr' => [
-            'full_time' => 'Fin du match', 'goal' => 'BUT', 'own_goal' => 'CSC', 'penalty' => 'PENALTY', 'red_card' => 'CARTON ROUGE',
+            'full_time' => 'Fin du match', 'goal' => 'But', 'own_goal' => 'CSC', 'penalty' => 'Penalty', 'red_card' => 'Carton rouge',
             'assist' => 'Passe décisive : :name', 'sent_off' => ':name est expulsé', 'scores_for' => ':name marque pour :club',
             'own_goal_for' => 'But contre son camp, :name. Avantage :club', 'what_at_stake' => 'L\'enjeu',
             'table_going_in' => 'Avant le match : :home :hpos, :away :apos', 'table_now' => 'Au classement : :home :hpos, :away :apos',

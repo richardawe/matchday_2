@@ -206,13 +206,17 @@ class StoryVideos
             $fps = (int) config('story.fps', 30);
             $cover = null;
             $started = microtime(true);
+            // The layout record the design check reads (php artisan design:check --story=ID).
+            File::put("{$dir}/design.json", json_encode(self::withoutPaths($this->frames->manifest($beats)), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
             $this->encoder->pipe($this->args($audio ?? $silence, $audio !== null && $story->kind === 'match_story', $seconds, $tmp),
                 $this->frames->frames($beats, $fps, $cover), (int) config('story.timeout', 900));
             $length = SocialQueue::mp4Seconds($tmp);
             if ($length === null || abs($length - $seconds) > 1.0) {
                 throw new RuntimeException('The video length ('.($length === null ? 'unreadable' : round($length, 1).' s').") does not match the plan ({$seconds} s).");
             }
-            if ($story->kind === 'match_story' && ($length < (float) config('story.min_seconds', 61) - 0.05 || $length > (float) config('story.max_seconds', 75) + 0.5)) {
+            // 61-75 s, or shorter when the match's data runs out of distinct cards (a card is never repeated).
+            $floor = min((float) config('story.min_seconds', 61), $seconds);
+            if ($story->kind === 'match_story' && ($length < $floor - 0.05 || $length > (float) config('story.max_seconds', 75) + 0.5)) {
                 throw new RuntimeException('The story is '.round($length, 1).' s; it must be 61-75 s.');
             }
             $public = $story->publicVideoPath();
@@ -280,14 +284,7 @@ class StoryVideos
         }
         [$player, $photo] = $this->leadPlayer($bulletin);
         $t = StoryText::for($story->lang);
-        $beats = [];
-        foreach ($this->radio->scenes($bulletin, $seconds) as $scene) {
-            $beats[] = ['type' => 'radio', 'start' => $scene['start'], 'seconds' => $scene['end'] - $scene['start'],
-                'caption' => $scene['caption'], 'title' => $scene['slide']['title'] ?? $bulletin->title, 'art' => !empty($scene['slide']['image']) ? public_path($scene['slide']['image']) : null,
-                'edition' => $bulletin->editionLabel().' · '.$bulletin->duration_label,
-                'photo' => $photo ? ['file' => $photo['file'], 'crop' => $photo['crop'] ?? null, 'credit' => $photo['credit'] ?? null] : null,
-                'lang' => $story->lang, 'sides' => null];
-        }
+        $beats = RadioVideo::cuts($bulletin, $this->radio->scenes($bulletin, $seconds), $photo, $story->lang);
         // Frame timing comes from start + seconds; make the last beat end exactly on the audio.
         $seconds = round($seconds, 3);
 
@@ -348,7 +345,8 @@ class StoryVideos
             $l = (array) config('story.music.loudness');
             $start = max(0, $seconds - $fade);
             $args[] = '-af';
-            $args[] = "atrim=0:{$seconds},volume='if(lt(t,0.3),t/0.3,if(gt(t,{$start}),max(0,({$seconds}-t)/{$fade}),1))':eval=frame,"
+            $in = (float) config('story.music.fade_in', 0.3);
+            $args[] = "atrim=0:{$seconds},volume='if(lt(t,{$in}),t/{$in},if(gt(t,{$start}),max(0,({$seconds}-t)/{$fade}),1))':eval=frame,"
                 .'loudnorm=I='.($l['i'] ?? -14).':TP='.($l['tp'] ?? -2).':LRA='.($l['lra'] ?? 11).',aresample=48000';
         }
         array_push($args, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', (string) config('story.crf', 26), '-pix_fmt', 'yuv420p', '-r', $fps,

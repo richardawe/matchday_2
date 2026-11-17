@@ -1,0 +1,46 @@
+{
+  "note": "Illustrative data for the reference images in docs/design/. Real renders take every fact from the database. The Niger v Morocco numbers are from match 5212 (17 Nov 2026); the Sample FC v Example United cards are made up to show the layouts and must never be published.",
+  "sides": {
+    "home": { "name": "Niger", "full": "Niger", "flag": "resources/flags/ne.png", "colours": ["#E05206", "#0DB02B"] },
+    "away": { "name": "Morocco", "full": "Morocco", "flag": "resources/flags/ma.png", "colours": ["#C1272D", "#006233"] }
+  },
+  "sample_sides": {
+    "home": { "name": "Sample FC", "full": "Sample FC", "flag": null, "colours": ["#1D4ED8", "#FFFFFF"] },
+    "away": { "name": "Example Utd", "full": "Example United", "flag": null, "colours": ["#FFFFFF", "#111111"] }
+  },
+  "cards": [
+    { "component": "hook", "sides": "sides", "line": "Abdellah Ouazane wins it for Morocco in Niamey's shadow", "score": "0-1",
+      "player": { "name": "Abdellah Ouazane", "label": "Morocco international", "club": "Morocco", "flag": "resources/flags/ma.png" }, "focus": "away" },
+    { "component": "matchup", "sides": "sides", "title": "What was at stake", "competition": "AFCON Qualifying", "stage": "Group stage",
+      "lines": ["Kick-off 17 Nov, 20:00 UK", "At Stade Prince Moulay Abdallah"] },
+    { "component": "goal", "sides": "sides", "label": "Morocco", "minute": "22'", "shout": "Goal!", "player": "Abdellah Ouazane",
+      "line": "Morocco", "assist": null, "side": "away", "before": "0-0", "after": "0-1" },
+    { "component": "red_card", "sides": "sample_sides", "label": "Red card", "minute": "70'", "player": "A. Defender", "side": "away", "score": "2-1" },
+    { "component": "stat_bars", "sides": "sides", "title": "Key stats",
+      "rows": [ { "label": "Possession", "home": 32, "away": 68, "percent": true }, { "label": "Shots", "home": 8, "away": 13 },
+                { "label": "On target", "home": 3, "away": 8 }, { "label": "Corners", "home": 2, "away": 11 }, { "label": "Fouls", "home": 12, "away": 16 } ] },
+    { "component": "mini_table", "sides": "sample_sides", "title": "League table", "played_label": "P", "points_label": "Pts",
+      "rows": [ { "pos": 1, "name": "Leaders FC", "played": 12, "pts": 30, "side": null }, { "pos": 2, "name": "Runners Up", "played": 12, "pts": 27, "side": null },
+                { "pos": 3, "name": "Sample FC", "played": 12, "pts": 25, "side": "home" }, { "pos": 9, "name": "Example Utd", "played": 12, "pts": 16, "side": "away" } ] },
+    { "component": "form_chips", "sides": "sample_sides", "title": "Form before this match",
+      "form": { "home": [ { "result": "W", "score": "2-0" }, { "result": "W", "score": "1-0" }, { "result": "D", "score": "1-1" }, { "result": "L", "score": "0-2" }, { "result": "W", "score": "3-1" } ],
+                "away": [ { "result": "L", "score": "0-1" }, { "result": "D", "score": "2-2" }, { "result": "L", "score": "1-3" }, { "result": "W", "score": "2-1" }, { "result": "D", "score": "0-0" } ] } },
+    { "component": "head_to_head", "sides": "sample_sides", "title": "Head to head", "sub": "Last 5 meetings on record",
+      "counts": [ { "label": "Sample FC wins", "n": 2, "side": "home" }, { "label": "Draws", "n": 1, "side": null }, { "label": "Example Utd wins", "n": 2, "side": "away" } ],
+      "lines": [ "Sample FC 2-1 Example Utd (Mar 2026)" ] },
+    { "component": "profile", "sides": "sample_sides", "name": "Sample Player", "label": "Nigeria international", "club": "Sample FC", "flag": "resources/flags/ng.png",
+      "lines": [ { "head": "This match", "text": "1 goal · Started · 90 minutes" }, { "head": "This season in the league", "text": "6 goals · 3 assists" } ] },
+    { "component": "roster", "sides": "sample_sides", "title": "African players at full time", "heading": "How they did",
+      "rows": [ { "name": "Sample Player", "line": "Nigeria international · Sample FC", "stats": "1 goal · 90 min", "side": "home" },
+                { "name": "Other Player", "line": "Ghana international · Example Utd", "stats": "Started · Rating 7.1", "side": "away" } ] },
+    { "component": "fixtures", "sides": "sample_sides", "title": "Next up",
+      "lines": [ { "side": "home", "text": "Sample FC v Third Club", "when": "Saturday, 15:00 UK · League" }, { "side": "away", "text": "Fourth Club v Example Utd", "when": "Sunday, 16:30 UK · League" } ] },
+    { "component": "fact_list", "sides": "sides", "title": "Match facts", "lines": [ "At Stade Prince Moulay Abdallah", "Kick-off 17 Nov, 20:00 UK" ] },
+    { "component": "score_block", "sides": "sides", "title": "Final score", "score": "0-1", "lines": [ "22' Abdellah Ouazane" ] },
+    { "component": "banter", "sides": "sides", "title": "Banter", "line": "Morocco fans, enjoy tonight. Niger fans, there is always next week.", "score": "0-1" },
+    { "component": "closing", "sides": "sides", "title": "Your call", "question": "Did Morocco deserve the win?", "cta": "Tell us in the comments",
+      "follow": "Follow for more", "url": "matchday.africa/matches/5212" },
+    { "component": "radio_cover", "label": "Matchday Radio", "edition": "Tuesday evening · 1:57", "title": "The evening update",
+      "caption": "Senegal have become the first side to book a place at the 2027 Africa Cup of Nations", "art": "public/images/radio/cover.png", "seconds": 4.0 }
+  ]
+}

@@ -298,7 +298,7 @@ class GriotChallengeTest extends TestCase
         $cards = app(BanterCardRenderer::class);
         $this->assertSame('lost', BanterCardRenderer::outcome($match, 'away'));
         $words = $cards->words($match, 'away', 'pcm');
-        $this->assertSame('MANCHESTER CITY DON FALL!', $words['head']);
+        $this->assertSame('Manchester City don fall!', $words['head']);
         $this->assertStringContainsString('Liverpool beat Manchester City 2–0', $words['line']);
 
         $res = $this->get(route('matches.banter', ['match' => $match, 'side' => 'away', 'voice' => 'pcm']))->assertOk();
