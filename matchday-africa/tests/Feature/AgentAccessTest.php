@@ -6,6 +6,7 @@ use App\Http\Middleware\AdminMiddleware;
 use App\Models\AgentAuditLog;
 use App\Models\ApiToken;
 use App\Models\Blog;
+use App\Models\Slideshow;
 use App\Models\FootballMatch;
 use App\Models\League;
 use App\Models\MatchEvent;
@@ -146,6 +147,75 @@ class AgentAccessTest extends TestCase
         $this->assertTrue($log->every(fn ($row) => $row->user_id === $this->agent->id));
         $this->assertSame('ft', $log->first()->params['values']['status']);
         $this->assertStringNotContainsString($this->token, AgentAuditLog::all()->toJson());
+    }
+
+    public function test_the_agent_retries_failed_radio_editions_and_starts_fresh_ones(): void
+    {
+        $failed = RadioBulletin::create(['slot' => '2026-11-15-18', 'title' => 'The evening update', 'status' => 'failed', 'stage' => 'script',
+            'attempts' => 3, 'failure_reason' => 'A story or result is repeated in the bulletin.']);
+        // Any edition's state, failed ones included, with the reason.
+        $this->api()->getJson("/api/agent/radio/{$failed->id}")->assertOk()
+            ->assertJsonPath('status', 'failed')->assertJsonPath('failure_reason', 'A story or result is repeated in the bulletin.');
+        $this->api()->getJson('/api/agent/radio/999')->assertNotFound();
+
+        // Retry: back in the queue for the minute worker, from the script stage with fresh facts.
+        $this->api()->postJson("/api/agent/radio/{$failed->id}/retry")->assertStatus(202)
+            ->assertJsonPath('status', 'queued')->assertJsonPath('attempts', 0)->assertJsonPath('failure_reason', null)
+            ->assertJsonPath('status_url', "https://matchday.africa/api/agent/radio/{$failed->id}");
+        $this->assertSame(['queued', 'script'], [$failed->fresh()->status, $failed->fresh()->stage]);
+        // Only failed editions; one at a time.
+        $this->api()->postJson("/api/agent/radio/{$failed->id}/retry")->assertStatus(409);
+        $this->api()->postJson('/api/agent/radio')->assertStatus(409)->assertJsonPath('edition.id', $failed->id);
+
+        // A fresh edition outside the slots, once the queue is clear; at most the daily allowance.
+        $failed->update(['status' => 'published', 'published_at' => now()]);
+        config(['radio.agent_extra_per_day' => 2]);
+        $fresh = $this->api()->postJson('/api/agent/radio')->assertStatus(202)->assertJsonPath('status', 'queued')->json();
+        $this->assertMatchesRegularExpression('/^2026-11-15-18-r\d{6}$/', $fresh['slot']);
+        $this->assertSame('The evening update', $fresh['title']);
+        RadioBulletin::whereKey($fresh['id'])->update(['status' => 'published']);
+        $this->travel(1)->minutes();
+        $this->api()->postJson('/api/agent/radio')->assertStatus(202);
+        RadioBulletin::where('status', 'queued')->update(['status' => 'published']);
+        $this->travel(1)->minutes();
+        $this->api()->postJson('/api/agent/radio')->assertStatus(429);
+
+        // A failed edition older than six hours is not retried (the worker would hold it): start a fresh one instead.
+        $old = RadioBulletin::create(['slot' => '2026-11-15-06', 'title' => 'The morning update', 'status' => 'failed', 'stage' => 'script', 'attempts' => 3]);
+        $this->api()->postJson("/api/agent/radio/{$old->id}/retry")->assertStatus(409);
+
+        // Radio off: the endpoints say so.
+        config(['radio.enabled' => false]);
+        $this->api()->postJson('/api/agent/radio')->assertStatus(503);
+        $this->assertGreaterThanOrEqual(4, AgentAuditLog::where('channel', 'api')->where('path', 'like', '%/radio%')->where('method', 'POST')->count());
+    }
+
+    public function test_the_agent_publishes_and_edits_its_own_articles_only(): void
+    {
+        $live = $this->api()->postJson('/api/agent/articles', ['title' => 'Iwobi rescues Fulham', 'content' => '<p>Late goal.</p>', 'publish' => true])
+            ->assertCreated()->assertJsonPath('status', 'published')->json();
+        $this->assertNotNull(Blog::find($live['id'])->published_at);
+        $this->assertStringStartsWith('https://matchday.africa/', $live['url']);
+        $this->get(parse_url($live['url'], PHP_URL_PATH))->assertOk()->assertSee('Iwobi rescues Fulham');
+
+        $this->api()->patchJson("/api/agent/articles/{$live['id']}", ['title' => 'Iwobi rescues Fulham at the death'])
+            ->assertOk()->assertJsonPath('title', 'Iwobi rescues Fulham at the death')->assertJsonPath('status', 'published');
+        $this->api()->patchJson("/api/agent/articles/{$live['id']}", ['publish' => false])->assertOk()->assertJsonPath('status', 'draft');
+        $this->assertNull(Blog::find($live['id'])->published_at);
+
+        // A person's article stays read-only to the agent.
+        $human = Blog::create(['title' => 'Editor piece', 'slug' => 'editor-piece', 'content' => 'x', 'status' => 'published', 'published_at' => now(), 'author_name' => 'Editor']);
+        $this->api()->patchJson("/api/agent/articles/{$human->id}", ['title' => 'Changed'])->assertForbidden();
+        $this->assertSame('Editor piece', $human->fresh()->title);
+        $this->api()->patchJson('/api/agent/articles/999', ['title' => 'x'])->assertNotFound();
+    }
+
+    public function test_the_agent_approves_ready_slideshows(): void
+    {
+        $show = Slideshow::create(['key' => "post_match:{$this->match->id}", 'type' => 'post_match', 'match_id' => $this->match->id, 'status' => 'pending']);
+        $this->api()->postJson("/api/agent/slideshows/{$show->id}/approve")->assertStatus(409);
+        $this->api()->postJson('/api/agent/slideshows/999/approve')->assertNotFound();
+        $this->assertFalse((bool) $show->fresh()->approved);
     }
 
     public function test_the_api_refuses_missing_revoked_and_non_agent_tokens(): void

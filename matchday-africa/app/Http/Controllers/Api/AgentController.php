@@ -352,7 +352,9 @@ class AgentController extends Controller
             'excerpt' => ['nullable', 'string', 'max:500'],
             'match_id' => ['nullable', 'integer'],
             'sources' => ['nullable', 'array', 'max:20'], 'sources.*' => ['string', 'url', 'max:2048'],
+            'publish' => ['nullable', 'boolean'],
         ]);
+        $publish = (bool) ($data['publish'] ?? false);
         $slug = Str::slug($data['title']) ?: 'draft';
         $base = $slug;
         for ($i = 2; Blog::where('slug', $slug)->exists(); $i++) {
@@ -360,12 +362,122 @@ class AgentController extends Controller
         }
         $blog = Blog::create([
             'title' => $data['title'], 'slug' => $slug, 'content' => $data['content'], 'excerpt' => $data['excerpt'] ?? null,
-            'status' => 'draft', 'published_at' => null, 'author_name' => $request->user()->name,
+            'status' => $publish ? 'published' : 'draft', 'published_at' => $publish ? now() : null, 'author_name' => $request->user()->name,
             'metadata' => array_filter(['source' => 'agent', 'created_by' => $request->user()->id, 'match_id' => $data['match_id'] ?? null,
                 'sources' => $data['sources'] ?? null]),
         ]);
 
         return response()->json($this->article($blog->fresh()), 201);
+    }
+
+    /**
+     * PATCH /api/agent/articles/{id}: edit, publish or unpublish one of the agent's own articles.
+     * Articles a person wrote stay read-only to the agent.
+     */
+    public function updateArticle(Request $request, int $id): JsonResponse
+    {
+        $blog = Blog::find($id);
+        if (!$blog) {
+            return response()->json(['message' => 'Unknown article.'], 404);
+        }
+        if (data_get($blog->metadata, 'source') !== 'agent') {
+            return response()->json(['message' => 'The agent can only change articles it created.'], 403);
+        }
+        $data = $request->validate([
+            'title' => ['sometimes', 'string', 'max:255'],
+            'content' => ['sometimes', 'string', 'max:100000'],
+            'excerpt' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'publish' => ['sometimes', 'boolean'],
+        ]);
+        $fields = collect($data)->only(['title', 'content', 'excerpt'])->all();
+        if (array_key_exists('publish', $data)) {
+            $fields['status'] = $data['publish'] ? 'published' : 'draft';
+            $fields['published_at'] = $data['publish'] ? ($blog->published_at ?? now()) : null;
+        }
+        $blog->update($fields);
+
+        return response()->json($this->article($blog->fresh()));
+    }
+
+    /** POST /api/agent/slideshows/{id}/approve: put a ready slideshow live (pages, social queue, YouTube), as an editor would. */
+    public function approveSlideshow(Request $request, int $id, Slideshows $slideshows): JsonResponse
+    {
+        $show = Slideshow::ready() ? Slideshow::find($id) : null;
+        if (!$show) {
+            return response()->json(['message' => 'Unknown slideshow.'], 404);
+        }
+        if (!$slideshows->approve($show, $request->user())) {
+            return response()->json(['message' => 'Only a ready slideshow with its video can be approved.', 'status' => $show->status], 409);
+        }
+
+        return response()->json(['id' => "slideshow:{$show->id}", 'approved' => true, 'page_url' => SocialQueue::https(route('slideshows.show', $show))]);
+    }
+
+    /** GET /api/agent/radio/{id}: any edition's state, including queued and failed ones and why they failed. */
+    public function radioEdition(int $id): JsonResponse
+    {
+        $b = Schema::hasTable('radio_bulletins') ? RadioBulletin::find($id) : null;
+
+        return $b ? response()->json($this->edition($b)) : response()->json(['message' => 'Unknown radio edition.'], 404);
+    }
+
+    /**
+     * POST /api/agent/radio/{id}/retry: back into the queue for a failed edition (as Server operations
+     * radio-retry). The minute worker writes, checks, voices and (with auto-publish) publishes it.
+     */
+    public function radioRetry(int $id): JsonResponse
+    {
+        if (!RadioBulletin::available()) {
+            return response()->json(['message' => 'Radio is off (RADIO_ENABLED) or not migrated.'], 503);
+        }
+        $b = RadioBulletin::find($id);
+        if (!$b) {
+            return response()->json(['message' => 'Unknown radio edition.'], 404);
+        }
+        if ($b->status !== 'failed') {
+            return response()->json(['message' => 'Only a failed edition can be retried.', 'status' => $b->status], 409);
+        }
+        if ($b->slotTime()->lt(now('Africa/Lagos')->subHours(6))) {
+            return response()->json(['message' => 'This edition is more than six hours old; start a fresh one with POST /api/agent/radio.'], 409);
+        }
+        $b->update(['status' => 'queued', 'stage' => 'script', 'attempts' => 0, 'failure_reason' => null]);
+
+        return response()->json($this->edition($b->fresh()) + ['status_url' => SocialQueue::https(route('api.agent.radio.show', $b))], 202);
+    }
+
+    /**
+     * POST /api/agent/radio: a fresh edition outside the 06:00/12:00/18:00 slots, from the facts available
+     * now, through the same script checks, fact review and voice. One edition at a time; at most
+     * config radio.agent_extra_per_day extra editions a Lagos day.
+     */
+    public function radioCreate(): JsonResponse
+    {
+        if (!RadioBulletin::available()) {
+            return response()->json(['message' => 'Radio is off (RADIO_ENABLED) or not migrated.'], 503);
+        }
+        if ($busy = RadioBulletin::whereIn('status', ['queued', 'processing'])->first()) {
+            return response()->json(['message' => 'An edition is already being made; wait for it to finish.', 'edition' => $this->edition($busy)], 409);
+        }
+        $today = now('Africa/Lagos')->format('Y-m-d');
+        $extra = RadioBulletin::where('slot', 'like', "{$today}-%-r%")->count();
+        $cap = (int) config('radio.agent_extra_per_day', 4);
+        if ($extra >= $cap) {
+            return response()->json(['message' => "The extra editions for today ({$cap}) are used up."], 429);
+        }
+        $b = app(\App\Services\RadioService::class)->queue(fresh: true);
+        $b->update(['status' => 'queued', 'stage' => 'script', 'attempts' => 0]);
+
+        return response()->json($this->edition($b->fresh()) + ['status_url' => SocialQueue::https(route('api.agent.radio.show', $b))], 202);
+    }
+
+    private function edition(RadioBulletin $b): array
+    {
+        return [
+            'id' => $b->id, 'slot' => $b->slot, 'title' => $b->title, 'status' => $b->status, 'stage' => $b->stage,
+            'attempts' => (int) $b->attempts, 'failure_reason' => $b->failure_reason,
+            'recorded_at' => $b->recorded_at?->utc()->toIso8601ZuluString(), 'published_at' => $b->published_at?->utc()->toIso8601ZuluString(),
+            'page_url' => $b->status === 'published' ? SocialQueue::https(route('radio.show', $b)) : null,
+        ];
     }
 
     // ------------------------------------------------------------------ shapes

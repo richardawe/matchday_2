@@ -236,6 +236,15 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   pass `design:check`; contact sheets in `docs/design/checks/`. Re-render them on the server after deploy (Content studio).
 - Not done: the still cards' layouts and font sizes and the reel's layout are not on the shared components yet (they read the tokens).
 
+### Agent publishing and radio (18 Nov 2026)
+- Owner (18 Nov): the agent may retry failed radio editions, start extra editions outside the slots and publish
+  generated content. API only (`docs/agent-api.md`): `GET /radio/{id}`, `POST /radio/{id}/retry`, `POST /radio`
+  (one edition in the queue at a time, `RADIO_AGENT_EXTRA_PER_DAY` = 4), `POST /articles` with `publish`,
+  `PATCH /articles/{id}` (its own articles only), `POST /slideshows/{id}/approve`. Every radio check and the fact review
+  still apply; deletes, users, billing, secrets and other people's articles stay closed; the admin pages are unchanged.
+- 18 Nov 06:00 WAT edition (bulletin 87) failed three times on the writer (a repeated fact, "host" for "face", an
+  invented outcome); the prompt was tightened in #78.
+
 ### Match-story fixes (18 Nov 2026, owner's review of story:10 = match 5212)
 - Opening card: featured player = winning/last scorer, else top scorer, else best-rated African in the line-up; the hook's
   named player wins. Photo from the player row or the new name-based library (`CommonsPhotos::forName`,

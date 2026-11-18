@@ -17,6 +17,8 @@ return [
     'cache' => env('RADIO_TTS_CACHE', storage_path('app/tts-cache')),
     'timeout' => 1200,
     'max_attempts' => 3,
+    // Extra editions the agent may start outside the slots (POST /api/agent/radio), per Lagos day.
+    'agent_extra_per_day' => (int) env('RADIO_AGENT_EXTRA_PER_DAY', 4),
     'bitrate' => 24,
     // Vertical 1080x1920 video of each published edition for the social queue (radio:video, RADIO_VIDEO_ENABLED).
     // Only editions longer than min_seconds are rendered (TikTok counts long posts from 60 s up).
