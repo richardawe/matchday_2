@@ -399,6 +399,26 @@ class StoryVideoTest extends TestCase
         $this->assertSame('CC BY-SA 4.0', $lead['photo']['licence']);
     }
 
+    public function test_substitutions_make_a_changes_card_and_kick_off_shows_once(): void
+    {
+        $match = $this->match('Niger', 'Morocco', [0, 1]);
+        $match->forceFill(['venue_name' => 'Stade Prince Moulay Abdallah'])->save();
+        $this->event($match, 'goal', 'away', 22, 'Abdellah Ouazane');
+        MatchEvent::create(['football_data_id' => 990100, 'match_id' => $match->id, 'team_id' => $match->away_team_id, 'type' => 'substitution',
+            'minute' => 61, 'player_name' => 'Youssef En-Nesyri', 'related_player_name' => 'Yassir Zabiri']);
+        $planner = app(StoryPlanner::class);
+        $t = \App\Services\Story\StoryText::for('en');
+        $sides = $planner->sides($match->fresh());
+        $call = fn (string $method, ...$args) => (new \ReflectionMethod($planner, $method))->invoke($planner, ...$args);
+        $this->assertSame(["61' Yassir Zabiri on for Youssef En-Nesyri (Morocco)"], $call('changes', $match, $t, $sides));
+        // The build-up card names the venue and kick-off; the padding never repeats them.
+        $this->assertStringContainsString('Moulay Abdallah', json_encode($call('buildup', $match, $t, $sides, ['home' => null, 'away' => null])['lines']));
+        $goals = $planner->incidents($match)->where('type', 'goal')->values();
+        $pads = json_encode($call('padding', $match, $t, $sides, $goals));
+        $this->assertStringNotContainsString('Moulay Abdallah', $pads);
+        $this->assertStringNotContainsString('Kick-off', $pads);
+    }
+
     public function test_a_story_never_shows_a_card_twice(): void
     {
         foreach ([$this->richMatch()] as $match) {
