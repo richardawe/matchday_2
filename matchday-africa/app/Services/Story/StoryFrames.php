@@ -18,7 +18,7 @@ class StoryFrames extends Film
         'hook' => 'hook', 'buildup' => 'matchup', 'goal' => 'goal', 'red' => 'red_card', 'stats' => 'stat_bars',
         'player' => 'profile', 'h2h' => 'head_to_head', 'form' => 'form_chips', 'table' => 'mini_table', 'next' => 'fixtures',
         'banter' => 'banter', 'close' => 'closing', 'recap' => 'score_block', 'facts' => 'fact_list', 'radio' => 'radio_cover',
-        'record' => 'fact_list', 'elsewhere' => 'results',
+        'record' => 'fact_list', 'elsewhere' => 'results', 'changes' => 'fact_list',
     ];
 
     public function __construct(Components $kit)
@@ -78,7 +78,7 @@ class StoryFrames extends Film
             'banter' => ['title' => $b['title'], 'line' => $b['line'], 'score' => $b['score'] ?? null],
             'close' => ['title' => $t->t('question'), 'question' => $b['question'], 'cta' => $b['cta'], 'follow' => $b['follow'], 'url' => $b['url']],
             'recap' => ['title' => $b['title'], 'score' => (string) $b['score'], 'lines' => $b['lines'] ?? []],
-            'facts' => ['title' => $b['title'], 'lines' => $b['lines'] ?? []],
+            'facts', 'changes' => ['title' => $b['title'], 'lines' => $b['lines'] ?? []],
             'radio' => ['label' => $t->t('radio'), 'edition' => $b['edition'] ?? null, 'title' => $b['title'] ?? '', 'caption' => $b['caption'] ?? null,
                 'photo' => $b['photo'] ?? null, 'art' => $b['art'] ?? null, 'story' => $b['story'] ?? null, 'seconds' => $b['seconds'] ?? 3.0, 'at' => $b['start'] ?? 0],
             default => ['title' => (string) ($b['title'] ?? ''), 'lines' => (array) ($b['lines'] ?? [])],

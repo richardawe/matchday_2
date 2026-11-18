@@ -10,7 +10,7 @@ use Symfony\Component\Process\Process;
 /**
  * The design check: samples a video every N seconds (default 5), draws a contact sheet and flags
  *
- *  - text inside the unsafe zones (top 250, bottom 380, right 140),
+ *  - text inside the unsafe zones (tokens grid.unsafe: top, bottom 380, right 140),
  *  - frames more than grid.max_empty bare backdrop inside the safe zone,
  *  - repeated cards,
  *  - photos shown without their credit,

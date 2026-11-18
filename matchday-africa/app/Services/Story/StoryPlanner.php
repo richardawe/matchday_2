@@ -80,6 +80,9 @@ class StoryPlanner
         if ($stats = $this->stats($match, $t)) {
             $beats[] = ['type' => 'stats', 'keep' => false, 'rank' => 55, 'title' => $t->t('key_stats'), 'rows' => $stats];
         }
+        if ($changes = $this->changes($match, $t, $sides)) {
+            $beats[] = ['type' => 'changes', 'keep' => false, 'rank' => 50, 'title' => $t->t('changes'), 'lines' => $changes];
+        }
         $form = ['home' => SlideshowFacts::form($match->homeTeam, $match), 'away' => SlideshowFacts::form($match->awayTeam, $match)];
         if ($form['home'] || $form['away']) {
             $beats[] = ['type' => 'form', 'keep' => false, 'rank' => 45, 'title' => $t->t('form'), 'form' => $form];
@@ -221,12 +224,13 @@ class StoryPlanner
             'lines' => array_slice($scorers ?: [$t->t('no_goals')], 0, 5)]];
         $facts = array_values(array_filter([
             $match->home_score_ht !== null && $match->away_score_ht !== null ? $t->t('half_time', ['score' => "{$match->home_score_ht}-{$match->away_score_ht}"]) : null,
-            $match->venue_name ? $t->t('at_venue', ['venue' => $match->venue_name]) : null,
+            // Kick-off and venue are on the build-up card already: shown once only.
             $match->referee_name ? $t->t('referee', ['name' => $match->referee_name]) : null,
             $match->attendance ? $t->t('attendance', ['n' => $t->number((int) $match->attendance)]) : null,
-            $t->t('kickoff_at', ['time' => SlideshowFacts::times($match)['date'].', '.SlideshowFacts::times($match)['uk']]),
         ]));
-        $pads[] = ['type' => 'facts', 'title' => $t->t('match_facts'), 'lines' => $facts];
+        if ($facts) {
+            $pads[] = ['type' => 'facts', 'title' => $t->t('match_facts'), 'lines' => $facts];
+        }
 
         return $pads;
     }
@@ -319,6 +323,18 @@ class StoryPlanner
 
         return ['title' => $t->t('what_at_stake'), 'competition' => (string) ($match->league?->name ?: 'Football'),
             'stage' => is_string($stage) && $stage !== '' ? $stage : (is_numeric($matchday) ? 'Matchday '.$matchday : null), 'lines' => $lines];
+    }
+
+    /** Substitutions from the match events: "61' Yassir Zabiri on for Youssef En-Nesyri (Morocco)", at most four, in order. */
+    private function changes(FootballMatch $match, StoryText $t, array $sides): array
+    {
+        return MatchEvent::where('match_id', $match->id)->where('type', 'substitution')
+            ->whereNotNull('player_name')->whereNotNull('related_player_name')
+            ->orderBy('minute')->orderBy('extra_minute')->orderBy('id')->limit(4)->get()
+            ->map(fn ($e) => $t->t('sub_on', ['min' => $e->minute.($e->extra_minute ? '+'.$e->extra_minute : '')."'",
+                'on' => trim((string) $e->related_player_name), 'off' => trim((string) $e->player_name),
+                'club' => $sides[$e->team_id === $match->away_team_id ? 'away' : 'home']['name']]))
+            ->all();
     }
 
     private function stats(FootballMatch $match, StoryText $t): array
@@ -540,46 +556,84 @@ class StoryPlanner
 
     /**
      * The player the story opens on: the scorer of the winning goal (or of the last goal in a draw),
-     * else the match's top scorer, else the best-rated African player in the line-up. With their row
-     * when we have one, and a licensed photo from the player media library (by row, then by name).
+     * else the match's top scorer, else the best-rated African player in the line-up; a chosen [name,
+     * side, reason] ($pick, the player a generated hook names) comes first. The first of them with a
+     * licensed photo (their row's, else the name library's, looked up on Commons when missing) wins;
+     * when none has one, the next-best players who took part (other scorers, rated or in-scope players,
+     * players named in the match events) are tried before the story falls back to flags and the name.
      * ['name', 'player' => ?Player, 'side', 'photo' => ?array, 'flag', 'label', 'club', 'reason'] or null.
      */
     public function leadPlayer(FootballMatch $match, Collection $incidents, array $sides, ?array $featured = null, ?array $pick = null): ?array
     {
-        $goals = $incidents->where('type', 'goal')->values();
-        $h = (int) $match->home_score;
-        $a = (int) $match->away_score;
-        if ($pick) {
-            // A chosen [name, side, reason].
-        } elseif ($h !== $a) {
-            $w = $h > $a ? 'home' : 'away';
-            $need = min($h, $a) + 1;
-            $decisive = $goals->first(fn ($g) => $g['side'] === $w && ($w === 'home' ? $g['home_after'] : $g['away_after']) === $need);
-            if ($decisive && !$decisive['own_goal'] && $decisive['player']) {
-                $pick = [$decisive['player'], $w, 'winning_goal'];
-            }
-        } elseif (($last = $goals->last()) && !$last['own_goal'] && $last['player']) {
-            $pick = [$last['player'], $last['side'], 'last_goal'];
-        }
-        if (!$pick) {
-            $top = $goals->filter(fn ($g) => !$g['own_goal'] && $g['player'])->groupBy('player')->sortByDesc(fn ($g) => $g->count())->first();
-            if ($top) {
-                $pick = [$top->first()['player'], $top->first()['side'], 'top_scorer'];
-            }
-        }
-        if (!$pick) {
-            $rated = SlideshowFacts::inScopePlayers($match)->filter(fn ($c) => ($c['match']['rating'] ?? null) !== null)->sortByDesc(fn ($c) => $c['match']['rating'])->first()
-                ?? ($featured && ($featured['match']['played'] ?? false) ? $featured : null);
-            if ($rated) {
-                $pick = [$rated['player']->name, $rated['player']->team_id === $match->away_team_id ? 'away' : 'home', 'rating'];
-            }
-        }
-        if (!$pick) {
+        $candidates = $this->leadCandidates($match, $incidents, $featured, $pick);
+        if (!$candidates) {
             return null;
         }
-        [$name, $side, $reason] = $pick;
-        $row = Player::with('team')->whereIn('team_id', [$match->home_team_id, $match->away_team_id])->get()
-            ->first(fn (Player $p) => PlayerNames::same($p->name, $name));
+        $rows = Player::with('team')->whereIn('team_id', [$match->home_team_id, $match->away_team_id])->get();
+        $first = null;
+        foreach (array_slice($candidates, 0, (int) config('story.photo_candidates', 8)) as $i => [$name, $side, $reason]) {
+            $lead = $this->describeLead($match, $sides, $rows, $name, $side, $reason);
+            $first ??= $lead;
+            if ($lead['photo']) {
+                return $lead + ['fallback' => $i > 0 ? $first['name'] : null];
+            }
+        }
+
+        return $first;
+    }
+
+    /** [name, side, reason] in order of preference, each player once. */
+    private function leadCandidates(FootballMatch $match, Collection $incidents, ?array $featured, ?array $pick): array
+    {
+        $goals = $incidents->where('type', 'goal')->values();
+        $real = $goals->filter(fn ($g) => !$g['own_goal'] && $g['player'])->values();
+        $h = (int) $match->home_score;
+        $a = (int) $match->away_score;
+        $winner = $h === $a ? null : ($h > $a ? 'home' : 'away');
+        $list = [];
+        if ($pick) {
+            $list[] = $pick;
+        }
+        if ($winner) {
+            $need = min($h, $a) + 1;
+            $decisive = $goals->first(fn ($g) => $g['side'] === $winner && ($winner === 'home' ? $g['home_after'] : $g['away_after']) === $need);
+            if ($decisive && !$decisive['own_goal'] && $decisive['player']) {
+                $list[] = [$decisive['player'], $winner, 'winning_goal'];
+            }
+        } elseif (($last = $goals->last()) && !$last['own_goal'] && $last['player']) {
+            $list[] = [$last['player'], $last['side'], 'last_goal'];
+        }
+        // Every scorer, most goals first, the winners' before the losers'.
+        foreach ($real->groupBy('player')->sortByDesc(fn ($g) => $g->count() * 10 + ($g->first()['side'] === $winner ? 1 : 0)) as $name => $g) {
+            $list[] = [(string) $name, $g->first()['side'], 'top_scorer'];
+        }
+        // In-scope players who took part, best rated first.
+        foreach (SlideshowFacts::inScopePlayers($match)->filter(fn ($c) => $c['match']['played'] || $c['match']['starter'])
+            ->sortByDesc(fn ($c) => ($c['match']['rating'] ?? 0) * 100 + $c['score']) as $c) {
+            $list[] = [$c['player']->name, $c['player']->team_id === $match->away_team_id ? 'away' : 'home', 'rating'];
+        }
+        if ($featured && ($featured['match']['played'] ?? false)) {
+            $list[] = [$featured['player']->name, $featured['player']->team_id === $match->away_team_id ? 'away' : 'home', 'rating'];
+        }
+        // Players the match events name (cards, substitutions), the winners' first.
+        $named = MatchEvent::where('match_id', $match->id)->orderBy('minute')->orderBy('id')->get(['team_id', 'player_name', 'related_player_name'])
+            ->flatMap(fn ($e) => collect([$e->player_name, $e->related_player_name])->filter()->map(fn ($n) => [trim((string) $n), $e->team_id === $match->away_team_id ? 'away' : 'home', 'took_part']));
+        foreach ($named->sortBy(fn ($c) => $c[1] === $winner ? 0 : 1) as $c) {
+            $list[] = $c;
+        }
+        $out = [];
+        foreach ($list as $c) {
+            if ($c[0] !== '' && !collect($out)->contains(fn ($o) => PlayerNames::same($o[0], $c[0]))) {
+                $out[] = $c;
+            }
+        }
+
+        return $out;
+    }
+
+    private function describeLead(FootballMatch $match, array $sides, Collection $rows, string $name, string $side, string $reason): array
+    {
+        $row = $rows->first(fn (Player $p) => PlayerNames::same($p->name, $name));
         $photo = $row ? $this->photo($row) : null;
         $photo ??= $this->namedPhoto($row?->name ?? $name);
         $team = $side === 'home' ? $match->homeTeam : $match->awayTeam;
@@ -589,7 +643,7 @@ class StoryPlanner
         return [
             'name' => $row?->name ?? $name, 'player' => $row, 'side' => $side, 'reason' => $reason,
             'photo' => $photo ? ['file' => $photo['file'], 'crop' => $photo['crop'] ?? null, 'credit' => $photo['credit']]
-                + array_intersect_key($photo, array_flip(['licence', 'artist', 'title', 'source_url', 'licence_url'])) : null,
+                + array_intersect_key($photo, array_flip(['licence', 'artist', 'title', 'url', 'source_url', 'licence_url'])) : null,
             'flag' => $flag ?? $sides[$side]['flag'],
             'label' => $row ? (AfricanScope::label($row) ?? $row->nationality) : ($national ? $sides[$side]['name'].' international' : null),
             'club' => $row && !$national ? ClubName::short($row->team) : (!$national ? $sides[$side]['name'] : null),

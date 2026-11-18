@@ -17,6 +17,7 @@ use App\Models\StoryVideo;
 use App\Models\User;
 use App\Models\UserPrediction;
 use App\Services\RadioVideo;
+use App\Services\Slideshow\CommonsPhotos;
 use App\Services\Slideshow\SlideshowFacts;
 use App\Services\Slideshow\Slideshows;
 use App\Services\SocialQueue;
@@ -85,6 +86,7 @@ class AgentController extends Controller
     public function players(Request $request): JsonResponse
     {
         $data = $request->validate([
+            'q' => ['nullable', 'string', 'min:2', 'max:80'],
             'country' => ['nullable', 'string', 'max:60'], 'club' => ['nullable', 'string', 'max:80'],
             'african' => ['nullable', Rule::in(['true', 'false', '1', '0'])],
             'limit' => ['nullable', 'integer', 'min:1', 'max:'.config('agent.max_limit', 100)],
@@ -108,6 +110,14 @@ class AgentController extends Controller
         if (!empty($data['club'])) {
             $club = $data['club'];
             $query->whereHas('team', fn ($q) => ctype_digit($club) ? $q->whereKey((int) $club) : $q->where('name', 'like', '%'.$club.'%'));
+        }
+        if (!empty($data['q'])) {
+            // By name: every word must appear ("salah", "mohamed salah", "M. Salah" all find Mohamed Salah).
+            foreach (preg_split('/[\s.]+/u', trim($data['q'])) ?: [] as $word) {
+                if (mb_strlen($word) > 1) {
+                    $query->where('name', 'like', '%'.$word.'%');
+                }
+            }
         }
         $players = $query->orderBy('name')->limit((int) ($data['limit'] ?? 50))->get();
 
@@ -399,6 +409,46 @@ class AgentController extends Controller
         return response()->json($this->article($blog->fresh()));
     }
 
+    /**
+     * POST /api/agent/players/{id}/photo {source_url}: a Wikimedia Commons file for this player, checked
+     * like every library photo (CC0, public domain, CC BY, CC BY-SA; 700 px or wider), saved, and used by
+     * the next story or slideshow. 422 with the reason for anything else.
+     */
+    public function playerPhoto(Request $request, int $id, CommonsPhotos $photos): JsonResponse
+    {
+        $player = Player::with('team')->find($id);
+        if (!$player) {
+            return response()->json(['message' => 'Unknown player.'], 404);
+        }
+
+        return $this->attachPhoto(fn (string $url) => $photos->attach($player, $url), $request, ['player_id' => $player->id, 'name' => $player->name]);
+    }
+
+    /**
+     * POST /api/agent/player-photos {name, source_url}: the same for a player we have no row for (national
+     * teams), kept in the name library the stories read.
+     */
+    public function namedPlayerPhoto(Request $request, CommonsPhotos $photos): JsonResponse
+    {
+        $name = trim((string) $request->validate(['name' => ['required', 'string', 'min:3', 'max:80', 'regex:/\S\s+\S/u']])['name']);
+
+        return $this->attachPhoto(fn (string $url) => $photos->attachName($name, $url), $request, ['player_id' => null, 'name' => $name]);
+    }
+
+    private function attachPhoto(callable $attach, Request $request, array $who): JsonResponse
+    {
+        $url = (string) $request->validate(['source_url' => ['required', 'string', 'url', 'max:2048']])['source_url'];
+        try {
+            $photo = $attach($url);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 503);
+        }
+
+        return response()->json($who + ['photo' => $this->photoRecord($photo)], 201);
+    }
+
     /** POST /api/agent/slideshows/{id}/approve: put a ready slideshow live (pages, social queue, YouTube), as an editor would. */
     public function approveSlideshow(Request $request, int $id, Slideshows $slideshows): JsonResponse
     {
@@ -559,12 +609,18 @@ class AgentController extends Controller
                 'source_url' => $h->source_url, 'source_note' => $h->source_note,
             ])->values() : [],
             'season' => $season,
-            'photo' => $licensed ? [
-                'url' => SocialQueue::https(route('discovery.photo', $p)),
-                'credit' => $photo['credit'] ?? null, 'licence' => $photo['licence'] ?? null, 'licence_url' => $photo['licence_url'] ?? null,
-                'source_url' => $photo['source_url'] ?? null, 'artist' => $photo['artist'] ?? null, 'library' => 'Wikimedia Commons (licence-checked)',
-            ] : null,
+            'photo' => $licensed ? $this->photoRecord($photo) + ['page_photo_url' => AfricanScope::inScope($p) ? SocialQueue::https(route('discovery.photo', $p)) : null] : null,
             'page_url' => AfricanScope::inScope($p) ? SocialQueue::https(route('discovery.show', $p)) : null,
+        ];
+    }
+
+    /** A stored Commons photo as the API shows it. */
+    private function photoRecord(array $photo): array
+    {
+        return [
+            'url' => $photo['url'] ?? null, 'credit' => $photo['credit'] ?? null, 'licence' => $photo['licence'] ?? null,
+            'licence_url' => $photo['licence_url'] ?? null, 'source_url' => $photo['source_url'] ?? null, 'artist' => $photo['artist'] ?? null,
+            'title' => $photo['title'] ?? null, 'library' => 'Wikimedia Commons (licence-checked)',
         ];
     }
 

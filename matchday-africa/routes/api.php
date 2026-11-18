@@ -37,6 +37,8 @@ Route::prefix('agent')->name('api.agent.')->middleware(['throttle:agent-api', Ap
             Route::post('/articles', 'storeArticle')->name('articles.store');
             Route::patch('/articles/{id}', 'updateArticle')->whereNumber('id')->name('articles.update');
             Route::post('/slideshows/{id}/approve', 'approveSlideshow')->whereNumber('id')->name('slideshows.approve');
+            Route::post('/players/{id}/photo', 'playerPhoto')->whereNumber('id')->name('players.photo');
+            Route::post('/player-photos', 'namedPlayerPhoto')->name('player-photos.store');
             Route::post('/radio', 'radioCreate')->name('radio.store');
             Route::post('/radio/{id}/retry', 'radioRetry')->whereNumber('id')->name('radio.retry');
         });

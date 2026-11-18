@@ -46,6 +46,8 @@ return [
     // Each cut lasts between these (the hook is fixed): design tokens motion.cut.
     'cut' => [$design['motion']['cut']['min'], $design['motion']['cut']['max']],
     'hook_seconds' => $design['motion']['cut']['hook'],
+    // Players tried for the opening photo (featured first, then the next best who took part) before flags.
+    'photo_candidates' => (int) env('STORY_PHOTO_CANDIDATES', 8),
 
     // TikTok/Reels/Shorts safe zone for text (design tokens grid.safe): top 250 px, bottom 380 px and right 140 px stay clear.
     'safe' => $design['grid']['safe'],

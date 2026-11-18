@@ -53,7 +53,7 @@ class DesignLanguageTest extends TestCase
         [$w, $h] = Tokens::canvas();
         $safe = Tokens::safe();
         $this->assertSame([1080, 1920], [$w, $h]);
-        $this->assertSame([250, $h - 380, $w - 140], [$safe['top'], $safe['bottom'], $safe['right']]);
+        $this->assertSame([150, $h - 380, $w - 140], [$safe['top'], $safe['bottom'], $safe['right']]);
         $this->assertFileExists(Tokens::musicFile());
         $this->assertSame('matchday_original_beat_v1.mp3', basename(Tokens::musicFile()));
         $this->assertEqualsWithDelta(0.35, (float) Tokens::motion('transition'), 0.051);

@@ -465,7 +465,9 @@ final class Components
                 $delay = 0.15 + (float) Tokens::motion('item_stagger') * $i;
                 $s->panel($s->L, $y, $s->R, $y + $h, 'surface', $delay);
                 $s->panel($s->L, $y, $s->L + 14, $y + $h, 'yellow', $delay, 'none', 0);
-                $s->paragraph($fitted, 'strong', $s->L + 44, $y + intdiv($h - $s->linesHeight($fitted, 'strong'), 2), 'white', 'surface', $delay + 0.05);
+                // The fact grows into its panel (headline size when it fits), else stays bold body text.
+                [$style, [$lines]] = $this->grow($s, [$fitted], $s->width() - 88, $h - 40);
+                $s->paragraph($lines, $style, $s->L + 44, $y + intdiv($h - $s->linesHeight($lines, $style), 2), 'white', 'surface', $delay + 0.05);
             }];
         }
         $s->stack($blocks, (int) Tokens::get('grid.body.top'), $s->bottom, 18);
@@ -491,8 +493,8 @@ final class Components
                 $s->text(str_replace('-', '–', (string) $r['score']), 'headline', $mid - intdiv($chip, 2), $base + 4, 'black', 'yellow', $delay + 0.1,
                     maxWidth: $chip - 20, align: 'center', box: [$mid - intdiv($chip, 2), $mid + intdiv($chip, 2)], motion: 'punch');
                 $side = intdiv($s->width() - $chip, 2) - 40;
-                $s->text((string) $r['home'], 'strong', $s->L + 24, $base, 'white', 'surface', $delay, maxWidth: $side, align: 'right', box: [$s->L + 24, $mid - intdiv($chip, 2) - 16]);
-                $s->text((string) $r['away'], 'strong', $mid + intdiv($chip, 2) + 16, $base, 'white', 'surface', $delay, maxWidth: $side);
+                $s->text((string) $r['home'], 'strip', $s->L + 24, $base, 'white', 'surface', $delay, maxWidth: $side, align: 'right', box: [$s->L + 24, $mid - intdiv($chip, 2) - 16]);
+                $s->text((string) $r['away'], 'strip', $mid + intdiv($chip, 2) + 16, $base, 'white', 'surface', $delay, maxWidth: $side);
             }];
         }
         $s->stack($blocks, (int) Tokens::get('grid.body.top'), $s->bottom, 18);
@@ -537,11 +539,18 @@ final class Components
         $q = Canvas::fit((string) $d['question'], 'headline', $s->width() - 64, 5);
         $cta = !empty($d['cta']) ? Canvas::fit((string) $d['cta'], 'body', $s->width() - 64, 2) : [];
         $s->stack([
-            ['h' => $s->linesHeight($q, 'headline') + $s->linesHeight($cta, 'body') + 90, 'flex' => 1, 'draw' => function ($y, $h) use ($s, $q, $cta) {
+            ['h' => $s->linesHeight($q, 'headline') + $s->linesHeight($cta, 'body') + 90, 'flex' => 1, 'draw' => function ($y, $h) use ($s, $q, $cta, $d) {
                 $s->panel($s->L, $y, $s->R, $y + $h, 'surface', 0.0);
-                $inner = $s->linesHeight($q, 'headline') + $s->linesHeight($cta, 'body') + 20;
+                // The question grows to the hook size when the stretched panel has room for it.
+                $style = 'headline';
+                $room = $h - $s->linesHeight($cta, 'body') - 110;
+                $big = Canvas::fitBox((string) $d['question'], 'hook', $s->width() - 64, $room, 5);
+                if ($big && !str_ends_with((string) end($big)[0], '…') && $s->linesHeight($big, 'hook') <= $room) {
+                    [$style, $q] = ['hook', $big];
+                }
+                $inner = $s->linesHeight($q, $style) + $s->linesHeight($cta, 'body') + 20;
                 $yy = $y + intdiv($h - $inner, 2);
-                $yy = $s->paragraph($q, 'headline', $s->L + 32, $yy, 'white', 'surface', 0.1, kinetic: true);
+                $yy = $s->paragraph($q, $style, $s->L + 32, $yy, 'white', 'surface', 0.1, kinetic: true);
                 $s->paragraph($cta, 'body', $s->L + 32, $yy + 20, 'grey', 'surface', 0.8);
             }],
             ['h' => 150, 'draw' => function ($y, $h) use ($s, $d) {
@@ -687,15 +696,44 @@ final class Components
         return 48 + array_sum(array_map(fn ($g) => $s->linesHeight($g, 'body') + 10, $groups));
     }
 
-    /** A surface panel of body lines with a yellow edge, centred vertically. */
+    /**
+     * A surface panel of lines with a yellow edge, centred vertically. The lines grow to fill the panel:
+     * the largest headline size (Anton, 72 down to 56) at which every line fits the width and the
+     * panel's height, else body text.
+     */
     private function linesPanel(Scene $s, array $groups, int $y, int $h, float $delay, string $tone = 'white'): void
     {
         $s->panel($s->L, $y, $s->R, $y + $h, 'surface', $delay);
         $s->panel($s->L, $y, $s->L + 14, $y + $h, 'yellow', $delay, 'none', 0);
-        $inner = array_sum(array_map(fn ($g) => $s->linesHeight($g, 'body') + 10, $groups)) - 10;
+        [$style, $groups] = $this->grow($s, $groups, $s->width() - 88, $h - 48);
+        $inner = array_sum(array_map(fn ($g) => $s->linesHeight($g, $style) + 10, $groups)) - 10;
         $yy = $y + intdiv($h - $inner, 2);
         foreach ($groups as $i => $g) {
-            $yy = $s->paragraph($g, 'body', $s->L + 44, $yy, $tone, 'surface', $delay + 0.1 + (float) Tokens::motion('line_stagger') * $i) + 10;
+            $yy = $s->paragraph($g, $style, $s->L + 44, $yy, $tone, 'surface', $delay + 0.1 + (float) Tokens::motion('line_stagger') * $i) + 10;
         }
+    }
+
+    /** [style, groups]: the lines refitted in the headline style when they fit $width x $height, else as given (body). */
+    private function grow(Scene $s, array $groups, int $width, int $height): array
+    {
+        $texts = array_filter(array_map(fn ($g) => trim(implode(' ', array_column($g, 0))), $groups));
+        $type = Tokens::type('headline');
+        for ($px = (int) $type['size']; $px >= (int) $type['min']; $px -= 4) {
+            $fitted = [];
+            foreach ($texts as $t) {
+                $g = Canvas::fit($t, 'headline', $width, 3, $px, $px);
+                // Truncated: this size can't hold the whole line.
+                if (str_ends_with((string) end($g)[0], '…') && !str_ends_with($t, '…')) {
+                    continue 2;
+                }
+                $fitted[] = $g;
+            }
+            $total = array_sum(array_map(fn ($g) => $s->linesHeight($g, 'headline') + 10, $fitted)) - 10;
+            if ($fitted && $total <= $height) {
+                return ['headline', $fitted];
+            }
+        }
+
+        return ['body', $groups];
     }
 }

@@ -226,7 +226,7 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 
 ### Design language (17 Nov 2026)
 - Owner's brief: one design language for every video and social renderer (`docs/design-language.md`). Brand black #0A0A0A,
-  yellow #FFD23F, white, grey #C8C8C8; Anton + Inter (added, SIL OFL); safe zone top 250 / bottom 380 / right 140 (was top 150);
+  yellow #FFD23F, white, grey #C8C8C8; Anton + Inter (added, SIL OFL); safe zone top 150 / bottom 380 / right 140 (top was 250 on 17 Nov, back to 150 on 18 Nov);
   no frame over 35% empty; sentence case; MD logo on every frame; no card twice in a video; our own beat only.
 - Behaviour changes: slideshows now use `matchday_original_beat_v1.mp3` (track `matchday-original`; the CC BY track stays in
   config as the record of older slideshows), 4 s cuts with wipes instead of crossfades, and the component layouts instead of the
@@ -256,6 +256,17 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   head-to-head only with 3+ meetings); a match without enough distinct cards fails with `StoryTooShort`.
 - Wikimedia rate-limits the cloud container quickly (429): `forName` never caches a transient failure. Match 5212's scorer
   (Abdellah Ouazane) has no free-licence photo on Commons or Wikidata (checked 18 Nov); Patrick Dorgu's only one is 353 px.
+
+### Story photos and full-height cards (18 Nov 2026, owner's brief)
+- No photo for the featured player: the planner looks them up on Commons (Wikidata P18, else a Commons search by name;
+  CC0, PD, CC BY, CC BY-SA, >= 700 px), then tries the next candidate (scorers, best-rated African, anyone in the events;
+  `STORY_PHOTO_CANDIDATES` = 8) before flags. The hook may still name the scorer while the photo shows another player
+  (labelled with that player's name).
+- Agent: `GET /api/agent/players?q=`, `POST /api/agent/players/{id}/photo` and `POST /api/agent/player-photos`
+  ({name, source_url}) with the same licence check (`CommonsPhotos::attach`, `fileFromUrl`). Nightly
+  `players:commons-photos` 02:40 London fills photos for clubs playing in the next 3 days (80 lookups, paced 1 s).
+- Safe zone top back to 150; scoreboard 162, chips 296, body from 384; panel text grows to headline size; kick-off and
+  venue only on the build-up card.
 
 ### Match-story videos and the agent role (17 Nov 2026)
 - Built from the owner's two-part brief. Stories use only stored data and the licence-checked Commons photos (credit on screen,
