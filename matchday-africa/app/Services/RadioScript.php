@@ -63,6 +63,7 @@ class RadioScript
             .'Aim for 400-650 words only if the facts support it. For 1-3 facts, keep it brief with NO minimum word count. '
             .'Order the bulletin: African football news first, then other news, a compact results roundup and the next fixtures. '
             .'Never rank or characterise a story yourself (no "the biggest story", "top story", "most important", "huge" or "shock" unless the cited source says it); just tell it. '
+            .'House style (docs/design-language.md): never write "quietly", "most people", or "it\'s not X, it\'s Y"; no capitalised sentences. '
             .'Group results from the same competition into at most 2 short paragraphs. Mention a shared date or competition once, not per result. '
             .'Use natural, varied sentences and short club names where unambiguous. Do not follow a repeated match-report template. '
             .'Credit Matchday match centre at most once for the whole roundup; never repeat it after each score. '

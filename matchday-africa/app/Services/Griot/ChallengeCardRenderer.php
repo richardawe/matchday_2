@@ -2,6 +2,8 @@
 
 namespace App\Services\Griot;
 
+use App\Design\Canvas;
+use App\Design\Tokens;
 use App\Models\GriotChallenge;
 use App\Services\FixtureCardRenderer;
 use GdImage;
@@ -15,8 +17,6 @@ use Illuminate\Support\Facades\File;
 class ChallengeCardRenderer extends FixtureCardRenderer
 {
     public const SQUARE = 1080;
-    private const SKY = [79, 179, 255];
-    private const WHITE = [255, 255, 255];
 
     public function cardPath(GriotChallenge $challenge, string $kind): string
     {
@@ -42,42 +42,42 @@ class ChallengeCardRenderer extends FixtureCardRenderer
 
     public function calls(GriotChallenge $challenge): GdImage
     {
-        $img = $this->ground(self::SUN, self::RAY);
-        $this->text($img, 'mono', 24, self::INK, 70, 110, 'BEAT THE GRIOT  ·  '.mb_strtoupper($challenge->datesLabel()));
-        $this->text($img, 'display', 100, self::INK, 66, 250, 'THE GRIOT');
-        $this->text($img, 'display', 100, self::INK, 66, 376, 'HAS SPOKEN');
+        $img = $this->ground(self::tone('yellow'), self::tone('yellow'));
+        $this->text($img, 'mono', 24, self::tone('black'), 70, 110, 'Beat the Griot  ·  '.($challenge->datesLabel()));
+        $this->text($img, 'display', 100, self::tone('black'), 66, 250, 'The Griot');
+        $this->text($img, 'display', 100, self::tone('black'), 66, 376, 'has spoken');
         $y = 432;
         foreach ($challenge->picks as $pick) {
-            $day = mb_strtoupper($this->kickoff($pick->match)->setTimezone('Africa/Lagos')->format('D'));
-            $this->row($img, $y, $day, $this->club($pick->match->homeTeam), $pick->call(), $this->club($pick->match->awayTeam), self::WHITE);
+            $day = ($this->kickoff($pick->match)->setTimezone('Africa/Lagos')->format('D'));
+            $this->row($img, $y, $day, $this->club($pick->match->homeTeam), $pick->call(), $this->club($pick->match->awayTeam), self::tone('white'));
             $y += 150;
         }
-        $this->sticker($img, 70, 900, 'BEAT IT, WIN '.mb_strtoupper((string) config('griot_challenge.prize')));
-        $this->text($img, 'mono', 24, self::INK, 70, 1030, 'MATCHDAY.AFRICA/GRIOT');
+        $this->sticker($img, 70, 900, 'Beat it, win '.((string) config('griot_challenge.prize')));
+        $this->text($img, 'mono', 24, self::tone('black'), 70, 1030, 'MATCHDAY.AFRICA/GRIOT');
 
         return $img;
     }
 
     public function verdict(GriotChallenge $challenge): GdImage
     {
-        $img = $this->ground(self::SKY, [120, 198, 255]);
-        $this->text($img, 'mono', 24, self::INK, 70, 110, 'BEAT THE GRIOT  ·  THE VERDICT');
+        $img = $this->ground(self::tone('yellow'), self::tone('white'));
+        $this->text($img, 'mono', 24, self::tone('black'), 70, 110, 'Beat the Griot  ·  The verdict');
         [$top, $bottom] = $challenge->beaters > 0
-            ? [number_format($challenge->beaters).' '.($challenge->beaters === 1 ? 'FAN' : 'FANS'), 'BEAT THE GRIOT']
-            : ['THE GRIOT', 'WINS THIS ONE'];
-        $this->text($img, 'display', 100, self::INK, 66, 250, $top);
-        $this->text($img, 'display', 100, self::INK, 66, 376, $bottom);
+            ? [number_format($challenge->beaters).' '.($challenge->beaters === 1 ? 'fan' : 'fans'), 'beat the Griot']
+            : ['The Griot', 'wins this one'];
+        $this->text($img, 'display', 100, self::tone('black'), 66, 250, $top);
+        $this->text($img, 'display', 100, self::tone('black'), 66, 376, $bottom);
         $y = 432;
         foreach ($challenge->picks as $pick) {
             $m = $pick->match;
             $done = $m && $m->isFinished();
             $score = $done ? $m->home_score.'–'.$m->away_score : 'VOID';
             $pts = $done ? GriotChallengeService::points($pick->home_pick, $pick->away_pick, (int) $m->home_score, (int) $m->away_score) : 0;
-            $this->row($img, $y, 'FT', $this->club($m?->homeTeam), $score, $this->club($m?->awayTeam), self::WHITE, 'GRIOT '.$pick->call().' · +'.$pts);
+            $this->row($img, $y, 'FT', $this->club($m?->homeTeam), $score, $this->club($m?->awayTeam), self::tone('white'), 'Griot '.$pick->call().' · +'.$pts);
             $y += 150;
         }
-        $this->sticker($img, 70, 900, 'GRIOT: '.(int) $challenge->griot_points.' PTS');
-        $this->text($img, 'mono', 24, self::INK, 70, 1030, 'NEXT THREE CALLS: MATCHDAY.AFRICA/GRIOT');
+        $this->sticker($img, 70, 900, 'Griot: '.(int) $challenge->griot_points.' pts');
+        $this->text($img, 'mono', 24, self::tone('black'), 70, 1030, 'NEXT THREE CALLS: MATCHDAY.AFRICA/GRIOT');
 
         return $img;
     }
@@ -95,7 +95,7 @@ class ChallengeCardRenderer extends FixtureCardRenderer
             $a2 = deg2rad(($i + 1) * 15);
             imagefilledpolygon($img, [$cx, $cy, (int) ($cx + cos($a1) * 2000), (int) ($cy + sin($a1) * 2000), (int) ($cx + cos($a2) * 2000), (int) ($cy + sin($a2) * 2000)], $c);
         }
-        $ink = $this->color($img, self::INK);
+        $ink = $this->color($img, self::tone('black'));
         imagesetthickness($img, 12);
         imagerectangle($img, 6, 6, $s - 7, $s - 7, $ink);
 
@@ -109,28 +109,28 @@ class ChallengeCardRenderer extends FixtureCardRenderer
         $w = self::SQUARE - 140;
         $h = $note ? 124 : 110;
         $this->panel($img, $x, $y, $w, $h, $fill, 5, 8);
-        $this->text($img, 'mono', 22, self::INK, $x + 24, $y + 66, $tag);
+        $this->text($img, 'mono', 22, self::tone('black'), $x + 24, $y + 66, $tag);
         $box = imagettfbbox(52, 0, $this->font('display'), $middle);
         $bw = $box[2] - $box[0] + 40;
         $bx = (int) ($x + $w / 2 - $bw / 2 + 40);
-        imagefilledrectangle($img, $bx, $y + 18, $bx + $bw, $y + 92, $this->color($img, self::INK));
-        $this->text($img, 'display', 52, self::SUN, $bx + 20, $y + 80, $middle);
+        imagefilledrectangle($img, $bx, $y + 18, $bx + $bw, $y + 92, $this->color($img, self::tone('black')));
+        $this->text($img, 'display', 52, self::tone('yellow'), $bx + 20, $y + 80, $middle);
         $side = (int) ($bx - $x - 120);
-        $this->text($img, 'display', 38, self::INK, $x + 100, $y + 72, $this->fit(mb_strtoupper($home), 'display', 38, $side));
-        $awayText = $this->fit(mb_strtoupper($away), 'display', 38, $x + $w - ($bx + $bw) - 40);
+        $this->text($img, 'display', 38, self::tone('black'), $x + 100, $y + 72, $this->fit(($home), 'display', 38, $side));
+        $awayText = $this->fit(($away), 'display', 38, $x + $w - ($bx + $bw) - 40);
         $ab = imagettfbbox(38, 0, $this->font('display'), $awayText);
-        $this->text($img, 'display', 38, self::INK, $x + $w - 24 - ($ab[2] - $ab[0]), $y + 72, $awayText);
+        $this->text($img, 'display', 38, self::tone('black'), $x + $w - 24 - ($ab[2] - $ab[0]), $y + 72, $awayText);
         if ($note) {
             $nb = imagettfbbox(18, 0, $this->font('mono'), $note);
-            $this->text($img, 'mono', 18, self::SOFT, (int) ($bx + $bw / 2 - ($nb[2] - $nb[0]) / 2), $y + 116, $note);
+            $this->text($img, 'mono', 18, self::tone('black'), (int) ($bx + $bw / 2 - ($nb[2] - $nb[0]) / 2), $y + 116, $note);
         }
     }
 
     private function sticker(GdImage $img, int $x, int $y, string $text): void
     {
         $box = imagettfbbox(40, 0, $this->font('display'), $text);
-        $this->panel($img, $x, $y, $box[2] - $box[0] + 48, 76, self::RED, 5, 8);
-        $this->text($img, 'display', 40, self::WHITE, $x + 24, $y + 58, $text);
+        $this->panel($img, $x, $y, $box[2] - $box[0] + 48, 76, self::tone('red'), 5, 8);
+        $this->text($img, 'display', 40, self::tone('white'), $x + 24, $y + 58, $text);
     }
 
     private function club($team): string

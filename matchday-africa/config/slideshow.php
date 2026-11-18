@@ -12,6 +12,10 @@
 |
 */
 
+// Size, frame rate, the safe zone, cut length and the music bed come from the design tokens
+// (resources/design/tokens.json, docs/design-language.md).
+$design = json_decode((string) file_get_contents(__DIR__.'/../resources/design/tokens.json'), true);
+
 return [
     'enabled' => (bool) env('SLIDESHOW_ENABLED', false),
 
@@ -19,19 +23,12 @@ return [
     // one doesn't run. php artisan slideshow:render --check (or /admin/slideshows) lists anything missing.
     'ffmpeg' => env('SLIDESHOW_FFMPEG') ?: env('RADIO_FFMPEG', 'ffmpeg'),
     'timeout' => (int) env('SLIDESHOW_TIMEOUT', 300),
-    // auto: xfade/zoompan filters when the build has them, else PHP-drawn frames joined by the concat
-    // demuxer (works with the reel renderer's small ffmpeg). Or force filters / frames.
-    'video_mode' => env('SLIDESHOW_VIDEO_MODE', 'auto'),
-
-    'size' => [1080, 1920],
-    'fps' => 30,
-    'slide_seconds' => 3.6,
-    'crossfade_seconds' => 0.4,
-    // Ken Burns on slide 01: from 1.0 up to this, lowered further so text never leaves the safe zone.
-    'zoom_max' => 1.04,
-    // TikTok/Reels/Shorts safe zone: an 800 px column centred in the frame (140 px each side),
-    // text between y 150 and 1540, the bottom 380 px clear of text.
-    'safe' => ['left' => 140, 'right' => 940, 'top' => 150, 'bottom' => 1540],
+    'size' => [$design['canvas']['width'], $design['canvas']['height']],
+    'fps' => $design['canvas']['fps'],
+    // Each slide is one cut of design tokens motion.cut.default seconds, with the colour-band wipe between cuts.
+    'slide_seconds' => $design['motion']['cut']['default'],
+    // TikTok/Reels/Shorts safe zone (design tokens grid.safe): top 250, bottom 380 and right 140 px stay clear.
+    'safe' => $design['grid']['safe'],
 
     // Previews are made for matches kicking off within this many hours.
     'preview_hours' => (int) env('SLIDESHOW_PREVIEW_HOURS', 48),
@@ -54,8 +51,16 @@ return [
     | carries it. This is the credit record for the starting track.
     */
     'music' => [
-        'track' => env('SLIDESHOW_MUSIC_TRACK', 'hot-amapiano-beats'),
+        // Our own track only (design tokens music). The CC BY track below is kept as the record of older slideshows.
+        'track' => env('SLIDESHOW_MUSIC_TRACK', 'matchday-original'),
         'tracks' => [
+            'matchday-original' => [
+                'title' => $design['music']['title'],
+                'artist' => $design['music']['owner'],
+                'path' => dirname(__DIR__).'/'.$design['music']['file'],
+                'start_seconds' => 0.0,
+                'credit' => 'Music: '.$design['music']['title'].' ('.$design['music']['owner'].' original)',
+            ],
             'hot-amapiano-beats' => [
                 'title' => 'Hot Amapiano Beats',
                 'artist' => 'Alex Morgan',
@@ -75,9 +80,9 @@ return [
                     .'Trimmed, faded and loudness-normalised for this video.',
             ],
         ],
-        'loudness' => ['i' => -14, 'tp' => -2, 'lra' => 11], // -2 dBTP leaves room for AAC overshoot on this hot master
-        'fade_in' => 0.3,
-        'fade_out' => 1.5,
+        'loudness' => $design['music']['loudness'],
+        'fade_in' => $design['music']['fade_in'],
+        'fade_out' => $design['music']['fade_out'],
     ],
 
     /*

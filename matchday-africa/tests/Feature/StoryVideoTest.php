@@ -90,7 +90,7 @@ class StoryVideoTest extends TestCase
         // The photo credit and the hook are stored; the featured player is the African one.
         $this->assertSame('Alex Iwobi', data_get($story->facts, 'featured_player'));
         $this->assertSame('Jane Doe / Wikimedia Commons / CC BY-SA 4.0', $story->photo['credit']);
-        $this->assertSame('Late drama! Alex Iwobi levels it in the 89th minute', $story->hookLine());
+        $this->assertSame("Alex Iwobi broke Arsenal hearts at 89'", $story->hookLine());
 
         // The social queue item.
         $item = collect($this->withToken(self::TOKEN)->getJson('/api/social-queue')->assertOk()->json('items'))->firstWhere('id', "story:{$story->id}");
@@ -108,7 +108,18 @@ class StoryVideoTest extends TestCase
         }
         $this->assertLessThanOrEqual(280, XText::length($item['captions']['x']));
         $this->assertStringContainsString('Photo: Jane Doe', $item['captions']['instagram']);
-        $this->assertStringContainsString("89' Alex Iwobi", $item['captions']['tiktok']);
+        // Hook first, then the result, the question, the link and 2-4 hashtags; no music credit.
+        $tiktok = explode("\n\n", $item['captions']['tiktok']);
+        $this->assertSame("Alex Iwobi broke Arsenal hearts at 89'", $tiktok[0]);
+        $this->assertStringStartsWith('Full time: Arsenal 2-2 Chelsea', $tiktok[1]);
+        $this->assertSame($story->facts['question'], $tiktok[2]);
+        $this->assertStringStartsWith('https://', $tiktok[3]);
+        $this->assertMatchesRegularExpression('/^(#\w+ ?){2,4}$/u', $tiktok[4]);
+        $this->assertStringContainsString('#MatchdayAfrica', $tiktok[4]);
+        foreach ($item['captions'] as $caption) {
+            $this->assertStringNotContainsString('Music:', $caption);
+            $this->assertStringNotContainsStringIgnoringCase('original beat', $caption);
+        }
         $this->assertSame('Arsenal', $item['match']['home']);
 
         // The bot marks it posted like any other item.
@@ -154,10 +165,20 @@ class StoryVideoTest extends TestCase
         $this->event($wild, 'red_card', 'home', 81, 'Midfielder');
         $this->standings($wild, 4, 18);
 
-        foreach ([$quiet, $wild, $this->richMatch()] as $match) {
+        // A goalless match with no history, stats or table has too few distinct cards: the render fails
+        // with the reason rather than repeat one.
+        try {
+            app(StoryPlanner::class)->plan($quiet);
+            $this->fail('A story with too few distinct cards was planned.');
+        } catch (\App\Services\Story\StoryTooShort $e) {
+            $this->assertStringContainsString('cards are never repeated', $e->getMessage());
+        }
+        foreach ([$wild, $this->richMatch()] as $match) {
             $plan = app(StoryPlanner::class)->plan($match);
             $total = array_sum(array_column($plan['beats'], 'seconds'));
+            // A card is never repeated: a match with almost no data ends when its distinct cards run out.
             $this->assertGreaterThanOrEqual(61, $total, "match {$match->id}");
+            app(StoryFrames::class)->assertNoRepeats($plan['beats']);
             $this->assertLessThanOrEqual(75, $total, "match {$match->id}");
             $this->assertSame('hook', $plan['beats'][0]['type']);
             $this->assertEquals(3.0, $plan['beats'][0]['seconds']);
@@ -182,49 +203,200 @@ class StoryVideoTest extends TestCase
                 }
             }
         }
-        $quietPlan = app(StoryPlanner::class)->plan($quiet);
-        $this->assertTrue(collect($quietPlan['beats'])->contains('padding', true));
-        $this->assertSame('Ninety minutes, zero goals. The nets stayed dry.', $quietPlan['banter']);
-        $this->assertSame('Down to ten: Defender sent off', app(StoryPlanner::class)->plan($wild)['hook']);
+        $this->assertSame('Ninety minutes, zero goals. The nets stayed dry.', app(StoryPlanner::class)->banter($quiet, StoryText::for('en'), app(StoryPlanner::class)->sides($quiet)));
+        $this->assertSame('Leeds down to ten, then this happened', app(StoryPlanner::class)->plan($wild)['hook']);
     }
 
     public function test_hooks_come_from_the_data(): void
     {
         $planner = app(StoryPlanner::class);
-        $brace = $this->match('Arsenal', 'Wolves', [2, 0]);
-        $this->event($brace, 'goal', 'home', 12, 'Bukayo Saka');
-        $this->event($brace, 'goal', 'home', 70, 'Bukayo Saka');
-        $this->assertSame('Brace for Bukayo Saka', $planner->plan($brace)['hook']);
+        $hook = fn (FootballMatch $m) => $planner->hookFor($m);
 
-        $red = $this->match('Everton', 'Fulham', [1, 0]);
-        $this->event($red, 'goal', 'home', 30, 'Iliman Ndiaye');
-        $this->event($red, 'red_card', 'away', 50, 'Calvin Bassey');
-        $this->assertSame('Down to ten: Calvin Bassey sent off', $planner->plan($red)['hook']);
-
-        $upset = $this->match('Burnley', 'Liverpool', [1, 0]);
-        $this->event($upset, 'goal', 'home', 30, 'Lyle Foster');
-        $this->standings($upset, 19, 1);
-        $this->assertSame('Upset! 19th-placed Burnley beat Liverpool', $planner->plan($upset)['hook']);
-
+        // Late winner (80'+): the losing side's hearts.
         $winner = $this->match('Brighton', 'Villa', [2, 1]);
         $this->event($winner, 'goal', 'home', 10, 'Danny Welbeck');
         $this->event($winner, 'goal', 'away', 60, 'Ollie Watkins');
         $this->event($winner, 'goal', 'home', 90, 'Kaoru Mitoma', extra: 4);
-        $this->assertSame('Kaoru Mitoma wins it in stoppage time (90+4)', $planner->plan($winner)['hook']);
+        $this->assertSame("Kaoru Mitoma broke Villa hearts at 90+4'", $hook($winner));
+        // Late equaliser: the side that was leading.
+        $level = $this->match('Fulham', 'Spurs', [1, 1]);
+        $this->event($level, 'goal', 'away', 20, 'Son Heung-min');
+        $this->event($level, 'goal', 'home', 88, 'Alex Iwobi');
+        $this->assertSame("Alex Iwobi broke Spurs hearts at 88'", $hook($level));
+        // Upset: the side four or more places lower wins.
+        $upset = $this->match('Burnley', 'Liverpool', [2, 0]);
+        $this->event($upset, 'goal', 'home', 30, 'Lyle Foster');
+        $this->event($upset, 'goal', 'home', 60, 'Zian Flemming');
+        $this->standings($upset, 19, 1);
+        $this->assertSame('Nobody saw Burnley doing this', $hook($upset));
+        // Red card.
+        $red = $this->match('Everton', 'Fulham', [2, 0]);
+        $this->event($red, 'goal', 'home', 30, 'Iliman Ndiaye');
+        $this->event($red, 'goal', 'home', 40, 'Beto');
+        $this->event($red, 'red_card', 'away', 50, 'Calvin Bassey');
+        $this->assertSame('Fulham down to ten, then this happened', $hook($red));
+        // Brace or hat-trick.
+        $brace = $this->match('Arsenal', 'Wolves', [2, 0]);
+        $this->event($brace, 'goal', 'home', 12, 'Bukayo Saka');
+        $this->event($brace, 'goal', 'home', 70, 'Bukayo Saka');
+        $this->assertSame('Bukayo Saka could not stop scoring', $hook($brace));
+        // 1-0.
+        $one = $this->match('Niger', 'Morocco', [0, 1]);
+        $this->event($one, 'goal', 'away', 22, 'Abdellah Ouazane');
+        $this->assertSame('One moment from Abdellah Ouazane settled it', $hook($one));
+        // 0-0: the side with more shots.
+        $none = $this->match('Burnley', 'Brentford', [0, 0]);
+        $none->update(['home_shots' => 4, 'away_shots' => 11]);
+        $this->assertSame('Brentford had chances. Where was the finish?', $hook($none->fresh()));
+        // Anything else: a question about the result.
+        $win = $this->match('Leeds', 'Spurs', [3, 1]);
+        foreach ([[10, 'home'], [20, 'away'], [50, 'home'], [60, 'home']] as $i => [$min, $side]) {
+            $this->event($win, 'goal', $side, $min, "Scorer {$i}");
+        }
+        $this->assertSame('Who saw Leeds 3-1 coming?', $hook($win));
+
+        // Sentence case, at most 8 words; a long name falls back to the surname.
+        $long = $this->match('Brighton', 'Wolverhampton Wanderers Football Club', [2, 1]);
+        $this->event($long, 'goal', 'home', 10, 'Danny Welbeck');
+        $this->event($long, 'goal', 'away', 60, 'Ollie Watkins');
+        $this->event($long, 'goal', 'home', 85, 'Kaoru Mitoma Junior');
+        foreach ([$winner, $level, $upset, $red, $brace, $one, $none, $win, $long] as $m) {
+            $line = $hook($m->fresh());
+            $this->assertLessThanOrEqual(8, StoryPlanner::words($line), $line);
+            $this->assertSame([], \App\Design\CopyRules::violations($line), $line);
+        }
 
         // An editor's hook and banter replace the generated ones on screen, not in the record.
-        $plan = $planner->plan($brace, 'en', 'Saka on fire', 'Wolves, call a taxi');
+        $plan = $planner->plan($this->richMatch(), 'en', 'Saka on fire', 'Wolves, call a taxi');
         $this->assertSame('Saka on fire', $plan['beats'][0]['line']);
         $this->assertSame('Wolves, call a taxi', collect($plan['beats'])->firstWhere('type', 'banter')['line']);
-        $this->assertSame('Brace for Bukayo Saka', $plan['hook']);
+        $this->assertSame("Alex Iwobi broke Arsenal hearts at 89'", $plan['hook']);
+    }
+
+    public function test_the_story_opens_on_the_winning_scorer_with_a_licensed_photo_found_by_name(): void
+    {
+        config(['slideshow.commons.enabled' => true]);
+        File::deleteDirectory(storage_path('app/player-media'));
+        $img = imagecreatetruecolor(1080, 1440);
+        imagefill($img, 0, 0, imagecolorallocate($img, 150, 90, 60));
+        ob_start();
+        imagejpeg($img);
+        $jpeg = ob_get_clean();
+        Http::fake([
+            'query.wikidata.org/*' => Http::response(['results' => ['bindings' => [['p' => ['value' => 'http://www.wikidata.org/entity/Q1'],
+                'img' => ['value' => 'http://commons.wikimedia.org/wiki/Special:FilePath/Abdellah%20Ouazane%202026.jpg']]]]]),
+            'commons.wikimedia.org/*' => Http::response(['query' => ['pages' => ['1' => ['title' => 'File:Abdellah Ouazane 2026.jpg', 'imageinfo' => [[
+                'mime' => 'image/jpeg', 'width' => 1440, 'thumburl' => 'https://upload.wikimedia.org/a.jpg', 'url' => 'https://upload.wikimedia.org/a.jpg',
+                'descriptionurl' => 'https://commons.wikimedia.org/wiki/File:Abdellah_Ouazane_2026.jpg',
+                'extmetadata' => ['LicenseShortName' => ['value' => 'CC BY-SA 4.0'], 'LicenseUrl' => ['value' => 'https://creativecommons.org/licenses/by-sa/4.0'],
+                    'Artist' => ['value' => '<a href="//x">Sam Photographer</a>']]]]]]]]),
+            'upload.wikimedia.org/*' => Http::response($jpeg, 200, ['Content-Type' => 'image/jpeg']),
+        ]);
+        $match = $this->match('Niger', 'Morocco', [0, 1]);
+        $this->event($match, 'goal', 'away', 22, 'Abdellah Ouazane');
+        $this->event($match, 'yellow_card', 'home', 90, 'Aboubacar Camara');
+        // No player rows for national teams: the scorer is found by name.
+        [, , $hook] = app(StoryPlanner::class)->opening($match);
+        $this->assertSame('One moment from Abdellah Ouazane settled it', $hook['line']);
+        $this->assertSame('Abdellah Ouazane', $hook['player']['name']);
+        $this->assertSame('Sam Photographer / Wikimedia Commons / CC BY-SA 4.0', $hook['photo']['credit']);
+        $stored = json_decode((string) file_get_contents(storage_path('app/player-media/abdellah-ouazane.json')), true);
+        $this->assertSame(['ok', 'CC BY-SA 4.0', 'Sam Photographer'], [$stored['status'], $stored['licence'], $stored['artist']]);
+        // Cached: the second plan asks nobody.
+        $sent = count(Http::recorded());
+        app(StoryPlanner::class)->opening($match);
+        $this->assertSame($sent, count(Http::recorded()));
+
+        // The opening card: the photo fills at least 60% of the frame with a Ken Burns push, the hook is at
+        // least 90 px, centred over the photo and on screen from frame 0; nothing sits in the top 250 px.
+        $scene = app(StoryFrames::class)->build($hook);
+        $photo = collect($scene->items)->firstWhere('kind', 'photo');
+        $this->assertNotNull($photo);
+        $this->assertGreaterThanOrEqual(0.6 * 1920, $photo['box'][3]);
+        $this->assertSame('kenburns', $photo['motion']);
+        $words = collect($scene->items)->where('kind', 'text')->where('style', 'hook');
+        $this->assertNotEmpty($words);
+        foreach ($words as $w) {
+            $this->assertGreaterThanOrEqual(90, $w['size']);
+            $this->assertTrue($w['visible']);
+            $this->assertEqualsWithDelta(510, $w['x'] + $w['width'] / 2, 30); // centred on the safe column (80-940)
+            $this->assertLessThan($photo['box'][3], $w['bottom']);
+        }
+        foreach (collect($scene->items)->where('kind', 'text') as $item) {
+            $this->assertGreaterThanOrEqual(250, $item['top'], $item['text']);
+        }
+        $this->assertSame('Photo: Sam Photographer / Wikimedia Commons / CC BY-SA 4.0', $scene->credit);
+        $scene->destroy();
+        File::deleteDirectory(storage_path('app/player-media'));
+    }
+
+    public function test_without_a_licensed_photo_the_hook_shows_the_name_and_both_flags_never_a_letter(): void
+    {
+        $match = $this->match('Niger', 'Morocco', [0, 1]);
+        $this->event($match, 'goal', 'away', 22, 'Abdellah Ouazane');
+        $hook = ['type' => 'hook', 'line' => 'One moment from Abdellah Ouazane settled it', 'score' => '0-1', 'start' => 0, 'seconds' => 3, 'lang' => 'en',
+            'player' => ['name' => 'Abdellah Ouazane', 'label' => 'Morocco international', 'club' => null, 'flag' => null, 'side' => 'away'], 'photo' => null,
+            'sides' => app(StoryPlanner::class)->sides($match)];
+        $scene = app(StoryFrames::class)->build($hook);
+        $this->assertNull(collect($scene->items)->firstWhere('kind', 'photo'));
+        $texts = collect($scene->items)->where('kind', 'text')->pluck('text');
+        $this->assertFalse($texts->contains(fn ($t) => mb_strlen($t) === 1), 'no single letters');
+        $name = collect($scene->items)->first(fn ($i) => ($i['kind'] ?? '') === 'text' && $i['text'] === 'Abdellah Ouazane');
+        $this->assertNotNull($name);
+        $this->assertGreaterThanOrEqual(96, $name['size']); // big: the hook style
+        $scene->destroy();
+    }
+
+    public function test_the_lead_player_is_the_winning_scorer_then_the_top_scorer_and_follows_the_hook(): void
+    {
+        $planner = app(StoryPlanner::class);
+        $lead = fn (FootballMatch $m) => $planner->leadPlayer($m, $planner->incidents($m), $planner->sides($m));
+        // 3-1: the goal that made it 2-1 won it.
+        $m = $this->match('Arsenal', 'Chelsea', [3, 1]);
+        $this->event($m, 'goal', 'home', 10, 'Bukayo Saka');
+        $this->event($m, 'goal', 'away', 20, 'Cole Palmer');
+        $this->event($m, 'goal', 'home', 30, 'Kai Havertz');
+        $this->event($m, 'goal', 'home', 80, 'Bukayo Saka');
+        $this->assertSame(['Kai Havertz', 'winning_goal'], [$lead($m)['name'], $lead($m)['reason']]);
+        // ...but the generated hook names Saka's brace, so the story opens on Saka.
+        [$line, $opening] = $planner->opening($m->fresh(['homeTeam', 'awayTeam', 'league']));
+        $this->assertSame('Bukayo Saka could not stop scoring', $line);
+        $this->assertSame('Bukayo Saka', $opening['name']);
+        // A draw: the last scorer.
+        $d = $this->match('Fulham', 'Spurs', [1, 1]);
+        $this->event($d, 'goal', 'home', 10, 'Raul Jimenez');
+        $this->event($d, 'goal', 'away', 50, 'Son Heung-min');
+        $this->assertSame('Son Heung-min', $lead($d)['name']);
+        // The winning goal was an own goal: the top scorer.
+        $o = $this->match('Everton', 'Wolves', [2, 1]);
+        $this->event($o, 'goal', 'home', 10, 'Beto');
+        $this->event($o, 'goal', 'away', 20, 'Matheus Cunha');
+        MatchEvent::create(['football_data_id' => 990001, 'match_id' => $o->id, 'team_id' => $o->home_team_id, 'type' => 'goal', 'minute' => 70,
+            'player_name' => 'Toti', 'is_own_goal' => true]);
+        $this->assertSame(['Beto', 'top_scorer'], [$lead($o)['name'], $lead($o)['reason']]);
+        // No goals: the best-rated African player in the line-up (an in-scope player who played).
+        $none = $this->match('Burnley', 'Fulham', [0, 0]);
+        $this->iwobiAt($none->awayTeam);
+        $this->assertNull($lead($none)); // no line-up or rating data: nobody is claimed
+    }
+
+    public function test_a_story_never_shows_a_card_twice(): void
+    {
+        foreach ([$this->richMatch()] as $match) {
+            $plan = app(StoryPlanner::class)->plan($match);
+            app(StoryFrames::class)->assertNoRepeats($plan['beats']);
+            $types = collect($plan['beats'])->pluck('type');
+            $this->assertLessThanOrEqual(1, $types->filter(fn ($t) => $t === 'recap')->count());
+            $this->assertLessThanOrEqual(1, $types->filter(fn ($t) => $t === 'facts')->count());
+        }
     }
 
     public function test_french_puts_the_on_screen_text_and_captions_in_french(): void
     {
         $match = $this->richMatch();
         $plan = app(StoryPlanner::class)->plan($match, 'fr');
-        $this->assertSame('Fin de match folle ! Alex Iwobi égalise à la 89e minute', $plan['hook']);
-        $this->assertSame('BUT', StoryText::for('fr')->t('goal'));
+        $this->assertSame("Alex Iwobi a brisé Arsenal à la 89'", $plan['hook']);
+        $this->assertSame('But', StoryText::for('fr')->t('goal'));
         $this->assertSame('Abonnez-vous pour la suite', end($plan['beats'])['follow']);
         $this->assertSame('L\'enjeu', $plan['beats'][1]['title']);
 
@@ -289,7 +461,7 @@ class StoryVideoTest extends TestCase
         $b = $this->edition(64, "Alex Iwobi scored again for Fulham on Saturday, his fourth goal of the season.");
 
         $story = app(StoryVideos::class)->request('radio_video', $b->id, 'en', [], 'api');
-        $this->assertTrue(app(StoryVideos::class)->render($story));
+        $this->assertTrue(app(StoryVideos::class)->render($story), (string) $story->fresh()->error);
 
         $story->refresh();
         $this->assertSame('ready', $story->status, (string) $story->error);

@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Design\Canvas;
+use App\Design\Tokens;
 use App\Models\MatchMoment;
 use App\Support\Armies;
 use GdImage;
@@ -17,10 +19,6 @@ class StoryCardRenderer
 {
     public const FORMATS = ['story' => [1080, 1920], 'feed' => [1080, 1350], 'og' => [1200, 630]];
 
-    protected const PAPER = [232, 225, 211];
-    protected const MUTED = [163, 156, 143];
-    protected const GOLD = [237, 199, 129];
-    protected const BLOOD = [214, 72, 60];
 
     public function __construct(private Griot $griot) {}
 
@@ -60,10 +58,10 @@ class StoryCardRenderer
 
         $img = imagecreatetruecolor($w, $h);
         imagealphablending($img, true);
-        imagefill($img, 0, 0, $this->color($img, [7, 8, 7]));
+        imagefill($img, 0, 0, $this->color($img, self::tone('black')));
 
         $landscape = $format === 'og';
-        $glow = $both ? [$home['colours'][0] ?? '#d2a052', $away['colours'][0] ?? '#d2a052'] : [$hero['colours'][0] ?? '#d2a052'];
+        $glow = $both ? [$home['colours'][0] ?? Tokens::colour('yellow'), $away['colours'][0] ?? Tokens::colour('yellow')] : [$hero['colours'][0] ?? Tokens::colour('yellow')];
         if ($both) {
             $this->glow($img, (int) ($w * 0.28), (int) ($h * 0.42), (int) ($w * 0.55), $glow[0]);
             $this->glow($img, (int) ($w * 0.72), (int) ($h * 0.42), (int) ($w * 0.55), $glow[1]);
@@ -93,7 +91,7 @@ class StoryCardRenderer
         if ($file = $this->photo($moment)) {
             $radius = (int) ($landscape ? $h * 0.17 : $w * 0.15);
             [$cx, $cy] = $landscape ? [(int) ($w * 0.9), (int) ($h * 0.3)] : [(int) ($w * 0.8), (int) ($h * ($format === 'story' ? 0.32 : 0.36))];
-            $this->badge($img, $file, $cx, $cy, $radius, $hero['colours'][0] ?? '#d2a052', $moment->type === 'red_card');
+            $this->badge($img, $file, $cx, $cy, $radius, $hero['colours'][0] ?? Tokens::colour('yellow'), $moment->type === 'red_card');
         }
 
         [$headline, $line] = $this->griot->tell($moment, $voice);
@@ -103,7 +101,7 @@ class StoryCardRenderer
         $red = $moment->type === 'red_card';
 
         // Top row: competition, then the chapter tag in a box.
-        $this->text($img, 'mono', $landscape ? 20 : 26, self::MUTED, $pad, $pad + 10, 'PREMIER LEAGUE');
+        $this->text($img, 'mono', $landscape ? 20 : 26, self::tone('grey'), $pad, $pad + 10, 'Premier League');
         $tag = $this->griot->tag($moment);
         $tagSize = $landscape ? 22 : 28;
         $box = imagettfbbox($tagSize, 0, $this->font('mono'), $tag);
@@ -111,43 +109,36 @@ class StoryCardRenderer
         $tagX = $landscape ? $pad : $w - $pad - $tagW;
         $tagY = $landscape ? $pad + 38 : $pad - 16;
         imagesetthickness($img, 2);
-        imagerectangle($img, $tagX, $tagY, $tagX + $tagW, $tagY + $tagSize + 26, $this->color($img, $red ? self::BLOOD : self::GOLD));
-        $this->text($img, 'mono', $tagSize, $red ? self::BLOOD : self::GOLD, $tagX + 18, $tagY + $tagSize + 12, $tag);
+        imagerectangle($img, $tagX, $tagY, $tagX + $tagW, $tagY + $tagSize + 26, $this->color($img, $red ? self::tone('red') : self::tone('yellow')));
+        $this->text($img, 'mono', $tagSize, $red ? self::tone('red') : self::tone('yellow'), $tagX + 18, $tagY + $tagSize + 12, $tag);
 
         // Bottom block, laid out upwards from the stripe band.
         $band = $landscape ? 14 : 22;
-        $this->kente($img, $h - $band, $w, $band, $hero['colours'] ?? ['#d2a052', '#e8e1d3']);
+        $this->kente($img, $h - $band, $w, $band, $hero['colours'] ?? [Tokens::colour('yellow'), Tokens::colour('white')]);
         $y = $h - $band - ($landscape ? 34 : 46);
-        $this->text($img, 'mono', $landscape ? 16 : 22, self::MUTED, $pad, $y, 'MATCHDAY.AFRICA  ·  TOLD BY THE GRIOT');
+        $this->text($img, 'mono', $landscape ? 16 : 22, self::tone('grey'), $pad, $y, 'matchday.africa  ·  Told by the Griot');
         // Half- and full-time captions already state the score.
         if (!in_array($moment->type, ['half_time', 'full_time'], true)) {
             $y -= $landscape ? 46 : 70;
-            $this->text($img, 'mono', $landscape ? 24 : 36, self::GOLD, $pad, $y, $this->fit($score, 'mono', $landscape ? 24 : 36, $textWidth));
+            $this->text($img, 'mono', $landscape ? 24 : 36, self::tone('yellow'), $pad, $y, $this->fit($score, 'mono', $landscape ? 24 : 36, $textWidth));
         }
         $y -= $landscape ? 44 : 64;
         $lineSize = $landscape ? 26 : 38;
         $lineRows = $this->wrap($line, 'body', $lineSize, $textWidth);
         foreach (array_reverse($lineRows) as $row) {
-            $this->text($img, 'body', $lineSize, [214, 207, 192], $pad, $y, $row);
+            $this->text($img, 'body', $lineSize, self::tone('grey'), $pad, $y, $row);
             $y -= (int) ($lineSize * 1.45);
         }
         $y -= $landscape ? 6 : 14;
         $headSize = $landscape ? 64 : ($format === 'story' ? 124 : 108);
-        foreach (array_reverse($this->wrap(mb_strtoupper($headline), 'display', $headSize, $textWidth)) as $row) {
-            $this->text($img, 'display', $headSize, self::PAPER, $pad, $y, $row);
+        foreach (array_reverse($this->wrap(($headline), 'display', $headSize, $textWidth)) as $row) {
+            $this->text($img, 'display', $headSize, self::tone('white'), $pad, $y, $row);
             $y -= (int) ($headSize * 1.4); // GD sizes are points; Anton's caps run about 1.3× that in pixels
         }
 
         return $img;
     }
 
-    protected const C_INK = [11, 11, 11];
-    protected const C_SUN = [255, 210, 63];
-    protected const C_RAY = [255, 196, 31];
-    protected const C_CREAM = [255, 248, 231];
-    protected const C_RED = [255, 75, 62];
-    protected const C_WHITE = [255, 255, 255];
-    protected const C_SOFT = [74, 68, 59];
 
     /**
      * The cartoon chapter card (docs/CARTOON.md, same look as the /stream goal screen): a sunburst
@@ -168,7 +159,7 @@ class StoryCardRenderer
 
         $img = imagecreatetruecolor($w, $h);
         imagealphablending($img, true);
-        imagefill($img, 0, 0, $this->color($img, $red ? self::C_INK : self::C_SUN));
+        imagefill($img, 0, 0, $this->color($img, $red ? self::tone('black') : self::tone('yellow')));
 
         $pad = $landscape ? 36 : 48;
         $shadow = $landscape ? 10 : 14;
@@ -190,10 +181,10 @@ class StoryCardRenderer
         }
 
         // The armies in their panel.
-        $this->comicPanel($img, $ax, $ay, $aw, $ah, $this->rgb(($both ? $home : $hero)['colours'][0] ?? '#4a443b'), $border, $shadow);
+        $this->comicPanel($img, $ax, $ay, $aw, $ah, $this->rgb(($both ? $home : $hero)['colours'][0] ?? Tokens::colour('black')), $border, $shadow);
         if ($both) {
             $half = (int) (($aw - 2 * $border) / 2);
-            imagefilledrectangle($img, $ax + $border + $half, $ay + $border, $ax + $aw - $border, $ay + $ah - $border, $this->color($img, $this->rgb($away['colours'][0] ?? '#4a443b')));
+            imagefilledrectangle($img, $ax + $border + $half, $ay + $border, $ax + $aw - $border, $ay + $ah - $border, $this->color($img, $this->rgb($away['colours'][0] ?? Tokens::colour('black'))));
             $this->cutout($img, $home, $match->homeTeam, $ax + $border, $ay + $border, $half, $ah - 2 * $border, false, false);
             $this->cutout($img, $away, $match->awayTeam, $ax + $border + $half, $ay + $border, $half, $ah - 2 * $border, true, false);
         } else {
@@ -201,49 +192,49 @@ class StoryCardRenderer
         }
         if ($photo = $this->photo($moment)) {
             $radius = (int) ($landscape ? $h * 0.16 : ($format === 'story' ? 170 : 140));
-            $this->badge($img, $photo, $ax + $aw - $radius - (int) ($radius * 0.35), $ay + $ah - $radius - (int) ($radius * 0.35), $radius, ($hero['colours'][0] ?? '#d2a052'), $red);
+            $this->badge($img, $photo, $ax + $aw - $radius - (int) ($radius * 0.35), $ay + $ah - $radius - (int) ($radius * 0.35), $radius, ($hero['colours'][0] ?? Tokens::colour('yellow')), $red);
         }
 
         // The tag ("GOAL · 41′") and the MD tile.
-        $tag = mb_strtoupper($this->griot->tag($moment));
+        $tag = ($this->griot->tag($moment));
         $tagSize = $landscape ? 26 : 40;
         $tb = imagettfbbox($tagSize, 0, $this->font('display'), $tag);
         $tagW = $tb[2] - $tb[0] + ($landscape ? 28 : 44);
         $tagH = $landscape ? 48 : 76;
         [$tagX, $tagY] = $landscape ? [$tx, $ty] : [$pad, $pad];
-        $this->comicPanel($img, $tagX, $tagY, $tagW, $tagH, self::C_RED, $landscape ? 4 : 5, $landscape ? 5 : 8);
-        $this->text($img, 'display', $tagSize, self::C_WHITE, $tagX + ($landscape ? 14 : 22), $tagY + (int) ($tagH * 0.5 + $tagSize * 0.62), $tag);
+        $this->comicPanel($img, $tagX, $tagY, $tagW, $tagH, self::tone('red'), $landscape ? 4 : 5, $landscape ? 5 : 8);
+        $this->text($img, 'display', $tagSize, self::tone('white'), $tagX + ($landscape ? 14 : 22), $tagY + (int) ($tagH * 0.5 + $tagSize * 0.62), $tag);
         if (!$landscape) {
-            $this->comicPanel($img, $w - $pad - 96, $pad - 10, 96, 96, self::C_INK, 0, 0);
-            $this->text($img, 'display', 46, self::C_SUN, $w - $pad - 82, $pad + 58, 'MD');
-            $league = mb_strtoupper((string) ($match->league?->name ?: 'Football'));
+            $this->comicPanel($img, $w - $pad - 96, $pad - 10, 96, 96, self::tone('black'), 0, 0);
+            $this->text($img, 'display', 46, self::tone('yellow'), $w - $pad - 82, $pad + 58, 'MD');
+            $league = ((string) ($match->league?->name ?: 'Football'));
             $lx = $tagX + $tagW + 30;
-            $this->text($img, 'mono', 22, $red ? self::C_CREAM : self::C_INK, $lx, $pad + 48, $this->fit($league, 'mono', 22, $w - $pad - 96 - 20 - $lx));
+            $this->text($img, 'mono', 22, $red ? self::tone('white') : self::tone('black'), $lx, $pad + 48, $this->fit($league, 'mono', 22, $w - $pad - 96 - 20 - $lx));
         }
 
         // The words.
         $textTop = $landscape ? $tagY + $tagH + 24 : $ty;
-        $this->comicPanel($img, $tx, $textTop, $tw, $ty + $th - $textTop, self::C_CREAM, $border, $shadow);
+        $this->comicPanel($img, $tx, $textTop, $tw, $ty + $th - $textTop, self::tone('white'), $border, $shadow);
         [$headline, $line] = $this->griot->tell($moment, $voice);
         $inner = $landscape ? 26 : 36;
         $x = $tx + $inner;
         $width = $tw - 2 * $inner;
         $footSize = $landscape ? 14 : 22;
         $foot = $ty + $th - $inner;
-        $this->text($img, 'mono', $footSize, self::C_SOFT, $x, $foot, $this->fit('MATCHDAY.AFRICA  ·  TOLD BY THE GRIOT', 'mono', $footSize, $width));
+        $this->text($img, 'mono', $footSize, self::tone('black'), $x, $foot, $this->fit('matchday.africa  ·  Told by the Griot', 'mono', $footSize, $width));
 
         // Measure the headline, line and score, then centre them in the panel above the footer.
         $headSize = $landscape ? 48 : ($format === 'story' ? 120 : 88);
         $minHead = $landscape ? 32 : 56;
-        while ($headSize > $minHead && count($this->wrap(mb_strtoupper($headline), 'display', $headSize, $width)) > 2) {
+        while ($headSize > $minHead && count($this->wrap(($headline), 'display', $headSize, $width)) > 2) {
             $headSize -= 4;
         }
-        $heads = array_slice($this->wrap(mb_strtoupper($headline), 'display', $headSize, $width), 0, 2);
+        $heads = array_slice($this->wrap(($headline), 'display', $headSize, $width), 0, 2);
         $lineSize = $landscape ? 20 : ($format === 'story' ? 40 : 34);
         $lines = array_slice($this->wrap($line, 'body', $lineSize, $width), 0, $landscape ? 3 : ($format === 'story' ? 4 : 2));
         $score = null;
         if (!in_array($moment->type, ['half_time', 'full_time', 'kickoff'], true)) {
-            $name = fn ($team) => mb_strtoupper(trim(preg_replace('/\s+(FC|AFC)$/i', '', (string) $team?->name)));
+            $name = fn ($team) => (trim(preg_replace('/\s+(FC|AFC)$/i', '', (string) $team?->name)));
             $score = $name($match->homeTeam).'  '.$moment->home_score.'–'.$moment->away_score.'  '.$name($match->awayTeam);
         }
         $scoreSize = $landscape ? 22 : ($format === 'story' ? 40 : 34);
@@ -255,20 +246,20 @@ class StoryCardRenderer
         $y = $areaTop + max(0, (int) (($areaBottom - $areaTop - $block) / 2));
 
         foreach ($heads as $row) {
-            $this->text($img, 'display', $headSize, self::C_INK, $x, $y + (int) ($headSize * 1.3), $row);
+            $this->text($img, 'display', $headSize, self::tone('black'), $x, $y + (int) ($headSize * 1.3), $row);
             $y += (int) ($headSize * 1.4);
         }
         $y += $gap;
         foreach ($lines as $row) {
-            $this->text($img, 'body', $lineSize, self::C_INK, $x, $y + (int) ($lineSize * 1.15), $row);
+            $this->text($img, 'body', $lineSize, self::tone('black'), $x, $y + (int) ($lineSize * 1.15), $row);
             $y += (int) ($lineSize * 1.45);
         }
         if ($score) {
             $y += $gap;
             $score = $this->fit($score, 'display', $scoreSize, $width - 32);
             $sb = imagettfbbox($scoreSize, 0, $this->font('display'), $score);
-            $this->comicPanel($img, $x, $y, min($width, $sb[2] - $sb[0] + 32), $boxH, self::C_SUN, 4, 0);
-            $this->text($img, 'display', $scoreSize, self::C_INK, $x + 16, $y + (int) ($boxH * 0.73), $score);
+            $this->comicPanel($img, $x, $y, min($width, $sb[2] - $sb[0] + 32), $boxH, self::tone('yellow'), 4, 0);
+            $this->text($img, 'display', $scoreSize, self::tone('black'), $x + 16, $y + (int) ($boxH * 0.73), $score);
         }
 
         return $img;
@@ -277,7 +268,7 @@ class StoryCardRenderer
     /** Sunburst rays from a point, behind everything else. */
     protected function rays(GdImage $img, int $cx, int $cy): void
     {
-        $ray = $this->color($img, self::C_RAY);
+        $ray = $this->color($img, self::tone('yellow'));
         for ($i = 0; $i < 28; $i += 2) {
             $a1 = deg2rad($i * (360 / 28));
             $a2 = deg2rad(($i + 1) * (360 / 28));
@@ -288,7 +279,7 @@ class StoryCardRenderer
     /** A filled box with an ink border and an offset ink shadow (comic panel). */
     protected function comicPanel(GdImage $img, int $x, int $y, int $w, int $h, array $fill, int $border, int $shadow): void
     {
-        $ink = $this->color($img, self::C_INK);
+        $ink = $this->color($img, self::tone('black'));
         if ($shadow) {
             imagefilledrectangle($img, $x + $shadow, $y + $shadow, $x + $w + $shadow, $y + $h + $shadow, $ink);
         }
@@ -307,10 +298,10 @@ class StoryCardRenderer
             $words = preg_split('/\s+/', trim(preg_replace('/\b(FC|AFC)\b|[^\p{L}\s]/u', '', (string) $team?->name)));
             $letters = mb_strtoupper(count($words) > 1 ? mb_substr($words[0], 0, 1).mb_substr($words[1], 0, 1) : mb_substr($words[0] ?? '?', 0, 3));
             $size = (int) (min($w, $h) * 0.6);
-            $this->comicPanel($img, $x + (int) (($w - $size) / 2), $y + (int) (($h - $size) / 2), $size, $size, self::C_INK, 0, 0);
+            $this->comicPanel($img, $x + (int) (($w - $size) / 2), $y + (int) (($h - $size) / 2), $size, $size, self::tone('black'), 0, 0);
             $font = (int) ($size * 0.32);
             $b = imagettfbbox($font, 0, $this->font('display'), $letters);
-            $this->text($img, 'display', $font, self::C_SUN, $x + (int) (($w - ($b[2] - $b[0])) / 2), $y + (int) (($h + ($b[1] - $b[7])) / 2), $letters);
+            $this->text($img, 'display', $font, self::tone('yellow'), $x + (int) (($w - ($b[2] - $b[0])) / 2), $y + (int) (($h + ($b[1] - $b[7])) / 2), $letters);
 
             return;
         }
@@ -356,7 +347,7 @@ class StoryCardRenderer
         $face = imagecreatetruecolor($size, $size);
         imagealphablending($face, false);
         imagesavealpha($face, true);
-        imagefill($face, 0, 0, imagecolorallocatealpha($face, 0, 0, 0, 127));
+        imagefill($face, 0, 0, Canvas::col($face, 'black', 127));
         // Cover the circle: crop the photo to a square from the top (faces sit high in headshots).
         $sw = imagesx($source);
         $sh = imagesy($source);
@@ -365,7 +356,7 @@ class StoryCardRenderer
         if ($greyscale) {
             imagefilter($face, IMG_FILTER_GRAYSCALE);
         }
-        $clear = imagecolorallocatealpha($face, 0, 0, 0, 127);
+        $clear = Canvas::col($face, 'black', 127);
         for ($y = 0; $y < $size; $y++) {
             for ($x = 0; $x < $size; $x++) {
                 if (($x - $radius + 0.5) ** 2 + ($y - $radius + 0.5) ** 2 > $radius ** 2) {
@@ -375,8 +366,8 @@ class StoryCardRenderer
         }
         $ringWidth = max(6, (int) ($radius * 0.07));
         imagefilledellipse($img, $cx, $cy, 2 * ($radius + 2 * $ringWidth), 2 * ($radius + 2 * $ringWidth), $this->color($img, $this->rgb($ring)));
-        imagefilledellipse($img, $cx, $cy, 2 * ($radius + $ringWidth), 2 * ($radius + $ringWidth), $this->color($img, [7, 8, 7]));
-        imagefilledellipse($img, $cx, $cy, $size, $size, $this->color($img, [232, 225, 211]));
+        imagefilledellipse($img, $cx, $cy, 2 * ($radius + $ringWidth), 2 * ($radius + $ringWidth), $this->color($img, self::tone('black')));
+        imagefilledellipse($img, $cx, $cy, $size, $size, $this->color($img, self::tone('white')));
         imagecopy($img, $face, $cx - $radius, $cy - $radius, 0, 0, $size, $size);
         imagedestroy($face);
         imagedestroy($source);
@@ -424,7 +415,7 @@ class StoryCardRenderer
         $steps = $direction === 'right' ? $w : $h;
         for ($i = 0; $i < $steps; $i += 2) {
             $alpha = (int) round($from + ($to - $from) * $i / max(1, $steps - 1));
-            $c = imagecolorallocatealpha($img, 7, 8, 7, max(0, min(127, $alpha)));
+            $c = Canvas::col($img, 'black', max(0, min(127, $alpha)));
             $direction === 'right'
                 ? imagefilledrectangle($img, $x + $i, $y, $x + $i + 1, $y + $h, $c)
                 : imagefilledrectangle($img, $x, $y + $i, $x + $w, $y + $i + 1, $c);
@@ -434,7 +425,7 @@ class StoryCardRenderer
     /** Kente-style stripe band in the team's colours with gold and black. */
     protected function kente(GdImage $img, int $y, int $w, int $h, array $colours): void
     {
-        $pattern = [[$colours[0], 46], ['#d2a052', 12], [$colours[1] ?? '#e8e1d3', 28], ['#070807', 8], ['#d2a052', 12], ['#070807', 6]];
+        $pattern = [[$colours[0], 46], [Tokens::colour('yellow'), 12], [$colours[1] ?? Tokens::colour('white'), 28], [Tokens::colour('black'), 8], [Tokens::colour('yellow'), 12], [Tokens::colour('black'), 6]];
         for ($x = 0; $x < $w;) {
             foreach ($pattern as [$hex, $width]) {
                 imagefilledrectangle($img, $x, $y, min($w, $x + $width), $y + $h, $this->color($img, $this->rgb($hex)));
@@ -480,9 +471,16 @@ class StoryCardRenderer
         return $text;
     }
 
+    /** A brand colour token as [r, g, b] (resources/design/tokens.json). */
+    protected static function tone(string $name): array
+    {
+        return Canvas::rgb($name);
+    }
+
+    /** Card faces map onto the design tokens' fonts: Anton for display, Inter for body and labels. */
     protected function font(string $face): string
     {
-        return resource_path('fonts/'.['display' => 'Anton-Regular.ttf', 'body' => 'IBMPlexSans.ttf', 'mono' => 'IBMPlexMono-SemiBold.ttf'][$face]);
+        return Tokens::font(['display' => 'display', 'body' => 'regular', 'mono' => 'semibold'][$face]);
     }
 
     protected function color(GdImage $img, array $rgb): int

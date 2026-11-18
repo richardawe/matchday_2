@@ -2,6 +2,7 @@
 
 namespace App\Services\Slideshow;
 
+use App\Design\Tokens;
 use App\Models\FootballMatch;
 use App\Models\Player;
 use App\Models\Slideshow;
@@ -62,8 +63,8 @@ class SlideshowDeck
         $question = "Who wins: {$this->short($match->homeTeam)} or {$this->short($match->awayTeam)}?";
 
         $slides = array_values(array_filter([
-            $this->openerSlide($ctx, $match, $featured, $photo, $times),
-            $this->playersSlide($ctx, $players, 'preview'),
+            ...$this->openerSlides($ctx, $match, $featured, $photo, $times),
+            $this->playersSlide($ctx, $players, 'preview', $match),
             $this->tableSlide($ctx, $match),
             $this->formSlide($ctx, $match),
             $this->ctaSlide($ctx, $match, $question, 'Call the score at matchday.africa before kick-off.', $times),
@@ -107,8 +108,8 @@ class SlideshowDeck
             : "What did you make of {$this->short($match->homeTeam)} v {$this->short($match->awayTeam)}?";
 
         $slides = array_values(array_filter([
-            $this->openerSlide($ctx, $match, $featured, $photo, $times),
-            $played->isNotEmpty() ? $this->playersSlide($ctx, $played, 'post_match') : null,
+            ...$this->openerSlides($ctx, $match, $featured, $photo, $times),
+            $played->isNotEmpty() ? $this->playersSlide($ctx, $played, 'post_match', $match) : null,
             $this->tableSlide($ctx, $match),
             $this->ctaSlide($ctx, $match, $question, 'Full story and stats at matchday.africa.', $times),
         ]));
@@ -144,9 +145,9 @@ class SlideshowDeck
         $entry = ['player' => $player, 'match' => $here, 'season' => $season];
 
         $slides = array_values(array_filter([
-            $this->portraitSlide($ctx, Str::upper('Milestone · '.$league), $player, $photo, ['badge' => 'Milestone',
+            $this->portraitSlide($ctx, 'Milestone · '.$league, $player, $photo, ['badge' => 'Milestone',
                 'lines' => ["{$goals} {$league} goals this season", 'The latest in '.ClubName::short($match->homeTeam)." {$match->home_score}-{$match->away_score} ".ClubName::short($match->awayTeam)]]),
-            $this->openerSlide($this->context($match), $match, null, null, $times),
+            ...$this->openerSlides($this->context($match), $match, null, null, $times),
             $this->ctaSlide($ctx, $match, "How many will {$this->surname($player)} finish the season on?", 'Follow every goal at matchday.africa.', $times),
         ]));
         $body = "{$player->name} (".AfricanScope::label($player).") has {$goals} {$league} goals this season after scoring in "
@@ -183,7 +184,7 @@ class SlideshowDeck
         }
         $griot = GriotChallengeService::ready();
         $path = $griot ? route('griot.challenge', [], false) : null;
-        $slides[] = $this->questionSlide($ctx, 'Team of the Week', null, 'Who makes next week’s team?',
+        $slides[] = $this->questionSlide($ctx, 'Team of the Week', 'Who makes next week’s team?',
             $griot ? 'Beat the Griot at matchday.africa.' : 'Call the next round at matchday.africa.');
 
         $names = $rows->take(3)->map(fn ($r) => $r['player']->name.' ('.$this->contributions($r['line']['goals'], $r['line']['assists']).')')->join(', ');
@@ -230,112 +231,105 @@ class SlideshowDeck
         return $start->format('j M').'–'.$end->format('j M');
     }
 
-    // ---------------------------------------------------------------- slides (blocks for SlideshowRenderer)
+    // ---------------------------------------------------------------- slides (component cuts, drawn by App\Design\Film)
 
     /** Both sides' colours, flags (African national teams) or kit swatches (clubs), short names. */
     private function context(FootballMatch $match): array
     {
-        $side = function ($team, array $fallback) {
+        $side = function ($team, string $key) {
             $nation = AfricanScope::nationForTeam($team?->name);
-            $colours = SlideshowFacts::colours($team) ?? $fallback;
+            $colours = SlideshowFacts::colours($team) ?? Tokens::teamFallback($key);
 
-            return ['name' => ClubName::short($team), 'full' => ClubName::full($team), 'flag' => $nation['flag'] ?? null, 'colours' => $colours];
+            return ['name' => ClubName::short($team), 'full' => ClubName::full($team), 'flag' => $nation['flag'] ?? null, 'colours' => array_values($colours)];
         };
-        $home = $side($match->homeTeam, ['#0B0B0B', '#FFD23F']);
-        $away = $side($match->awayTeam, ['#FFD23F', '#0B0B0B']);
+        $home = $side($match->homeTeam, 'home');
+        $away = $side($match->awayTeam, 'away');
         // Same main colour on both sides (red v red): the away side leads with its second colour.
         if (strcasecmp($home['colours'][0], $away['colours'][0]) === 0) {
-            $away['colours'] = [$away['colours'][1] ?? '#FFFFFF', $away['colours'][0]];
+            $away['colours'] = [$away['colours'][1] ?? Tokens::colour('white'), $away['colours'][0]];
         }
 
         return ['home' => $home, 'away' => $away];
     }
 
-    /** One player's decks: club colours top, their African country's colours bottom. */
+    /** One player's decks: club colours on the home side, their African country's on the away side. */
     private function playerContext(Player $player): array
     {
         $nation = AfricanScope::nation(AfricanScope::countryCode($player));
-        $club = SlideshowFacts::colours($player->team) ?? ['#0B0B0B', '#FFD23F'];
+        $club = SlideshowFacts::colours($player->team) ?? Tokens::teamFallback('home');
 
         return [
-            'home' => ['name' => ClubName::short($player->team), 'full' => ClubName::full($player->team), 'flag' => null, 'colours' => $club],
-            'away' => ['name' => $nation['name'] ?? '', 'full' => $nation['name'] ?? '', 'flag' => $nation['flag'] ?? null, 'colours' => $nation['colours'] ?? ['#FFD23F', '#0B0B0B']],
+            'home' => ['name' => ClubName::short($player->team), 'full' => ClubName::full($player->team), 'flag' => null, 'colours' => array_values($club)],
+            'away' => ['name' => $nation['name'] ?? '', 'full' => $nation['name'] ?? '', 'flag' => $nation['flag'] ?? null,
+                'colours' => $nation['colours'] ?? Tokens::teamFallback('away')],
         ];
     }
 
-    private function frame(array $ctx, array $blocks, int $spacing = 30): array
+    private function cut(string $component, array $ctx, array $data): array
     {
-        return ['colours' => ['home' => $ctx['home']['colours'], 'away' => $ctx['away']['colours']], 'spacing' => $spacing,
-            'blocks' => array_values(array_filter($blocks))];
-    }
-
-    private function pill(array $ctx, string $text): array
-    {
-        return ['pill', $text, 'flags' => [$ctx['home']['flag'], $ctx['away']['flag']], 'swatches' => [$ctx['home']['colours'], $ctx['away']['colours']]];
-    }
-
-    private function portrait(array $ctx, Player $player, ?array $photo, string $side = 'home'): array
-    {
-        $crop = $photo['crop'] ?? null;
-
-        return ['portrait', 'file' => $photo['file'] ?? null, 'crop' => $crop, 'name' => $player->name,
-            'line' => implode(' · ', array_filter([AfricanScope::label($player), $player->team ? ClubName::short($player->team) : null])),
-            'credit' => !empty($photo['credit']) ? 'Photo: '.$photo['credit'] : null, 'colours' => $ctx[$side]['colours']];
+        return ['component' => $component, 'sides' => $ctx] + $data;
     }
 
     /**
-     * 01: the date, both sides big with "v" (or the score), the featured player in a round frame, and the
-     * kick-off times and venue (or, at full time, the scorers).
+     * The opener: with a featured player, the hook card (their licensed photo or our monogram, the
+     * scoreboard, a factual line); then the fixture card with the kick-off times and venue, or at
+     * full time the score with the scorers.
      */
-    private function openerSlide(array $ctx, FootballMatch $match, ?array $featured, ?array $photo, array $times): array
+    private function openerSlides(array $ctx, FootballMatch $match, ?array $featured, ?array $photo, array $times): array
     {
         $finished = SlideshowFacts::finished($match);
-        $date = $times['date'] ?? $times['day'];
-        $items = [['badge', $finished ? 'Full time' : 'Kick-off', 'colour' => $ctx['home']['colours'][0]]];
+        $score = $finished ? "{$match->home_score}-{$match->away_score}" : 'v';
+        $out = [];
+        if ($featured) {
+            $p = $featured['player'];
+            $side = $p->team_id === $match->away_team_id ? 'away' : 'home';
+            $opp = $side === 'home' ? $ctx['away']['name'] : $ctx['home']['name'];
+            $line = $finished ? "{$p->name} at full time against {$opp}" : "{$p->name} takes on {$opp}, ".explode(' ', $times['day'])[0];
+            $out[] = $this->cut('hook', $ctx, ['line' => $line, 'score' => $score, 'focus' => $side,
+                'player' => ['name' => $p->name, 'label' => AfricanScope::label($p), 'club' => $p->team ? ClubName::short($p->team) : null,
+                    'flag' => AfricanScope::nation(AfricanScope::countryCode($p))['flag'] ?? null],
+                'photo' => $this->photoFor($photo)]);
+        }
         if ($finished) {
-            foreach (array_slice(SlideshowFacts::goals($match), 0, 5) as $goal) {
+            $lines = [];
+            foreach (array_slice(SlideshowFacts::goals($match), 0, 4) as $goal) {
                 if ($goal['player']) {
                     $team = $goal['side'] === 'home' ? $match->homeTeam : $match->awayTeam;
-                    $items[] = ['text', trim(($goal['minute'] ?? '').' '.$goal['player'].($goal['own_goal'] ? ' (og)' : ($goal['penalty'] ? ' (pen)' : '')).', '.ClubName::short($team)), 'face' => 'bold', 'size' => 44, 'lead' => 1.1];
+                    $lines[] = trim(($goal['minute'] ?? '').' '.$goal['player'].($goal['own_goal'] ? ' (og)' : ($goal['penalty'] ? ' (pen)' : '')).', '.ClubName::short($team));
                 }
             }
-            if (count($items) === 1) {
-                $items[] = ['text', $this->competition($match), 'face' => 'bold', 'size' => 44];
-            }
+            $out[] = $this->cut('score_block', $ctx, ['title' => 'Full time · '.($times['date'] ?? $times['day']), 'score' => $score,
+                'lines' => $lines ?: [$this->competition($match)]]);
         } else {
-            $items[] = ['text', $times['uk_long'] ?? "{$times['uk']} in the UK", 'face' => 'bold', 'size' => 48, 'lead' => 1.1];
-            $items[] = ['text', $times['wat_long'] ?? "{$times['wat']}", 'face' => 'bold', 'size' => 48, 'lead' => 1.1];
-            if ($match->venue_name) {
-                $items[] = ['text', trim($match->venue_name.($match->venue_city ? ', '.$match->venue_city : '')), 'face' => 'bold', 'size' => 42];
-            }
+            $out[] = $this->cut('matchup', $ctx, ['title' => $times['date'] ?? $times['day'], 'competition' => $this->competition($match), 'stage' => null,
+                'lines' => array_values(array_filter([$times['uk_long'] ?? "{$times['uk']} in the UK", $times['wat_long'] ?? $times['wat'],
+                    $match->venue_name ? trim($match->venue_name.($match->venue_city ? ', '.$match->venue_city : '')) : null]))]);
         }
 
-        return $this->frame($ctx, [
-            $this->pill($ctx, $finished ? "Full time · {$date}" : $date),
-            ['teams', 'home' => $ctx['home'], 'away' => $ctx['away'], 'middle' => $finished ? "{$match->home_score}-{$match->away_score}" : 'v'],
-            $featured ? $this->portrait($ctx, $featured['player'], $photo, $featured['player']->team_id === $match->away_team_id ? 'away' : 'home') : null,
-            ['panel', 'items' => $items, 'border' => $ctx['home']['colours'][0], 'gap' => 14],
-        ], 20);
+        return $out;
     }
 
-    /** A player-led opener (Team of the Week, milestones): the player in a round frame and a panel of facts. */
-    private function portraitSlide(array $ctx, string $pill, Player $player, ?array $photo, array $panel): array
+    /** A player-led opener (Team of the Week, milestones): the profile card. */
+    private function portraitSlide(array $ctx, string $chip, Player $player, ?array $photo, array $panel): array
     {
-        $items = [['badge', $panel['badge'], 'colour' => $ctx['home']['colours'][0]]];
-        foreach ($panel['lines'] as $line) {
-            $items[] = ['text', $line, 'face' => 'bold', 'size' => 46, 'lead' => 1.12];
+        $lines = [];
+        foreach ($panel['lines'] as $i => $line) {
+            $lines[] = ['head' => $i === 0 ? $panel['badge'] : '', 'text' => $line];
         }
 
-        return $this->frame($ctx, [$this->pill($ctx, $pill), $this->portrait($ctx, $player, $photo), ['panel', 'items' => $items, 'border' => $ctx['away']['colours'][0], 'gap' => 14]], 24);
+        return $this->cut('profile', $ctx, ['chip' => $chip, 'name' => $player->name, 'label' => AfricanScope::label($player),
+            'club' => $player->team ? ClubName::short($player->team) : null, 'flag' => AfricanScope::nation(AfricanScope::countryCode($player))['flag'] ?? null,
+            'photo' => $this->photoFor($photo), 'colours' => $ctx['home']['colours'], 'lines' => $lines]);
     }
 
     /** The in-scope players together, with what the data says (season or match numbers). */
-    private function playersSlide(array $ctx, Collection $players, string $type): ?array
+    private function playersSlide(array $ctx, Collection $players, string $type, ?FootballMatch $match = null): ?array
     {
         $rows = $players->take(4)->map(fn ($e) => [
             'name' => $e['player']->name,
             'line' => implode(' · ', array_filter([AfricanScope::label($e['player']), $e['player']->team ? ClubName::short($e['player']->team) : null])),
             'stats' => $this->statLine($e['match'], $e['season'], $type),
+            'side' => $match && $e['player']->team_id === $match->away_team_id ? 'away' : 'home',
         ])->values()->all();
         if (!$rows) {
             return null;
@@ -345,20 +339,9 @@ class SlideshowDeck
         return $this->rowsSlide($ctx, $type === 'preview' ? 'African players in this match' : 'African players at full time', $title, $rows);
     }
 
-    private function rowsSlide(array $ctx, string $pill, string $title, array $rows): array
+    private function rowsSlide(array $ctx, string $chip, string $heading, array $rows): array
     {
-        $items = [];
-        foreach ($rows as $row) {
-            $items[] = ['text', $row['name'], 'face' => 'bold', 'size' => 50, 'lead' => 1.08];
-            if (!empty($row['line'])) {
-                $items[] = ['text', $row['line'], 'face' => 'reg', 'size' => 36, 'lead' => 1.08];
-            }
-            if (!empty($row['stats'])) {
-                $items[] = ['text', $row['stats'], 'face' => 'med', 'size' => 40, 'lead' => 1.1, 'colour' => '#C8102E'];
-            }
-        }
-
-        return $this->frame($ctx, [$this->pill($ctx, $pill), ['title', $title], ['panel', 'items' => $items, 'border' => $ctx['away']['colours'][0], 'gap' => 10]]);
+        return $this->cut('roster', $ctx, ['title' => $chip, 'heading' => $heading, 'rows' => array_map(fn ($r) => $r + ['side' => 'home'], $rows)]);
     }
 
     /** The league table around the two sides: the leader and both teams, highlighted in their colours. */
@@ -368,8 +351,7 @@ class SlideshowDeck
         $rows = [];
         foreach (['home' => $match->homeTeam, 'away' => $match->awayTeam] as $side => $team) {
             if ($team && ($s = SlideshowFacts::standing($team, $league))) {
-                $rows[$s['position']] = ['pos' => (string) $s['position'], 'name' => ClubName::full($team),
-                    'value' => $s['points'] !== null ? "{$s['points']} pts" : '', 'colour' => $ctx[$side]['colours'][0], 'played' => $s['played']];
+                $rows[$s['position']] = ['pos' => (string) $s['position'], 'name' => ClubName::short($team), 'played' => $s['played'], 'pts' => $s['points'], 'side' => $side];
             }
         }
         if (!$rows) {
@@ -378,57 +360,39 @@ class SlideshowDeck
         if (!isset($rows[1]) && ($leader = \App\Models\Standing::where('league_id', $league->id)->where('position', 1)
             ->when(\App\Models\Standing::where('league_id', $league->id)->where('is_current', true)->exists(), fn ($q) => $q->where('is_current', true))
             ->orderByDesc('season_year')->with('team')->first()) && $leader->team) {
-            $rows[1] = ['pos' => '1', 'name' => ClubName::full($leader->team), 'value' => $leader->points !== null ? "{$leader->points} pts" : '', 'colour' => null, 'played' => null];
+            $rows[1] = ['pos' => '1', 'name' => ClubName::short($leader->team), 'played' => $leader->matches_played, 'pts' => $leader->points, 'side' => null];
         }
         ksort($rows);
-        $played = collect($rows)->pluck('played')->filter()->unique();
-        $items = $played->count() === 1 ? [['text', 'After '.$played->first().' matches', 'face' => 'bold', 'size' => 36]] : [];
-        $items[] = ['table', 'rows' => array_values($rows)];
 
-        return $this->frame($ctx, [$this->pill($ctx, $this->competition($match)), ['title', ($league?->name ? $league->name.' table' : 'The table')],
-            ['panel', 'items' => $items, 'border' => $ctx['away']['colours'][0]]]);
+        return $this->cut('mini_table', $ctx, ['title' => $league?->name ? $league->name.' table' : 'The table', 'rows' => array_values($rows),
+            'played_label' => 'P', 'points_label' => 'Pts']);
     }
 
     /** Each side's last five results (oldest first), when stored. */
     private function formSlide(array $ctx, FootballMatch $match): ?array
     {
-        $items = [];
-        foreach (['home' => $match->homeTeam, 'away' => $match->awayTeam] as $side => $team) {
-            $form = $team ? SlideshowFacts::form($team, $match) : [];
-            if ($form) {
-                $items[] = ['text', ClubName::full($team), 'face' => 'bold', 'size' => 46, 'lead' => 1.05];
-                $items[] = ['text', implode('  ', array_column(array_reverse($form), 'result')), 'face' => 'black', 'size' => 52, 'lead' => 1.05,
-                    'colour' => $ctx[$side]['colours'][0] === '#FFFFFF' ? '#0B0B0B' : $ctx[$side]['colours'][0]];
-            }
-        }
+        $form = ['home' => $match->homeTeam ? SlideshowFacts::form($match->homeTeam, $match) : [], 'away' => $match->awayTeam ? SlideshowFacts::form($match->awayTeam, $match) : []];
 
-        return $items ? $this->frame($ctx, [$this->pill($ctx, 'Form'), ['title', 'Last five, oldest first'], ['panel', 'items' => $items, 'border' => $ctx['home']['colours'][0], 'gap' => 12]]) : null;
+        return $form['home'] || $form['away'] ? $this->cut('form_chips', $ctx, ['title' => 'Form · last five, oldest first', 'form' => $form]) : null;
     }
 
-    /** Last: the question, the site's crest-free match card, and where to answer. */
+    /** Last: the question, where to answer, the follow ask and the site. */
     private function ctaSlide(array $ctx, FootballMatch $match, string $question, string $cta, array $times): array
     {
-        return $this->questionSlide($ctx, "{$ctx['home']['name']} v {$ctx['away']['name']} · ".explode(' ', $times['day'])[0], $this->card($match), $question, $cta);
+        return $this->questionSlide($ctx, "{$ctx['home']['name']} v {$ctx['away']['name']} · ".explode(' ', $times['day'])[0], $question, $cta,
+            $this->displayPath(route('matches.show', $match, false)));
     }
 
-    private function questionSlide(array $ctx, string $pill, ?string $card, string $question, string $cta): array
+    private function questionSlide(array $ctx, string $chip, string $question, string $cta, string $url = 'matchday.africa'): array
     {
-        return $this->frame($ctx, [
-            $this->pill($ctx, $pill),
-            $card ? ['image', $card, 'border' => $ctx['home']['colours'][0]] : null,
-            ['panel', 'items' => [['text', $question, 'face' => 'display', 'size' => 76, 'lead' => 1.12], ['text', $cta, 'face' => 'med', 'size' => 46]],
-                'border' => $ctx['away']['colours'][0]],
-        ]);
+        return $this->cut('closing', $ctx, ['title' => $chip, 'question' => $question, 'cta' => $cta, 'follow' => 'Follow for more', 'url' => $url]);
     }
 
-    /** The site's own crest-free fixture card (FixtureCardRenderer), or null. */
-    private function card(FootballMatch $match): ?string
+    /** A licensed photo for a card: only with its credit (the images rule). */
+    private function photoFor(?array $photo): ?array
     {
-        try {
-            return app(\App\Services\FixtureCardRenderer::class)->fixturePath($match);
-        } catch (\Throwable) {
-            return null;
-        }
+        return $photo && !empty($photo['file']) && !empty($photo['credit'])
+            ? ['file' => $photo['file'], 'crop' => $photo['crop'] ?? null, 'credit' => $photo['credit']] : null;
     }
 
     private function surnameOf(string $name): string
@@ -519,16 +483,6 @@ class SlideshowDeck
         $found = array_filter([AfricanScope::nationForTeam($match->homeTeam?->name), AfricanScope::nationForTeam($match->awayTeam?->name)]);
 
         return $found ? array_values($found) : null;
-    }
-
-    private function matchColours(FootballMatch $match): array
-    {
-        $home = SlideshowFacts::colours($match->homeTeam) ?? ['#0B0B0B', '#FFD23F'];
-        $away = SlideshowFacts::colours($match->awayTeam) ?? ['#FFD23F', '#0B0B0B'];
-        // Same main colour on both sides (red v red): the away side shows its second colour.
-        $second = strcasecmp($home[0], $away[0]) === 0 ? ($away[1] ?? '#FFFFFF') : $away[0];
-
-        return [$home[0], $second];
     }
 
     private function competition(FootballMatch $match): string

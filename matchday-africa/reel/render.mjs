@@ -19,7 +19,9 @@ export async function stageReel(props) {
     const stage = await mkdtemp(path.join(os.tmpdir(), 'matchday-reel-'));
     {
         await mkdir(path.join(stage, 'fonts'));
-        for (const font of ['Anton-Regular.ttf', 'IBMPlexSans.ttf', 'IBMPlexMono-SemiBold.ttf']) {
+        // The design tokens' fonts (resources/design/tokens.json): Anton and Inter.
+        const tokens = JSON.parse(await readFile(path.join(here, '../resources/design/tokens.json'), 'utf8'));
+        for (const font of Object.values(tokens.font).map((f) => f.file.split('/').pop())) {
             await copyFile(path.join(here, '../resources/fonts', font), path.join(stage, 'fonts', font));
         }
         const inputProps = structuredClone(props);

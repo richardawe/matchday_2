@@ -1,19 +1,17 @@
 import React from 'react';
 import { AbsoluteFill, Audio, Img, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { C, fontFaces, rgba } from './design.js';
 import { finalMoods, focus, keyMoment, moods, timelineFor } from './timeline.js';
 
 // Style v2: the same crest-free statues, told like a comic strip. Bright club-coloured skies,
 // sunbursts and halftone, thick ink outlines, speech-box captions and a sound-effect burst on
 // every moment. Each army has a mood per scene (timeline.js): its own pose art when the side
 // has an approved image for it (props side.poses), otherwise a drawn treatment of the statue.
-const INK = '#0b0b0b';
-const PAPER = '#fff8e7';
-const SUN = '#ffd23f';
+const INK = C.black;
+const PAPER = C.white;
+const SUN = C.yellow;
 
-const fonts = `
-@font-face{font-family:Anton;src:url(${staticFile('fonts/Anton-Regular.ttf')})}
-@font-face{font-family:Plex;src:url(${staticFile('fonts/IBMPlexSans.ttf')})}
-@font-face{font-family:PlexMono;src:url(${staticFile('fonts/IBMPlexMono-SemiBold.ttf')})}`;
+const fonts = fontFaces(staticFile);
 
 const useUnit = () => useVideoConfig().width / 1080;
 
@@ -54,16 +52,16 @@ const BURSTS = {
 // The sky behind a side: club colour, a sunburst and halftone dots. Gloomy moods drain it.
 const Sky = ({ colour, mood = 'warrior', x = '50%', y = '62%', clip }) => {
     const gloomy = mood === 'dejected' || mood === 'defeated';
-    const base = gloomy ? (mood === 'defeated' ? '#6b6258' : '#4f6f9a') : colour;
+    const base = gloomy ? (mood === 'defeated' ? C.grey : C.surface) : colour;
     // Still rays: a turning sunburst repaints every pixel each frame and triples the file size.
     const spin = -8;
     return (
         <AbsoluteFill style={{ clipPath: clip }}>
             <AbsoluteFill style={{ background: `radial-gradient(120% 80% at ${x} ${y}, ${tint(base, gloomy ? 0.35 : 0.55)} 0%, ${tint(base, gloomy ? 0.1 : 0.1)} 45%, ${tint(base, -0.4)} 100%)` }} />
             {!gloomy && (
-                <AbsoluteFill style={{ background: `repeating-conic-gradient(from ${spin}deg at ${x} ${y}, rgba(255,255,255,${mood === 'victory' ? 0.28 : 0.14}) 0deg 7deg, transparent 7deg 15deg)` }} />
+                <AbsoluteFill style={{ background: `repeating-conic-gradient(from ${spin}deg at ${x} ${y}, ${rgba(C.white, mood === 'victory' ? 0.28 : 0.14)} 0deg 7deg, transparent 7deg 15deg)` }} />
             )}
-            <AbsoluteFill style={{ background: 'radial-gradient(rgba(0,0,0,.12) 26%, transparent 28%) 0 0 / 26px 26px', opacity: gloomy ? 0.4 : 0.6 }} />
+            <AbsoluteFill style={{ background: `radial-gradient(${rgba(C.black, 0.12)} 26%, transparent 28%) 0 0 / 26px 26px`, opacity: gloomy ? 0.4 : 0.6 }} />
         </AbsoluteFill>
     );
 };
@@ -72,7 +70,7 @@ const Sky = ({ colour, mood = 'warrior', x = '50%', y = '62%', clip }) => {
 const Confetti = ({ colours, count = 44 }) => {
     const frame = useCurrentFrame();
     const { width, height } = useVideoConfig();
-    const palette = [...colours, SUN, '#ffffff'];
+    const palette = [...colours, SUN, C.white];
     return (
         <AbsoluteFill style={{ pointerEvents: 'none' }}>
             {Array.from({ length: count }, (_, i) => {
@@ -81,7 +79,7 @@ const Confetti = ({ colours, count = 44 }) => {
                 const y = -60 + ((frame * fall + rand(i + 7) * height) % (height + 120));
                 const spin = frame * (rand(i + 3) * 16 - 8);
                 const w = 12 + rand(i + 5) * 16;
-                return <div key={i} style={{ position: 'absolute', left: x + Math.sin((frame + i * 9) / 9) * 24, top: y, width: w, height: w * 0.45, background: palette[i % palette.length], border: '2px solid #0b0b0b', transform: `rotate(${spin}deg)` }} />;
+                return <div key={i} style={{ position: 'absolute', left: x + Math.sin((frame + i * 9) / 9) * 24, top: y, width: w, height: w * 0.45, background: palette[i % palette.length], border: '2px solid ${C.black}', transform: `rotate(${spin}deg)` }} />;
             })}
         </AbsoluteFill>
     );
@@ -96,7 +94,7 @@ const Rain = ({ clip }) => {
             {Array.from({ length: 36 }, (_, i) => {
                 const x = rand(i + 40) * width;
                 const y = ((frame * (26 + rand(i) * 12) + rand(i + 3) * height) % (height + 200)) - 100;
-                return <div key={i} style={{ position: 'absolute', left: x, top: y, width: 4, height: 70, background: 'rgba(200,220,255,.55)', transform: 'rotate(12deg)', borderRadius: 2 }} />;
+                return <div key={i} style={{ position: 'absolute', left: x, top: y, width: 4, height: 70, background: rgba(C.white, 0.55), transform: 'rotate(12deg)', borderRadius: 2 }} />;
             })}
         </AbsoluteFill>
     );
@@ -177,7 +175,7 @@ const Burst = ({ text, colour = SUN, top, left = '50%', size = 1, delay = 2, til
                 <polygon points={points} fill={INK} transform="translate(2.2 2.6)" />
                 <polygon points={points} fill={colour} stroke={INK} strokeWidth="1.6" strokeLinejoin="round" />
             </svg>
-            <div style={{ position: 'relative', font: `${fontSize}px/1 Anton`, color: INK, letterSpacing: 2 * u, textShadow: `${4 * u}px ${4 * u}px 0 #fff` }}>{text}</div>
+            <div style={{ position: 'relative', font: `${fontSize}px/1 Anton`, color: INK, letterSpacing: 2 * u, textShadow: `${4 * u}px ${4 * u}px 0 ${C.white}` }}>{text}</div>
         </div>
     );
 };
@@ -192,7 +190,7 @@ const Face = ({ photo, name, colour, grey }) => {
     return (
         <div style={{ position: 'absolute', right: 26 * u, top: -292 * u, width: 300 * u, textAlign: 'center', transform: `scale(${pop}) rotate(3deg)`, transformOrigin: '50% 100%' }}>
             <Img src={staticFile(photo)} style={{ width: 280 * u, height: 280 * u, borderRadius: '50%', objectFit: 'cover', objectPosition: 'center top', background: PAPER, border: `${9 * u}px solid ${colour}`, outline: `${6 * u}px solid ${INK}`, boxShadow: `${10 * u}px ${10 * u}px 0 ${INK}`, filter: grey ? 'grayscale(1)' : 'none' }} />
-            {name && <div style={{ display: 'inline-block', marginTop: -18 * u, position: 'relative', padding: `${4 * u}px ${14 * u}px`, background: INK, color: SUN, font: `${30 * u}px PlexMono`, whiteSpace: 'nowrap' }}>{name}</div>}
+            {name && <div style={{ display: 'inline-block', marginTop: -18 * u, position: 'relative', padding: `${4 * u}px ${14 * u}px`, background: INK, color: SUN, font: `${30 * u}px InterBold`, whiteSpace: 'nowrap' }}>{name}</div>}
         </div>
     );
 };
@@ -207,7 +205,7 @@ const Caption = ({ headline, line, colour, delay = 6, photo, name, grey }) => {
         <div style={{ position: 'absolute', left: 52 * u, right: 52 * u, bottom: 96 * u, padding: `${26 * u}px ${32 * u}px`, background: PAPER, border: `${6 * u}px solid ${INK}`, boxShadow: `${14 * u}px ${14 * u}px 0 ${colour}`, transform: `translateY(${interpolate(pop, [0, 1], [60 * u, 0])}px) rotate(-1deg)`, opacity: pop }}>
             {photo && <Face photo={photo} name={name} colour={colour} grey={grey} />}
             <div style={{ font: `${84 * u}px/1.02 Anton`, color: INK, textTransform: 'uppercase' }}>{headline}</div>
-            {line && <div style={{ font: `${36 * u}px/1.3 Plex`, color: '#2b2722', marginTop: 12 * u }}>{line}</div>}
+            {line && <div style={{ font: `${36 * u}px/1.3 Inter`, color: C.black, marginTop: 12 * u }}>{line}</div>}
         </div>
     );
 };
@@ -229,17 +227,17 @@ const Board = ({ home, away, homeScore, awayScore, tag }) => {
                 <div style={{ font: `${60 * u}px/1 Anton`, color: INK, padding: `0 ${18 * u}px`, background: SUN, border: `${4 * u}px solid ${INK}` }}>{homeScore}–{awayScore}</div>
                 {chip(away, 'flex-end')}
             </div>
-            {tag && <div style={{ position: 'absolute', top: 178 * u, left: 52 * u, padding: `${8 * u}px ${18 * u}px`, background: INK, color: SUN, font: `${28 * u}px PlexMono`, letterSpacing: 2 * u, textTransform: 'uppercase' }}>{tag}</div>}
+            {tag && <div style={{ position: 'absolute', top: 178 * u, left: 52 * u, padding: `${8 * u}px ${18 * u}px`, background: INK, color: SUN, font: `${28 * u}px InterBold`, letterSpacing: 2 * u, textTransform: 'uppercase' }}>{tag}</div>}
         </>
     );
 };
 
 const Footer = ({ colours }) => {
     const u = useUnit();
-    const kente = `repeating-linear-gradient(90deg, ${colours[0]} 0 46px, #d2a052 46px 58px, ${colours[1] ?? PAPER} 58px 86px, ${INK} 86px 94px, #d2a052 94px 106px, ${INK} 106px 112px)`;
+    const kente = `repeating-linear-gradient(90deg, ${colours[0]} 0 46px, ${C.yellow} 46px 58px, ${colours[1] ?? PAPER} 58px 86px, ${INK} 86px 94px, ${C.yellow} 94px 106px, ${INK} 106px 112px)`;
     return (
         <>
-            <div style={{ position: 'absolute', left: 52 * u, bottom: 40 * u, font: `${22 * u}px PlexMono`, color: PAPER, letterSpacing: 2 * u, textShadow: `0 0 ${8 * u}px ${INK}` }}>MATCHDAY.AFRICA · TOLD BY THE GRIOT</div>
+            <div style={{ position: 'absolute', left: 52 * u, bottom: 40 * u, font: `${22 * u}px InterBold`, color: PAPER, letterSpacing: 2 * u, textShadow: `0 0 ${8 * u}px ${INK}` }}>MATCHDAY.AFRICA · TOLD BY THE GRIOT</div>
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 22 * u, background: kente, borderTop: `${4 * u}px solid ${INK}` }} />
         </>
     );
@@ -281,26 +279,26 @@ const Title = ({ home, away, competition, beats }) => {
         <AbsoluteFill>
             <FaceOff home={home} away={away} mood={{ home: 'warrior', away: 'warrior' }} height={0.5} bottom={0.17} instant />
             <div style={{ position: 'absolute', top: 70 * u, left: 0, right: 0, textAlign: 'center' }}>
-                <div style={{ display: 'inline-block', padding: `${8 * u}px ${22 * u}px`, background: INK, color: SUN, font: `${28 * u}px PlexMono`, letterSpacing: 3 * u }}>{competition} · FULL TIME</div>
+                <div style={{ display: 'inline-block', padding: `${8 * u}px ${22 * u}px`, background: INK, color: SUN, font: `${28 * u}px InterBold`, letterSpacing: 3 * u }}>{competition} · FULL TIME</div>
             </div>
             <div style={{ position: 'absolute', top: 150 * u, left: 52 * u, right: 52 * u, padding: `${18 * u}px ${24 * u}px ${8 * u}px`, background: PAPER, border: `${7 * u}px solid ${INK}`, boxShadow: `${14 * u}px ${14 * u}px 0 ${INK}`, transform: `scale(${settle}) rotate(-1.5deg)`, textAlign: 'center' }}>
                 <div style={{ display: 'flex', gap: 20 * u }}>
                     {[['home', home], ['away', away]].map(([which, side]) => (
                         <div key={side.club} style={{ flex: 1, minWidth: 0, borderTop: `${12 * u}px solid ${hue(side)}`, paddingTop: 8 * u }}>
                             <div style={{ font: `${40 * u}px Anton`, color: INK, textTransform: 'uppercase', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{side.club}</div>
-                            <div style={{ font: `${24 * u}px PlexMono`, color: '#5a5246', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{scorers(beats, which) || '\u00a0'}</div>
+                            <div style={{ font: `${24 * u}px InterBold`, color: C.black, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{scorers(beats, which) || '\u00a0'}</div>
                         </div>
                     ))}
                 </div>
                 <div style={{ font: `${300 * u}px/1 Anton`, color: INK }}>
-                    {home.score}<span style={{ color: '#d2a052', margin: `0 ${20 * u}px` }}>–</span>{away.score}
+                    {home.score}<span style={{ color: C.yellow, margin: `0 ${20 * u}px` }}>–</span>{away.score}
                 </div>
             </div>
             {key && (
                 <div style={{ position: 'absolute', left: 52 * u, right: 52 * u, bottom: 90 * u, padding: `${18 * u}px ${26 * u}px`, background: INK, border: `${5 * u}px solid ${SUN}`, display: 'flex', gap: 22 * u, alignItems: 'center' }}>
                     {key.photo && <Img src={staticFile(key.photo)} style={{ flex: 'none', width: 130 * u, height: 130 * u, borderRadius: '50%', objectFit: 'cover', objectPosition: 'center top', background: PAPER, border: `${6 * u}px solid ${SUN}` }} />}
                     <div style={{ minWidth: 0 }}>
-                        <div style={{ font: `${26 * u}px PlexMono`, color: SUN, letterSpacing: 2 * u }}>KEY MOMENT · {key.tag}</div>
+                        <div style={{ font: `${26 * u}px InterBold`, color: SUN, letterSpacing: 2 * u }}>KEY MOMENT · {key.tag}</div>
                         <div style={{ font: `${58 * u}px/1.02 Anton`, color: PAPER, textTransform: 'uppercase', marginTop: 6 * u }}>{key.headline}</div>
                     </div>
                 </div>
@@ -321,7 +319,7 @@ const Beat = ({ beat, home, away }) => {
     const frame = useCurrentFrame();
     const flash = beat.type === 'goal' ? interpolate(frame, [0, 3, 12], [0, 0.7, 0], { extrapolateRight: 'clamp' }) : 0;
     const shake = beat.type === 'goal' || beat.type === 'red_card' ? Math.sin(frame * 2.3) * Math.max(0, 10 - frame) * 1.4 * u : 0;
-    const burstColour = beat.type === 'red_card' ? '#ff4b3e' : beat.type === 'var' ? '#8fd3ff' : heroMood === 'victory' ? SUN : '#ffffff';
+    const burstColour = beat.type === 'red_card' ? C.red : beat.type === 'var' ? C.white : heroMood === 'victory' ? SUN : C.white;
     return (
         <AbsoluteFill style={{ transform: `translate(${shake}px, ${shake * 0.6}px)` }}>
             {who ? (
@@ -339,7 +337,7 @@ const Beat = ({ beat, home, away }) => {
             ) : (
                 <FaceOff home={home} away={away} mood={mood} height={0.44} bottom={0.22} enter />
             )}
-            <AbsoluteFill style={{ background: '#ffffff', opacity: flash }} />
+            <AbsoluteFill style={{ background: C.white, opacity: flash }} />
             <Board home={home} away={away} homeScore={beat.home_score} awayScore={beat.away_score} tag={beat.tag} />
             {/* In the sky above the other army (top left), clear of the hero's head (it starts at ~31% of the height). */}
             <Burst text={BURSTS[beat.type] ?? beat.type.toUpperCase()} colour={burstColour} top={250 * u} left={who ? '31%' : '50%'} size={who ? 0.6 : 0.58} />
@@ -358,7 +356,7 @@ const Stats = ({ home, away, stats }) => {
     const rows = (stats ?? []).filter((s) => s.home !== null && s.away !== null && s.home !== undefined && s.away !== undefined);
     return (
         <AbsoluteFill style={{ background: PAPER }}>
-            <AbsoluteFill style={{ background: 'radial-gradient(rgba(0,0,0,.10) 24%, transparent 26%) 0 0 / 16px 16px' }} />
+            <AbsoluteFill style={{ background: `radial-gradient(${rgba(C.black, 0.1)} 24%, transparent 26%) 0 0 / 16px 16px` }} />
             <Board home={home} away={away} homeScore={home.score} awayScore={away.score} tag="THE NUMBERS" />
             <div style={{ position: 'absolute', top: 360 * u, left: 52 * u, right: 52 * u, display: 'grid', gap: 60 * u }}>
                 {(rows.length ? rows : [{ label: 'GOALS', home: home.score, away: away.score }]).map((row, i) => {
@@ -368,10 +366,10 @@ const Stats = ({ home, away, stats }) => {
                         <div key={row.label}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                 <span style={{ font: `${80 * u}px Anton`, color: INK }}>{row.home}</span>
-                                <span style={{ font: `${30 * u}px PlexMono`, color: '#4a443b', letterSpacing: 3 * u }}>{row.label}</span>
+                                <span style={{ font: `${30 * u}px InterBold`, color: C.black, letterSpacing: 3 * u }}>{row.label}</span>
                                 <span style={{ font: `${80 * u}px Anton`, color: INK }}>{row.away}</span>
                             </div>
-                            <div style={{ display: 'flex', height: 40 * u, marginTop: 10 * u, border: `${5 * u}px solid ${INK}`, background: '#fff', boxShadow: `${8 * u}px ${8 * u}px 0 ${INK}` }}>
+                            <div style={{ display: 'flex', height: 40 * u, marginTop: 10 * u, border: `${5 * u}px solid ${INK}`, background: C.white, boxShadow: `${8 * u}px ${8 * u}px 0 ${INK}` }}>
                                 <div style={{ width: `${(row.home / total) * 100 * grow}%`, background: hue(home), borderRight: `${4 * u}px solid ${INK}` }} />
                                 <div style={{ flex: 1 }} />
                                 <div style={{ width: `${(row.away / total) * 100 * grow}%`, background: hue(away), borderLeft: `${4 * u}px solid ${INK}` }} />
@@ -380,7 +378,7 @@ const Stats = ({ home, away, stats }) => {
                     );
                 })}
             </div>
-            <div style={{ position: 'absolute', left: 52 * u, right: 52 * u, bottom: 110 * u, font: `${56 * u}px/1.08 Anton`, color: INK, textTransform: 'uppercase', textAlign: 'center' }}>{home.club}<br /><span style={{ color: '#d2a052' }}>v</span><br />{away.club}</div>
+            <div style={{ position: 'absolute', left: 52 * u, right: 52 * u, bottom: 110 * u, font: `${56 * u}px/1.08 Anton`, color: INK, textTransform: 'uppercase', textAlign: 'center' }}>{home.club}<br /><span style={{ color: C.yellow }}>v</span><br />{away.club}</div>
             <Footer colours={home.colours} />
             <Wipe />
         </AbsoluteFill>

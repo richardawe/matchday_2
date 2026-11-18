@@ -219,7 +219,7 @@ done
 echo "Radio Node: $best"
 echo "Radio FFmpeg: $ffmpeg"
 # Keep cPanel's CLI PHP first for set-env/config:cache; /usr/bin/php can be CGI.
-(cd radio && PATH="$radio_path" npm ci --omit=dev --no-audit --no-fund && RADIO_FFMPEG="$ffmpeg" "$best" render.mjs --check)
+(cd radio && ONNXRUNTIME_NODE_INSTALL_CUDA=skip PATH="$radio_path" npm ci --omit=dev --no-audit --no-fund && RADIO_FFMPEG="$ffmpeg" "$best" render.mjs --check)
 if [[ "$operation" == configure-radio ]]; then
     RADIO_OP_NODE="$best" RADIO_OP_FFMPEG="$ffmpeg" RADIO_OP_MODE="$radio_mode" RADIO_OP_SOURCES="$radio_sources" php -r '$set=["RADIO_ENABLED"=>"true","RADIO_AUTO_PUBLISH"=>getenv("RADIO_OP_MODE")==="auto"?"true":"false","RADIO_NODE"=>getenv("RADIO_OP_NODE"),"RADIO_FFMPEG"=>getenv("RADIO_OP_FFMPEG")]; $sources=getenv("RADIO_OP_SOURCES"); if($sources!=="unchanged") { $names=array_values(array_filter(array_map("trim",explode(",",$sources)))); $allowed=array_column((require "config/news.php")["sources"],"name"); if(array_diff($names,$allowed)) {fwrite(STDERR,"Unknown radio source.\n");exit(1);} $set["RADIO_NEWS_SOURCES"]=implode(",",$names); } echo json_encode($set);' | php scripts/set-env.php
     php artisan config:cache --no-ansi

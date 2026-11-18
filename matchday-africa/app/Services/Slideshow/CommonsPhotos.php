@@ -23,6 +23,7 @@ use Throwable;
 class CommonsPhotos
 {
     private const WIKIDATA = 'https://www.wikidata.org/w/api.php';
+    private const SPARQL = 'https://query.wikidata.org/sparql';
     private const COMMONS = 'https://commons.wikimedia.org/w/api.php';
     private const FOOTBALLER = 'Q937857';
 
@@ -90,6 +91,128 @@ class CommonsPhotos
 
             return null; // Network trouble: try again next time, nothing remembered.
         }
+    }
+
+    /**
+     * The player media library by name, for players we have no row for (national-team scorers) or
+     * whose row has no photo: storage/app/player-media/{slug}.json + .jpg. Looks the name up once
+     * (a single Wikidata footballer with that label and an image, through the query service, then a
+     * Commons file search whose title names the player), checks the licence (CC0, PD, CC BY,
+     * CC BY-SA) and keeps the licence, author and credit with the file. A miss is remembered for
+     * config slideshow.commons.retry_days. ['file', 'crop', 'credit', 'licence', 'artist', ...] or null.
+     */
+    public function forName(string $name): ?array
+    {
+        $name = trim(preg_replace('/\s+/u', ' ', $name) ?? '');
+        if ($name === '' || !str_contains($name, ' ')) {
+            return null; // one-word names are too ambiguous to look up
+        }
+        $slug = Str::slug(Str::ascii($name));
+        $index = storage_path("app/player-media/{$slug}.json");
+        $stored = is_file($index) ? json_decode((string) file_get_contents($index), true) : null;
+        if (is_array($stored) && ($stored['status'] ?? null) === 'ok' && is_file(storage_path('app/'.$stored['path']))) {
+            return $stored + ['file' => storage_path('app/'.$stored['path'])];
+        }
+        if (is_array($stored) && ($stored['status'] ?? null) === 'none' && empty($stored['pinned'])
+            && now()->diffInDays($stored['checked_at'] ?? now()->subYear(), true) < (int) config('slideshow.commons.retry_days', 14)) {
+            return null;
+        }
+        if (!config('slideshow.commons.enabled')) {
+            return null;
+        }
+        try {
+            $qid = null;
+            if (!empty($stored['pinned'])) {
+                $candidates = [$stored['pinned']];
+            } else {
+                // The Wikidata image first, then Commons files named after the player.
+                [$file, $qid] = $this->sparqlImage($name);
+                $candidates = array_values(array_unique(array_map(fn ($f) => preg_replace('/^File:/i', '', $f), array_filter([$file, ...$this->commonsSearch($name)]))));
+            }
+            $photo = null;
+            foreach (array_slice($candidates, 0, 5) as $file) {
+                if ($photo = $this->download($file, "player-media/{$slug}.jpg")) {
+                    break;
+                }
+            }
+            $record = $photo ? ['status' => 'ok', 'name' => $name, 'wikidata' => $qid] + $photo
+                : ['status' => 'none', 'name' => $name, 'reason' => $candidates ? 'No usable free-licence image ('.implode(', ', $candidates).').' : 'No free-licence photo found.'];
+        } catch (Throwable $e) {
+            Log::warning('Commons photo lookup by name failed', ['name' => $name, 'error' => $e->getMessage()]);
+
+            return null;
+        }
+        File::ensureDirectoryExists(dirname($index));
+        file_put_contents($index, json_encode(array_filter($record + ['checked_at' => now()->toIso8601String()], fn ($v) => $v !== null), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+
+        return $record['status'] === 'ok' ? $record + ['file' => storage_path('app/'.$record['path'])] : null;
+    }
+
+    /** Pins a Commons file for a name (an editor's choice; the licence is still checked). */
+    public function pinName(string $name, string $fileName): ?array
+    {
+        $slug = Str::slug(Str::ascii(trim($name)));
+        File::ensureDirectoryExists(storage_path('app/player-media'));
+        file_put_contents(storage_path("app/player-media/{$slug}.json"), json_encode(['status' => 'none', 'name' => $name, 'pinned' => $fileName]));
+
+        return $this->forName($name);
+    }
+
+    /** [Commons file, Wikidata id] for the one footballer labelled $name that has an image, or [null, null]. */
+    private function sparqlImage(string $name): array
+    {
+        $label = str_replace(['\\', '"'], ['\\\\', '\"'], $name);
+        $query = 'SELECT ?p ?img WHERE { ?p rdfs:label "'.$label.'"@en ; wdt:P106 wd:'.self::FOOTBALLER.' . OPTIONAL { ?p wdt:P18 ?img } }';
+        $rows = $this->http()->accept('application/sparql-results+json')->timeout(20)
+            ->get(self::SPARQL, ['query' => $query, 'format' => 'json'])->throw()->json('results.bindings', []);
+        $people = collect($rows)->groupBy(fn ($r) => data_get($r, 'p.value'));
+        if ($people->count() !== 1) {
+            return [null, null]; // nobody, or several footballers of that name: never guess
+        }
+        $img = (string) data_get($people->first()->first(), 'img.value', '');
+
+        return $img !== '' ? [rawurldecode(basename($img)), basename((string) $people->keys()->first())] : [null, null];
+    }
+
+    /** Commons files whose title names the player alone (every part of $name, nobody else listed), in search order. */
+    private function commonsSearch(string $name): array
+    {
+        $hits = $this->http()->get(self::COMMONS, ['action' => 'query', 'list' => 'search', 'srnamespace' => 6, 'srlimit' => 10,
+            'srsearch' => 'intitle:"'.$name.'"', 'format' => 'json'])->throw()->json('query.search', []);
+        $parts = array_map(fn ($p) => Str::lower(Str::ascii($p)), preg_split('/\s+/', $name));
+        $found = [];
+        foreach ($hits as $hit) {
+            $title = Str::lower(Str::ascii((string) ($hit['title'] ?? '')));
+            // A portrait of the player alone: every part of the name, no "and"/commas listing others.
+            if (collect($parts)->every(fn ($p) => str_contains($title, $p)) && !preg_match('/\band\b|,/', $title) && preg_match('/\.(jpe?g|png)$/', $title)) {
+                $found[] = (string) $hit['title'];
+            }
+        }
+
+        return $found;
+    }
+
+    /** Checks the licence and size of a Commons file and stores a 1080 px copy at storage/app/$path. */
+    private function download(string $fileName, string $path): ?array
+    {
+        $info = $this->imageInfo($fileName);
+        if (!$info) {
+            throw new \RuntimeException("Commons gave no image information for {$fileName}."); // not remembered: try again later
+        }
+        if (!self::freeLicence($info['licence']) || $info['width'] < (int) config('slideshow.commons.min_width', 700)) {
+            return null;
+        }
+        $image = @imagecreatefromstring($this->http()->timeout(30)->get($info['thumb'])->throw()->body());
+        if (!$image) {
+            throw new \RuntimeException("Could not read the image for {$fileName}."); // not remembered: try again later
+        }
+        File::ensureDirectoryExists(dirname(storage_path('app/'.$path)));
+        imagejpeg($image, storage_path('app/'.$path), 90);
+        $crop = self::crop(imagesx($image), imagesy($image), self::BOX[0], self::BOX[1]);
+        imagedestroy($image);
+
+        return ['path' => $path, 'crop' => $crop, 'title' => $info['title'], 'source_url' => $info['page'], 'licence' => $info['licence'],
+            'licence_url' => $info['licence_url'], 'artist' => $info['artist'], 'credit' => self::credit($info['artist'], $info['licence'])];
     }
 
     public static function freeLicence(?string $licence): bool
