@@ -42,6 +42,7 @@ Route::prefix('agent')->name('api.agent.')->middleware(['throttle:agent-api', Ap
             Route::post('/player-photos', 'namedPlayerPhoto')->name('player-photos.store');
             Route::post('/radio', 'radioCreate')->name('radio.store');
             Route::post('/radio/{id}/retry', 'radioRetry')->whereNumber('id')->name('radio.retry');
+            Route::post('/media', 'mediaStore')->name('media.store');
             Route::post('/breaking', 'breakingStore')->name('breaking.store');
             Route::patch('/breaking/{id}', 'breakingUpdate')->whereNumber('id')->name('breaking.update');
             Route::post('/breaking/{id}/end', 'breakingEnd')->whereNumber('id')->name('breaking.end');

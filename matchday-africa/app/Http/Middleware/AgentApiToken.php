@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
 class AgentApiToken
 {
     private const LOGGED_VALUES = ['status', 'from', 'to', 'competition', 'country', 'club', 'african', 'latest', 'days', 'type',
-        'match_id', 'episode_id', 'lang', 'channel', 'limit', 'page', 'id', 'expires_in_hours', 'headline'];
+        'match_id', 'episode_id', 'lang', 'channel', 'limit', 'page', 'id', 'expires_in_hours', 'headline', 'render_id'];
 
     public function handle(Request $request, Closure $next): Response
     {

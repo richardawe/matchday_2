@@ -2,7 +2,8 @@
 
 The social media assistant ("Matchday agent") has its own login with the **agent** role and a
 long-lived API token. It can read the site's content data, request video renders, mark social posts
-as posted, write **draft** articles and post **breaking news** (live at once). It cannot open billing, payments, users, secrets or settings,
+as posted, write **draft** articles, post **breaking news** (live at once) and upload **videos** for posting
+(public for 7 days). It cannot open billing, payments, users, secrets or settings,
 and it cannot delete anything. Every API request, and every change it makes in the admin, is written
 to the audit log on `/admin/agent`.
 
@@ -169,6 +170,35 @@ publishes or unpublishes (`publish`) articles **the agent created**; a person's 
 
 Puts a ready slideshow live (its page, the reels feed, the social queue and YouTube), as an editor's approval does.
 `409` until it is rendered.
+
+### POST /media (upload a video for posting)
+
+Uploads an MP4 the assistant made or edited (for example a cut-down of a story render) and returns a public
+HTTPS link that social platforms can fetch.
+
+```bash
+curl -s -X POST https://matchday.africa/api/agent/media -H "Authorization: Bearer $MD_TOKEN" \
+  -F "file=@story-45-tiktok.mp4;type=video/mp4" -F "render_id=story:45"
+# → 201 {"id":"3f0c…","url":"https://matchday.africa/generated/agent/3f0c….mp4","content_type":"video/mp4",
+#        "bytes":8123456,"render_id":"story:45","created_at":"2026-11-18T12:30:00Z","expires_at":"2026-11-25T12:30:00Z"}
+```
+
+| Field | Rules |
+|---|---|
+| `file` | Required, multipart. An MP4 (`video/mp4`; the file itself must be an MP4 container), at most 200 MB |
+| `render_id` | Optional: the render it was made from, `story:<id>` or `slideshow:<id>` (must exist). Stored with the upload and in the audit log |
+
+* **Serving:** the file is a static file at `/generated/agent/{uuid}.mp4`, served by the web server itself with
+  `Content-Type: video/mp4` and byte ranges (`Accept-Ranges`, `206 Partial Content`), like the story and reel videos,
+  so TikTok, Instagram, YouTube, Buffer and iPhones can fetch and seek it. The name is a random UUID; anyone with the
+  link can download it, so upload only what is meant to be posted.
+* **Lifetime:** kept for **7 days**, then deleted (`agent:media-prune`, hourly). Post or schedule it within the week;
+  after that the URL answers 404.
+* **Errors:** `422` not an MP4, over 200 MB or an unknown `render_id`; `413` when the server's own PHP upload limit
+  (`upload_max_filesize` / `post_max_size`) is lower than the file: the message names the limit. The admin page
+  **Social media uploads** (`/admin/social-media`) shows the server's limits; raise them in cPanel (MultiPHP INI Editor)
+  to 200M or more for the full 200 MB.
+* Counts as a write (20 a minute per token). Every upload is in the audit log with its `render_id`.
 
 ### Breaking news: POST /breaking, PATCH /breaking/{id}, POST /breaking/{id}/end, GET /breaking
 
