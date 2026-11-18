@@ -307,20 +307,27 @@ class StoryVideoTest extends TestCase
         app(StoryPlanner::class)->opening($match);
         $this->assertSame($sent, count(Http::recorded()));
 
-        // The opening card: the photo fills at least 60% of the frame with a Ken Burns push, the hook is at
-        // least 90 px, centred over the photo and on screen from frame 0; nothing sits in the top safe margin (150 px).
+        // The opening card: the photo fills the whole 1080x1920 frame with a Ken Burns push and a dark gradient
+        // under the text; the hook is at least 90 px, on screen from frame 0 and in the lower part of the frame:
+        // below the top 45% and below the face. Its lines are balanced (no single word on the last line).
         $scene = app(StoryFrames::class)->build($hook);
         $photo = collect($scene->items)->firstWhere('kind', 'photo');
         $this->assertNotNull($photo);
-        $this->assertGreaterThanOrEqual(0.6 * 1920, $photo['box'][3]);
+        $this->assertSame([0, 0, 1080, 1920], $photo['box']);
         $this->assertSame('kenburns', $photo['motion']);
+        $this->assertNotEmpty($photo['shade']);
+        $face = collect($scene->photos)->firstWhere('own', false)['face'];
+        $this->assertNotNull($face);
+        $this->assertLessThan(0.45 * 1920, $face[0]);
         $words = collect($scene->items)->where('kind', 'text')->where('style', 'hook');
         $this->assertNotEmpty($words);
         foreach ($words as $w) {
             $this->assertGreaterThanOrEqual(90, $w['size']);
             $this->assertTrue($w['visible']);
-            $this->assertEqualsWithDelta(510, $w['x'] + $w['width'] / 2, 30); // centred on the safe column (80-940)
-            $this->assertLessThan($photo['box'][3], $w['bottom']);
+            $this->assertGreaterThanOrEqual(0.45 * 1920, $w['top']);
+            $this->assertGreaterThan($face[1], $w['top']);
+            $this->assertGreaterThanOrEqual($photo['shade'][1], $w['top'] + 20, 'the hook sits on the dark part of the gradient');
+            $this->assertStringContainsString(' ', $w['text'], 'no one-word line');
         }
         foreach (collect($scene->items)->where('kind', 'text') as $item) {
             $this->assertGreaterThanOrEqual(\App\Design\Tokens::safe()['top'], $item['top'], $item['text']);
@@ -397,6 +404,39 @@ class StoryVideoTest extends TestCase
         $this->assertSame('Achraf Hakimi', $lead['name']);
         $this->assertSame('Abdellah Ouazane', $lead['fallback']);
         $this->assertSame('CC BY-SA 4.0', $lead['photo']['licence']);
+        // The cover shows Hakimi, so the hook must not name Ouazane: it falls back to a team-level line.
+        [$line, $opening, $beat] = $planner->opening($match->fresh(['homeTeam', 'awayTeam', 'league']));
+        $this->assertSame('Achraf Hakimi', $opening['name']);
+        $this->assertSame('Who saw Morocco 1-0 coming?', $line);
+        $this->assertSame($line, $beat['line']);
+        // A pictured player who scored: the hook may name them, with that fact only.
+        $this->event($match, 'goal', 'away', 70, 'Achraf Hakimi');
+        $match->update(['away_score' => 2]);
+        [$line, $opening] = $planner->opening($match->fresh(['homeTeam', 'awayTeam', 'league']));
+        $this->assertSame('Achraf Hakimi', $opening['name']);
+        $this->assertStringNotContainsString('Ouazane', $line);
+    }
+
+    public function test_hook_lines_are_balanced_without_a_single_word_last_line(): void
+    {
+        $text = 'Who saw Morocco 1-0 coming in the rain tonight?';
+        $lines = \App\Design\Canvas::balanced($text, 'hook', 860, 1000, 4);
+        $this->assertGreaterThan(1, count($lines));
+        $this->assertSame($text, implode(' ', array_column($lines, 0)));
+        foreach ($lines as [$line]) {
+            $this->assertStringContainsString(' ', $line);
+        }
+        $file = \App\Design\Tokens::type('hook')['file'];
+        $widths = array_map(fn ($l) => \App\Design\Canvas::measure($l[0], $file, $l[1])[0], $lines);
+        $this->assertLessThan(0.5 * max($widths), max($widths) - min($widths), 'even line lengths');
+        $this->assertSame(['portrait-2024.jpg', 'Player v Club 2025.jpg', 'Player club crest shirt.jpg'],
+            \App\Services\Slideshow\CommonsPhotos::preferFewerCrests(['Player club crest shirt.jpg', 'Player v Club 2025.jpg', 'portrait-2024.jpg']));
+        // Downloads use Wikimedia's standard thumbnail sizes: an original under 1280 px becomes the 960 px thumbnail.
+        $this->assertSame('https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/A_B_%28cropped%29.jpg/960px-A_B_%28cropped%29.jpg',
+            \App\Services\Slideshow\CommonsPhotos::standardThumb('https://upload.wikimedia.org/wikipedia/commons/7/77/A_B_%28cropped%29.jpg', 1275,
+                'https://upload.wikimedia.org/wikipedia/commons/7/77/A_B_%28cropped%29.jpg?utm_content=thumbnail_unscaled'));
+        $big = 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/A.jpg/1280px-A.jpg';
+        $this->assertSame($big, \App\Services\Slideshow\CommonsPhotos::standardThumb('https://upload.wikimedia.org/wikipedia/commons/7/77/A.jpg', 4000, $big));
     }
 
     public function test_substitutions_make_a_changes_card_and_kick_off_shows_once(): void

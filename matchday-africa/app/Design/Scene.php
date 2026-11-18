@@ -266,7 +266,8 @@ final class Scene
      * A licensed photo (or one of our renders) in a box, pushed in or out over the cut (Ken Burns).
      * Checks the images rule. False when there is no readable file.
      */
-    public function photo(?string $file, ?array $crop, int $x, int $y, int $w, int $h, ?string $credit, bool $zoomIn = true, bool $contain = false, bool $useCrop = true): bool
+    public function photo(?string $file, ?array $crop, int $x, int $y, int $w, int $h, ?string $credit, bool $zoomIn = true, bool $contain = false, bool $useCrop = true,
+        ?float $faceAt = null): bool
     {
         $crop = $useCrop ? $crop : null;
         $src = $file ? Canvas::load($file) : null;
@@ -286,7 +287,13 @@ final class Scene
             return true;
         }
         // Keep a working copy of the crop at twice the box at most (fast Ken Burns scaling).
-        $rect = Canvas::cover($src, $crop, $w, $h);
+        // $faceAt: fill the box and put the face (the head-and-shoulders crop) that high up the box.
+        $face = null;
+        if ($faceAt !== null) {
+            [$rect, $face] = Canvas::coverFace($src, $crop, $w, $h, $faceAt);
+        } else {
+            $rect = Canvas::cover($src, $crop, $w, $h);
+        }
         $scale = min(1.0, (2 * $w) / max(1, $rect[2]));
         $cw = max($w, (int) round($rect[2] * $scale));
         $ch = max($h, (int) round($rect[3] * $scale));
@@ -295,9 +302,26 @@ final class Scene
         imagedestroy($src);
         $this->items[] = ['kind' => 'photo', 'text' => '', 'src' => $work, 'box' => [$x, $y, $w, $h], 'zoom_in' => $zoomIn,
             'delay' => 0.0, 'fade' => 0.0, 'motion' => 'kenburns', 'animate' => false, 'top' => $y, 'bottom' => $y + $h, 'x' => $x, 'width' => $w, 'y' => $y + $h, 'flag' => null];
-        $this->photos[] = ['file' => $file, 'credit' => $credit, 'box' => [$x, $y, $w, $h], 'own' => false];
+        $this->photos[] = ['file' => $file, 'credit' => $credit, 'box' => [$x, $y, $w, $h], 'own' => false,
+            'face' => $face ? [$y + $face[0], $y + $face[1]] : null];
 
         return true;
+    }
+
+    /**
+     * Darkens the last photo from $from (clear) to $to (at $alpha, 0-1 black) and holds that to the
+     * box's bottom: the gradient text sits on over a full-frame photo. Baked into the Ken Burns
+     * layer, so it costs nothing per frame.
+     */
+    public function shade(int $from, int $to, float $alpha): void
+    {
+        for ($i = count($this->items) - 1; $i >= 0; $i--) {
+            if (($this->items[$i]['kind'] ?? '') === 'photo') {
+                $this->items[$i]['shade'] = [$from, $to, $alpha];
+
+                return;
+            }
+        }
     }
 
     /** Our own render when there is no licensed photo: the side's colours, initials and flag (drawn once). */

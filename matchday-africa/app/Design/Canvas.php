@@ -317,6 +317,70 @@ final class Canvas
         return [$cx, $cy, max(1, min($cw, $sw - $cx)), max(1, min($ch, $sh - $cy))];
     }
 
+    /**
+     * The part of $src that fills a $w x $h frame (crop to cover) with the face placed high: the
+     * head-and-shoulders crop ['x','y','w','h'] (CommonsPhotos::crop) marks the face, whose centre
+     * lands at $faceAt of the frame height where the image allows. Returns [[x, y, w, h] in source
+     * pixels, [top, bottom] of the face in frame pixels].
+     */
+    public static function coverFace(GdImage $src, ?array $crop, int $w, int $h, float $faceAt = 0.3): array
+    {
+        [$sw, $sh] = [imagesx($src), imagesy($src)];
+        $c = $crop && isset($crop['w'], $crop['h']) ? $crop : \App\Services\Slideshow\CommonsPhotos::crop($sw, $sh);
+        // The face: the upper half of the head-and-shoulders square.
+        $faceX = (int) $c['x'] + intdiv((int) $c['w'], 2);
+        [$faceTop, $faceBottom] = [(int) $c['y'], (int) $c['y'] + intdiv((int) $c['h'], 2)];
+        $ratio = $w / max(1, $h);
+        if ($sw / max(1, $sh) > $ratio) {
+            [$cw, $ch] = [(int) round($sh * $ratio), $sh];
+        } else {
+            [$cw, $ch] = [$sw, (int) round($sw / $ratio)];
+        }
+        $cx = max(0, min($sw - $cw, $faceX - intdiv($cw, 2)));
+        $cy = max(0, min($sh - $ch, (int) round(($faceTop + $faceBottom) / 2 - $faceAt * $ch)));
+        $k = $h / max(1, $ch);
+
+        return [[$cx, $cy, $cw, $ch], [(int) round(($faceTop - $cy) * $k), (int) round(($faceBottom - $cy) * $k)]];
+    }
+
+    /**
+     * fitBox() with even line lengths: the same size and line count, wrapped at the narrowest width
+     * that keeps that count, and never a single word alone on the last line when it can be avoided.
+     */
+    public static function balanced(string $text, string $style, int $width, int $height, int $maxLines = 6): array
+    {
+        $lines = self::fitBox($text, $style, $width, $height, $maxLines);
+        $n = count($lines);
+        if ($n < 2 || str_ends_with((string) end($lines)[0], '…')) {
+            return $lines;
+        }
+        $px = (int) $lines[0][1];
+        $file = Tokens::type($style)['file'];
+        $text = trim((string) preg_replace('/\s+/u', ' ', $text));
+        [$lo, $hi] = [intdiv($width, $n), $width];
+        while ($lo < $hi) {
+            $mid = intdiv($lo + $hi, 2);
+            $try = self::wrap($text, $file, $px, $mid);
+            $widest = max(array_map(fn ($l) => self::measure($l, $file, $px)[0], $try));
+            if (count($try) <= $n && $widest <= $mid) {
+                $hi = $mid;
+            } else {
+                $lo = $mid + 1;
+            }
+        }
+        $out = self::wrap($text, $file, $px, $hi);
+        $last = count($out) - 1;
+        if ($last > 0 && !str_contains($out[$last], ' ') && substr_count($out[$last - 1], ' ') >= 1) {
+            $moved = preg_replace('/^.*\s(\S+)$/u', '$1', $out[$last - 1]).' '.$out[$last];
+            if (self::measure($moved, $file, $px)[0] <= $width) {
+                $out[$last - 1] = preg_replace('/\s\S+$/u', '', $out[$last - 1]);
+                $out[$last] = $moved;
+            }
+        }
+
+        return array_map(fn ($l) => [$l, $px], $out);
+    }
+
     /** A flag PNG $w wide at (x, y); returns the drawn height. */
     public static function flag(GdImage $img, string $file, int $x, int $y, int $w, int $alpha = 0): int
     {

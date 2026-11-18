@@ -451,7 +451,7 @@ class StoryPlanner
      * In order: a late winner or equaliser (80'+), an upset (the side 4+ places lower in the table wins),
      * a red card, a brace or hat-trick, a 1-0, a 0-0; otherwise a question about the result.
      */
-    public function hook(FootballMatch $match, StoryText $t, array $sides, Collection $incidents, array $standings, ?array $lead = null): string
+    public function hook(FootballMatch $match, StoryText $t, array $sides, Collection $incidents, array $standings, ?array $lead = null, ?string $pictured = null): string
     {
         $goals = $incidents->where('type', 'goal')->values();
         $h = (int) $match->home_score;
@@ -489,6 +489,17 @@ class StoryPlanner
         if (max($h, $a) === 1 && min($h, $a) === 0 && ($g = $goals->first()) && !$g['own_goal'] && $g['player']) {
             $lines[] = [$t->t('hook_one_nil', ['name' => $g['player']]), $t->t('hook_one_nil', ['name' => PlayerNames::surname($g['player'])]),
                 'named' => [$g['player'], $g['side']]];
+        }
+        if ($pictured !== null) {
+            // The photo shows someone else: no line may name another player. A verified fact about
+            // the pictured player (they scored here) comes before the team-level lines.
+            $lines = array_values(array_filter($lines, fn ($o) => empty($o['named']) || PlayerNames::same((string) $o['named'][0], $pictured)));
+            $scored = $goals->filter(fn ($g) => !$g['own_goal'] && $g['player'] && PlayerNames::same((string) $g['player'], $pictured));
+            if ($scored->isNotEmpty() && !collect($lines)->contains(fn ($o) => !empty($o['named']))) {
+                $side = $scored->first()['side'];
+                $lines[] = [$t->t('hook_scorer', ['name' => $pictured, 'club' => $short($side)]),
+                    $t->t('hook_scorer', ['name' => PlayerNames::surname($pictured), 'club' => $short($side)]), 'named' => [$pictured, $side]];
+            }
         }
         if ($h === 0 && $a === 0) {
             $lines[] = [$t->t('hook_goalless', ['club' => $short((int) $match->away_shots > (int) $match->home_shots ? 'away' : 'home')])];
@@ -528,6 +539,11 @@ class StoryPlanner
         $generated = $this->hook($match, $t, $sides, $incidents, $standings, $lead);
         if (trim((string) $hook) === '' && $this->named && (!$lead || !PlayerNames::same($lead['name'], $this->named[0]))) {
             $lead = $this->leadPlayer($match, $incidents, $sides, $featured, $this->named + [2 => 'hook']);
+        }
+        // The cover photo shows someone the hook does not name (the named player has no licensed
+        // photo): rewrite the hook so it names nobody else, about the pictured player or the teams.
+        if ($this->named && !empty($lead['photo']) && !PlayerNames::same($lead['name'], $this->named[0])) {
+            $generated = $this->hook($match, $t, $sides, $incidents, $standings, $lead, $lead['name']);
         }
         $beat = ['type' => 'hook', 'keep' => true, 'rank' => 100, 'line' => trim((string) $hook) !== '' ? trim((string) $hook) : $generated,
             'score' => "{$match->home_score}-{$match->away_score}",

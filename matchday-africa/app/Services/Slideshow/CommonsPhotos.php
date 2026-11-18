@@ -56,8 +56,8 @@ class CommonsPhotos
     {
         try {
             [$fileName, $qid] = $fileName ? [$fileName, null] : $this->wikidataImage($player);
-            // No Wikidata image: a Commons file named after the player (free licence still checked below).
-            $fileName ??= $this->commonsSearch($player->name)[0] ?? null;
+            // No Wikidata image: a Commons file named after the player, crest-heavy titles last (free licence still checked below).
+            $fileName ??= self::preferFewerCrests($this->commonsSearch($player->name))[0] ?? null;
             if (!$fileName) {
                 return $this->remember($player, ['status' => 'none', 'reason' => 'No unambiguous Wikidata footballer with an image.']);
             }
@@ -129,7 +129,7 @@ class CommonsPhotos
             } else {
                 // The Wikidata image first, then Commons files named after the player.
                 [$file, $qid] = $this->sparqlImage($name);
-                $candidates = array_values(array_unique(array_map(fn ($f) => preg_replace('/^File:/i', '', $f), array_filter([$file, ...$this->commonsSearch($name)]))));
+                $candidates = self::preferFewerCrests(array_values(array_unique(array_map(fn ($f) => preg_replace('/^File:/i', '', $f), array_filter([$file, ...$this->commonsSearch($name)])))));
             }
             $photo = null;
             foreach (array_slice($candidates, 0, 5) as $file) {
@@ -148,6 +148,49 @@ class CommonsPhotos
         file_put_contents($index, json_encode(array_filter($record + ['checked_at' => now()->toIso8601String()], fn ($v) => $v !== null), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
         return $record['status'] === 'ok' ? $record + ['file' => storage_path('app/'.$record['path'])] : null;
+    }
+
+    /**
+     * Orders candidate files so photos likely to show a club crest come last (a stable sort, so the
+     * Wikidata image keeps its place among equals): titles naming a crest, badge, logo, shirt or kit
+     * first of all, then match and celebration shots (kit front-on), while portraits, cropped
+     * headshots, press conferences and training shots come first.
+     */
+    public static function preferFewerCrests(array $files): array
+    {
+        $risk = function (string $file): int {
+            $t = Str::lower(Str::ascii($file));
+            $r = 0;
+            $r += preg_match('/crest|badge|logo|emblem|shirt|jersey|\bkit\b|maillot|trikot/', $t) ? 3 : 0;
+            $r += preg_match('/\bvs?\b\.?|\bmatch\b|\bgame\b|celebrat|derby|\bfinal\b|\bcup\b|league|liga|ligue|stadium/', $t) ? 1 : 0;
+            $r -= preg_match('/portrait|headshot|cropped|\bface\b|press|conference|interview|training|award|gala/', $t) ? 1 : 0;
+
+            return $r;
+        };
+        $keyed = array_map(fn ($f, $i) => [$risk((string) $f), $i, $f], $files, array_keys($files));
+        usort($keyed, fn ($a, $b) => [$a[0], $a[1]] <=> [$b[0], $b[1]]);
+
+        return array_column($keyed, 2);
+    }
+
+    /**
+     * Wikimedia's standard thumbnail widths we download at (https://www.mediawiki.org/wiki/Common_thumbnail_sizes).
+     * upload.wikimedia.org rejects other sizes and throttles originals from servers with 429s.
+     */
+    public const THUMB_STEPS = [960, 1280];
+
+    /**
+     * A standard-size thumbnail URL: the API's 1280 px rendition when the original is wider, else the
+     * 960 px thumbnail (an original narrower than 1280 px comes back unscaled, which is throttled).
+     */
+    public static function standardThumb(string $original, int $width, string $thumb): string
+    {
+        if (str_contains($thumb, '/thumb/') || $width <= self::THUMB_STEPS[0]
+            || !preg_match('#^(https://upload\.wikimedia\.org/[^/]+/[^/]+)/([0-9a-f]/[0-9a-f]{2}/([^/?]+))#', $original, $m)) {
+            return $thumb !== '' ? $thumb : $original;
+        }
+
+        return "{$m[1]}/thumb/{$m[2]}/".self::THUMB_STEPS[0]."px-{$m[3]}";
     }
 
     /** Pins a Commons file for a name (an editor's choice; the licence is still checked). */
@@ -349,7 +392,7 @@ class CommonsPhotos
     {
         $title = 'File:'.preg_replace('/^File:/i', '', trim($fileName));
         $pages = $this->http()->get(self::COMMONS, ['action' => 'query', 'titles' => $title, 'prop' => 'imageinfo',
-            'iiprop' => 'url|size|mime|extmetadata', 'iiurlwidth' => 1080, 'format' => 'json'])->throw()->json('query.pages', []);
+            'iiprop' => 'url|size|mime|extmetadata', 'iiurlwidth' => self::THUMB_STEPS[1], 'format' => 'json'])->throw()->json('query.pages', []);
         $info = data_get(collect($pages)->first(), 'imageinfo.0');
         if (!$info || !in_array($info['mime'] ?? '', ['image/jpeg', 'image/png'], true)) {
             return null;
@@ -360,7 +403,7 @@ class CommonsPhotos
         return [
             'title' => (string) data_get(collect($pages)->first(), 'title', $title),
             'page' => (string) ($info['descriptionurl'] ?? 'https://commons.wikimedia.org/wiki/'.rawurlencode(str_replace(' ', '_', $title))),
-            'thumb' => (string) ($info['thumburl'] ?? $info['url']),
+            'thumb' => self::standardThumb((string) ($info['url'] ?? ''), (int) ($info['width'] ?? 0), (string) ($info['thumburl'] ?? $info['url'] ?? '')),
             'url' => (string) ($info['url'] ?? ''),
             'width' => (int) ($info['width'] ?? 0),
             'licence' => trim((string) data_get($meta, 'LicenseShortName.value', '')),

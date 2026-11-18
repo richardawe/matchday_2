@@ -1,7 +1,7 @@
 # Matchday Africa: agent guide
 
 Read this first. It is the project memory for coding agents (Codex reads `AGENTS.md`; Claude Code
-reads `CLAUDE.md`, which points here). Last updated 17 Nov 2026 (design language for video and social output, see section 7 "Design language"; match-story videos, the agent role and /api/agent: deployed, see section 7); before that 8 Nov 2026, after the social queue for the posting bot (social autopost off), Beat the Griot, the stream screen, YouTube LIVE
+reads `CLAUDE.md`, which points here). Last updated 18 Nov 2026 (match-story opening card: full-frame photo, hook on a bottom gradient, hook never names a player the photo does not show; see section 7); before that 17 Nov 2026 (design language for video and social output, see section 7 "Design language"; match-story videos, the agent role and /api/agent: deployed, see section 7); before that 8 Nov 2026, after the social queue for the posting bot (social autopost off), Beat the Griot, the stream screen, YouTube LIVE
 and Shorts, player photos, social media uploads (PRs #55–#66), and club and player names in the Griot's words with a
 20-second commentary reel (see section 7 "Griot names and the commentary reel").
 
@@ -254,7 +254,8 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   2-4 hashtags; the music credit is gone.
 - No padding with repeats: new beats (scorer record, profile, table + note, next fixtures, other results that day,
   head-to-head only with 3+ meetings); a match without enough distinct cards fails with `StoryTooShort`.
-- Wikimedia rate-limits the cloud container quickly (429): `forName` never caches a transient failure. Match 5212's scorer
+- Wikimedia rate-limits the cloud container quickly (429): `forName` never caches a transient failure. (Partly our own doing: see
+  the standard thumbnail sizes note under "Match-story opening card".) Match 5212's scorer
   (Abdellah Ouazane) has no free-licence photo on Commons or Wikidata (checked 18 Nov); Patrick Dorgu's only one is 353 px.
 
 ### Story photos and full-height cards (18 Nov 2026, owner's brief)
@@ -267,6 +268,24 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   `players:commons-photos` 02:40 London fills photos for clubs playing in the next 3 days (80 lookups, paced 1 s).
 - Safe zone top back to 150; scoreboard 162, chips 296, body from 384; panel text grows to headline size; kick-off and
   venue only on the build-up card.
+
+### Match-story opening card (18 Nov 2026, owner's second review of match 5212)
+- The cover photo fills the whole 1080x1920 frame (`Canvas::coverFace`: crop to cover, the face from the head-and-shoulders
+  crop placed at `grid.hook_photo.face_at` 0.28); the hook, name, flag and credit sit on a dark gradient at the bottom
+  (`Scene::shade`, baked into the Ken Burns layer), never in the top 45% (`grid.hook_photo.no_text`) or across the face.
+  Hook and name lines are balanced (`Canvas::balanced`: no one-word last line). Without a photo the flags layout stays.
+- If the photo shows someone other than the player the generated hook names, the hook is rewritten (`StoryPlanner::hook`
+  with `$pictured`): "<Player> found the net for <team>" when the pictured player scored, else a team-level line.
+- Commons candidates are ordered by `CommonsPhotos::preferFewerCrests` (portraits and "(cropped)" first, crest/shirt/kit titles last).
+- Commons downloads now use Wikimedia's standard thumbnail sizes only (`CommonsPhotos::THUMB_STEPS` 960/1280, `standardThumb`):
+  upload.wikimedia.org answers 429 to non-standard sizes and to originals fetched by servers ("use thumbnail images in sizes listed
+  on https://w.wiki/GHai"), which was most of the "rate limit" seen on 18 Nov. The API itself (Wikidata query service, Commons
+  search) still throttles the shared cloud container's IP; production has its own.
+- Match 5212 was re-rendered locally from the public match page (`docs/design/checks/match-5212-story.*`); Ouazane still has no
+  free photo, so it opens on Achraf Hakimi (`File:Achraf Hakimi (cropped).jpg`, CC BY 4.0, Abdelali Bentarki, pinned with
+  `story:photo`) with the team-level hook "Who saw Morocco 1-0 coming?" (63 s, design check passes). Hakimi is the 9th candidate,
+  so the local run used `STORY_PHOTO_CANDIDATES=12` and no new Commons lookups (the API was throttling the container). The
+  production data (13 Nov first leg, other results) was rebuilt from public pages. Re-render on the server from the Content studio after deploy.
 
 ### Match-story videos and the agent role (17 Nov 2026)
 - Built from the owner's two-part brief. Stories use only stored data and the licence-checked Commons photos (credit on screen,

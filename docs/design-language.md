@@ -98,7 +98,7 @@ holds).
 
 | Component | Reference | In | Used by |
 |---|---|---|---|
-| `hook` — the featured player's licensed photo filling the top 62% (y 0–1200) with Ken Burns, scoreboard with both flags, the hook (96–120 px, at most 8 words) centred over the photo on black bands, the player's name below, the credit; without a licensed photo the sides' colours with both flags and the name in hook size (never a letter or an empty box) | ![](design/hook.png) | Visible from frame 0, settles in | story, slideshow |
+| `hook` — the featured player's licensed photo filling the whole 1080x1920 frame (crop to cover, the face placed at 28% of the height from the head-and-shoulders crop) with Ken Burns; the scoreboard with both flags at the top; a dark gradient over the lower part carrying the hook (96–120 px, at most 8 words, left-aligned, balanced lines with no one-word last line), the player's name with flag, label and club, and the credit, all inside the safe zone. No text in the top 45% of the frame (`grid.hook_photo.no_text`) or across the face. Without a licensed photo the sides' colours with both flags (top 1200 px), the hook on black bands and the name in hook size below (never a letter or an empty box) | ![](design/hook.png) | Visible from frame 0, settles in | story, slideshow |
 | `matchup` — competition, both sides as colour bands, context lines | ![](design/matchup.png) | Words rise, bands grow | story (build-up), slideshow (preview) |
 | `score_block` — label, names row, two-colour score block, lines | ![](design/score_block.png) | Punch-in | story (recaps, last meeting), slideshow |
 | `goal` — side chip + minute tag, "Goal!" on the side's colour, scorer, score counter ticking over | ![](design/goal.png) | Yellow flash, punch, counter | story |
@@ -151,8 +151,17 @@ The reference images use `resources/design/samples.json`: the Niger v Morocco nu
   match's top scorer, else the best-rated African player in the line-up. When the generated hook names a player, the
   story opens on that player. The photo comes from the player's row (`CommonsPhotos::forPlayer`) or, by name, from the
   player media library (`CommonsPhotos::forName`: Wikidata query service, then Commons search; CC0, PD, CC BY, CC BY-SA;
-  at least 700 px wide; licence, author and credit kept in `storage/app/player-media/{slug}.json`; misses remembered for
+  at least 700 px wide, downloaded as a standard 960 or 1280 px thumbnail; licence, author and credit kept in `storage/app/player-media/{slug}.json`; misses remembered for
   14 days). Pin one by hand with `php artisan story:photo "Player Name" "File:Name.jpg"`.
+- **Photos with few crests:** candidate files are ordered by `CommonsPhotos::preferFewerCrests` before the licence
+  check: portraits, "(cropped)" headshots, press conferences and training shots first; match and celebration shots
+  (kit front-on) after them; titles naming a crest, badge, logo, shirt or kit last. On the opening card the face sits
+  high and the chest (where a crest would be) is under the gradient and the text. Editors and the agent should still
+  pin a cleaner file when a crest is prominent.
+- **The hook never names someone the photo does not show:** when the generated hook names a player (a scorer) who has
+  no licensed photo and the story opens on another player's photo, the hook is regenerated without lines naming anyone
+  else: "<Player> found the net for <team>" when the pictured player scored in this match (a fact from the events),
+  otherwise the team-level lines (upset, red card, 0-0, result). An editor's hook is used as written.
 - **Hooks** (`StoryPlanner::hook`, sentence case, at most 8 words, the surname when the full name is too long):
   late winner or equaliser (80'+) "<Player> broke <team> hearts at <minute>"; upset (winner 4+ places lower) "Nobody saw
   <team> doing this"; red card "<team> down to ten, then this happened"; brace or hat-trick "<Player> could not stop
