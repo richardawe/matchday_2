@@ -32,6 +32,34 @@ class DesignLanguageTest extends TestCase
         'reel/src/Reel.jsx', 'reel/src/ReelV2.jsx',
     ];
 
+    public function test_the_radio_cover_counts_as_our_own_render_when_public_is_served_from_another_folder(): void
+    {
+        // Production serves public/ from APP_PUBLIC_PATH (public_html), outside base_path(): the radio video's
+        // cover.png then sat outside base_path('public/images/radio') and failed the image rule.
+        $web = storage_path('app/testing-public_html');
+        File::ensureDirectoryExists("{$web}/images/radio");
+        File::ensureDirectoryExists("{$web}/war/warriors");
+        File::copy(public_path('images/radio/cover.png'), "{$web}/images/radio/cover.png");
+        File::copy(public_path('images/radio/cover.png'), "{$web}/war/warriors/arsenal.png");
+        $original = public_path();
+        app()->usePublicPath($web);
+        try {
+            Canvas::assertImage(public_path('images/radio/cover.png'), null);
+            $this->assertThrows(fn () => Canvas::assertImage(public_path('war/warriors/arsenal.png'), 'someone'), DesignViolation::class);
+            // The radio video's cover card with that art and no photo renders.
+            $scene = app(Components::class)->make('radio_cover', ['label' => 'Matchday Radio', 'edition' => 'Wed 18 Nov · morning · 2:10',
+                'title' => 'Every edition at matchday.africa/listen', 'caption' => 'Good morning from Matchday Radio.', 'photo' => null,
+                'art' => public_path('images/radio/cover.png'), 'story' => null, 'seconds' => 3.0, 'at' => 0]);
+            $this->assertNotEmpty($scene->photos);
+            $scene->destroy();
+            // Something outside our folders still needs a credit.
+            $this->assertThrows(fn () => Canvas::assertImage(storage_path('app/testing-public_html/../elsewhere.png'), null), DesignViolation::class);
+        } finally {
+            app()->usePublicPath($original);
+            File::deleteDirectory($web);
+        }
+    }
+
     public function test_the_tokens_are_the_brief(): void
     {
         $this->assertSame(['black' => '#0A0A0A', 'yellow' => '#FFD23F', 'white' => '#FFFFFF', 'grey' => '#C8C8C8'],

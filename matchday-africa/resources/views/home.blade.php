@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
 @section('content')
+@include('partials.breaking', ['variant' => 'banner'])
 @include('partials.home.radio-bar')
 @include('partials.home.live-now')
 @include('partials.home.watch-live')

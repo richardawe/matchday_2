@@ -45,6 +45,7 @@
                         <a href="{{ route('admin.twitter.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">📣 Social posts</a>
                         <a href="{{ route('admin.griot.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🥁 Beat the Griot</a>
                         <a href="{{ route('admin.messages.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🔔 Messages to users</a>
+                        <a href="{{ route('admin.breaking.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">📰 Breaking news</a>
                     </div>
                 </div>
 

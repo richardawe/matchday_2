@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Blog;
+use App\Models\BreakingNews;
 use App\Models\FootballMatch;
 use App\Models\GriotChallenge;
 use App\Models\GuestPrediction;
@@ -16,6 +17,7 @@ use App\Models\Standing;
 use App\Models\StoryVideo;
 use App\Models\User;
 use App\Models\UserPrediction;
+use App\Services\BreakingNewsDesk;
 use App\Services\RadioVideo;
 use App\Services\Slideshow\CommonsPhotos;
 use App\Services\Slideshow\SlideshowFacts;
@@ -518,6 +520,74 @@ class AgentController extends Controller
         $b->update(['status' => 'queued', 'stage' => 'script', 'attempts' => 0]);
 
         return response()->json($this->edition($b->fresh()) + ['status_url' => SocialQueue::https(route('api.agent.radio.show', $b))], 202);
+    }
+
+    // ------------------------------------------------------------------ breaking news
+
+    /** GET /api/agent/breaking: the item on screen now and the 30 newest items. */
+    public function breaking(): JsonResponse
+    {
+        if (!BreakingNews::ready()) {
+            return response()->json(['message' => 'Breaking news is not set up yet (run the migrations).'], 503);
+        }
+        $current = BreakingNews::current();
+
+        return response()->json([
+            'current' => $current ? BreakingNews::with(['author', 'editor', 'ender'])->find($current->id)->toApi() : null,
+            'items' => BreakingNews::with(['author', 'editor', 'ender'])->latest('created_at')->latest('id')->limit(30)->get()->map->toApi()->values(),
+        ]);
+    }
+
+    /**
+     * POST /api/agent/breaking {headline, body?, link_url?, image_url?, image_credit?, expires_in_hours?}: live at
+     * once at the top of the homepage, match and listen pages (the newest live item wins), logged, and listed on
+     * the admin dashboard and /admin/breaking.
+     */
+    public function breakingStore(Request $request, BreakingNewsDesk $desk): JsonResponse
+    {
+        if (!BreakingNews::ready()) {
+            return response()->json(['message' => 'Breaking news is not set up yet (run the migrations).'], 503);
+        }
+
+        return response()->json($desk->create($request->all(), $request->user(), 'agent')->toApi(), 201);
+    }
+
+    /** PATCH /api/agent/breaking/{id}: edit a live item (the agent's own; an admin token may edit any). */
+    public function breakingUpdate(Request $request, int $id, BreakingNewsDesk $desk): JsonResponse
+    {
+        $item = $this->breakingItem($request, $id);
+        if ($item instanceof JsonResponse) {
+            return $item;
+        }
+
+        return response()->json($desk->update($item, $request->all(), $request->user())->toApi());
+    }
+
+    /** POST /api/agent/breaking/{id}/end: takes the item off the site now. Ending twice is harmless. */
+    public function breakingEnd(Request $request, int $id, BreakingNewsDesk $desk): JsonResponse
+    {
+        $item = $this->breakingItem($request, $id);
+        if ($item instanceof JsonResponse) {
+            return $item;
+        }
+
+        return response()->json($desk->end($item, $request->user())->toApi());
+    }
+
+    private function breakingItem(Request $request, int $id): BreakingNews|JsonResponse
+    {
+        if (!BreakingNews::ready()) {
+            return response()->json(['message' => 'Breaking news is not set up yet (run the migrations).'], 503);
+        }
+        $item = BreakingNews::find($id);
+        if (!$item) {
+            return response()->json(['message' => 'Unknown breaking news item.'], 404);
+        }
+        if (!$request->user()->isAdmin() && $item->source !== 'agent') {
+            return response()->json(['message' => 'The agent can only change breaking news it posted.'], 403);
+        }
+
+        return $item;
     }
 
     private function edition(RadioBulletin $b): array

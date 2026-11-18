@@ -372,6 +372,15 @@ class Film
             $crop = imagecrop($src, ['x' => intdiv($sw - $cw, 2), 'y' => (int) (($sh - $ch) * (float) Tokens::get('motion.ken_burns.anchor_y')), 'width' => $cw, 'height' => $ch]);
             $layers[$key] = imagescale($crop, $w, $h, IMG_BILINEAR_FIXED);
             imagedestroy($crop);
+            if (!empty($item['shade'])) {
+                imagealphablending($layers[$key], true);
+                [$from, $to, $alpha] = $item['shade'];
+                for ($row = max(0, $from - $y); $row < $h; $row++) {
+                    $p = min(1.0, ($row + $y - $from) / max(1, $to - $from));
+                    $a = (int) round(127 - 127 * $alpha * Motion::ease($p));
+                    imageline($layers[$key], 0, $row, $w - 1, $row, imagecolorallocatealpha($layers[$key], 0, 0, 0, $a));
+                }
+            }
         }
         imagecopy($img, $layers[$key], $x, $y, 0, 0, $w, $h);
     }

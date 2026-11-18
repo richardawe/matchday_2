@@ -2,7 +2,7 @@
 
 The social media assistant ("Matchday agent") has its own login with the **agent** role and a
 long-lived API token. It can read the site's content data, request video renders, mark social posts
-as posted and write **draft** articles. It cannot open billing, payments, users, secrets or settings,
+as posted, write **draft** articles and post **breaking news** (live at once). It cannot open billing, payments, users, secrets or settings,
 and it cannot delete anything. Every API request, and every change it makes in the admin, is written
 to the audit log on `/admin/agent`.
 
@@ -42,6 +42,7 @@ The agent logs in at `https://matchday.africa/login` with that email and passwor
 | Social queue `/admin/social-queue` | view, Mark posted (not Undo) |
 | Articles `/admin/blogs` | list, view, preview, create and edit **drafts** (anything it saves is a draft; published articles are closed) |
 | Slideshows, Matches, Match previews | view only |
+| Breaking news `/admin/breaking` | closed: the agent posts, edits and ends its items through the API (`/api/agent/breaking`) |
 | Everything else (dashboard, signups, users, commerce, payments, YouTube, secrets, uploads, sync, cache, any delete) | **403** |
 
 The list lives in `App\Http\Middleware\AdminMiddleware::AGENT_ROUTES`; `tests/Feature/AgentAccessTest`
@@ -168,6 +169,44 @@ publishes or unpublishes (`publish`) articles **the agent created**; a person's 
 
 Puts a ready slideshow live (its page, the reels feed, the social queue and YouTube), as an editor's approval does.
 `409` until it is rendered.
+
+### Breaking news: POST /breaking, PATCH /breaking/{id}, POST /breaking/{id}/end, GET /breaking
+
+One short headline in a black and yellow **Breaking** banner at the top of the homepage, and as a slim strip at the
+top of match pages and the Matchday Radio pages (`/listen`, `/listen/{id}`). Only one item shows at a time: the
+newest one that has not ended or expired. The agent's items **go live at once** (no approval step); every request
+is in the audit log, and each item shows on the admin dashboard and on **Admin → Content → Breaking news**
+(`/admin/breaking`) with who posted it, where admins can edit or end it.
+
+```bash
+curl -s -X POST https://matchday.africa/api/agent/breaking -H "Authorization: Bearer $MD_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"headline":"Osimhen signs a new deal to 2030","body":"The striker commits his future after talks this week.",
+       "link_url":"https://matchday.africa/blogs/osimhen-new-deal",
+       "image_url":"https://upload.wikimedia.org/wikipedia/commons/thumb/…/960px-….jpg",
+       "image_credit":"Jane Doe / Wikimedia Commons / CC BY-SA 4.0","expires_in_hours":6}'
+# → 201 {"id":7,"status":"live","headline":"…","link_kind":"article","expires_at":"2026-11-18T18:00:00Z","created_by":"Matchday agent",…}
+
+curl -s -X PATCH https://matchday.africa/api/agent/breaking/7 -H "Authorization: Bearer $MD_TOKEN" \
+  -H "Content-Type: application/json" -d '{"headline":"Osimhen signs to 2030","expires_in_hours":2}'
+curl -s -X POST https://matchday.africa/api/agent/breaking/7/end -H "Authorization: Bearer $MD_TOKEN"
+curl -s https://matchday.africa/api/agent/breaking -H "Authorization: Bearer $MD_TOKEN"   # {"current": {…}|null, "items": [30 newest]}
+```
+
+| Field | Rules |
+|---|---|
+| `headline` | Required, at most 90 characters, sentence case. Emoji arrows and sirens are removed; banned phrasing ("quietly", "most people", "it's not X, it's Y", all-caps sentences) is refused with `422` |
+| `body` | Optional, at most 280 characters (shown under the headline on the homepage only) |
+| `link_url` | Optional `http(s)` link: an article (`/blogs/…`), a match page (`/matches/{id}`), a video (a reel, a story mp4, YouTube or TikTok) or the source story on another site. The button reads *Read more*, *Match centre*, *Watch*, *Listen* or *Source: bbc.co.uk*; links to other sites open in a new tab with `rel="noopener nofollow"` |
+| `image_url` | Optional, `https` only; shown on the homepage banner. Only images we may use (a licensed Commons file, our own render): the site hotlinks it as given |
+| `image_credit` | Required with `image_url`: author, source and licence, e.g. `Jane Doe / Wikimedia Commons / CC BY-SA 4.0`. Shown under the image as "Photo: …" |
+| `expires_in_hours` | 1-48, default 6. On `PATCH` it resets the end time to that many hours from now |
+
+Items end on their own at `expires_at`; `POST /breaking/{id}/end` takes one off at once (ending twice is harmless).
+`PATCH` and `end` work on **the agent's own items** (`403` for an item an admin posted); an ended item cannot be
+edited (`422`, post a new one). `GET` returns `current` (on the site now, or `null`) and the 30 newest `items` with
+`status` `live|expired|ended`, `source` `agent|admin`, `created_by`, `updated_by`, `ended_by`. The site caches the
+current item for up to 30 seconds. Before the migration the endpoints answer `503`.
 
 ### GET /predictions
 

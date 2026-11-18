@@ -1,7 +1,7 @@
 # Matchday Africa: agent guide
 
 Read this first. It is the project memory for coding agents (Codex reads `AGENTS.md`; Claude Code
-reads `CLAUDE.md`, which points here). Last updated 17 Nov 2026 (design language for video and social output, see section 7 "Design language"; match-story videos, the agent role and /api/agent: deployed, see section 7); before that 8 Nov 2026, after the social queue for the posting bot (social autopost off), Beat the Griot, the stream screen, YouTube LIVE
+reads `CLAUDE.md`, which points here). Last updated 18 Nov 2026 (radio video covers under public_html, substitution direction, one Elsewhere card; breaking news spot with agent endpoints; match-story opening card: full-frame photo, hook on a bottom gradient, hook never names a player the photo does not show; see section 7); before that 17 Nov 2026 (design language for video and social output, see section 7 "Design language"; match-story videos, the agent role and /api/agent: deployed, see section 7); before that 8 Nov 2026, after the social queue for the posting bot (social autopost off), Beat the Griot, the stream screen, YouTube LIVE
 and Shorts, player photos, social media uploads (PRs #55–#66), and club and player names in the Griot's words with a
 20-second commentary reel (see section 7 "Griot names and the commentary reel").
 
@@ -87,6 +87,7 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Match-story videos (61-75 s, 1080x1920, after full time; one beat per goal or red card, stats, featured African player with a licensed Commons photo, head-to-head, form, table, next fixtures, editable hook and banter, closing question; radio_video per Matchday Radio edition with word-by-word captions over the episode audio; French with lang=fr) | `app/Services/Story/*` (`StoryPlanner` running order and 61-75 s timing, `StoryFrames` GD frames with Ken Burns, kinetic text and the TikTok safe-zone check, `StoryVideos` queue/render/captions, `StoryText` en/fr), `story:render` (`--match`, `--radio`, `--check`), model `StoryVideo`, table `story_videos`, static files `public/generated/stories/{id}/story.mp4` + `cover.jpg`, queue items `story:<id>` (types `match_story`, `radio_video`; a story radio video hides that edition's `radio:<id>` item), Content studio `/admin/studio` (`Admin\StudioController`) | `story:render` 1m (no withoutOverlapping: up to `STORY_CONCURRENCY` renders claim rows; ~77 s per 67 s story on 4 cores) | `STORY_VIDEOS` (+ migration; **every deploy writes `STORY_VIDEOS=true`** unless the repository variable `STORY_VIDEOS` is `false`; the code default stays false for local and tests), music `resources/audio/matchday_original_beat_v1.mp3` |
 | Design language for video and social output (tokens, components, motion, design check) | `docs/design-language.md`, tokens `resources/design/tokens.json` (read by PHP `App\Design\Tokens` and the reel's `reel/src/design.js`), `app/Design/*` (`Canvas`, `Scene`, `Components` one per card, `Film` frame engine with Ken Burns, kinetic text and colour-band wipes, `CopyRules`, `DesignCheck`), `design:check` (contact sheet + rules), `design:references` (docs/design/*.png); stories, radio videos and slideshows render through `Film`; cards and reels read token colours and fonts; `DesignLanguageTest` fails on hard-coded colours or fonts in a renderer | n/a | always on |
 | Agent role and API (the social media assistant: reads content, renders, drafts; never billing, users, secrets or deletes) | role `agent` on `users.role` (`User::isAgent()`), admin allowlist `AdminMiddleware::AGENT_ROUTES` (runs before route-model binding), `/admin/agent` (admins: login, tokens shown once, audit log), `agent:create`, `App\Services\Agent\AgentAccess`, API `routes/api.php` `/api/agent/*` (`Api\AgentController`, `AgentApiToken` middleware, limiters `agent-api`/`agent-api-write`), tables `api_tokens` (SHA-256 only), `agent_audit_logs`, `utm_visits` (`App\Support\UtmVisits`, counted in `CaptureAttribution`); guide `matchday-africa/docs/agent-api.md` | n/a | migration + an agent token (`AGENT_API_PER_MINUTE`, `AGENT_API_WRITES_PER_MINUTE`) |
+| Breaking news (one short headline: a banner at the top of both homepages, a slim strip on match pages and `/listen`, `/listen/{id}`; optional body, link and licence-credited https image; the newest live item wins; expires after 1-48 h, default 6) | `App\Models\BreakingNews` (`current()`, cached 30 s), `App\Services\BreakingNewsDesk` (validation, CopyRules, create/update/end), `partials/breaking` (`banner`/`strip`, `.md-breaking` styles at the end of `app.css` with the design tokens; selectors doubled so the cartoon look leaves them alone), admin `/admin/breaking` (`Admin\BreakingNewsController`: who posted, edit, end, post) and a panel on the admin dashboard; agent API `GET/POST /api/agent/breaking`, `PATCH /api/agent/breaking/{id}`, `POST /api/agent/breaking/{id}/end` (live at once, own items only, audit-logged with the headline); table `breaking_news` | n/a | always on once migrated (hidden while nothing is live) |
 | Home arena | `resources/views/partials/home-arena.blade.php`, `resources/js/arena.js` (GSAP), `arena3d.js` (three.js, desktop only) | rides the home pulse refresh | always on when a Premier League match qualifies |
 
 ## 4. CI/CD
@@ -254,7 +255,8 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   2-4 hashtags; the music credit is gone.
 - No padding with repeats: new beats (scorer record, profile, table + note, next fixtures, other results that day,
   head-to-head only with 3+ meetings); a match without enough distinct cards fails with `StoryTooShort`.
-- Wikimedia rate-limits the cloud container quickly (429): `forName` never caches a transient failure. Match 5212's scorer
+- Wikimedia rate-limits the cloud container quickly (429): `forName` never caches a transient failure. (Partly our own doing: see
+  the standard thumbnail sizes note under "Match-story opening card".) Match 5212's scorer
   (Abdellah Ouazane) has no free-licence photo on Commons or Wikidata (checked 18 Nov); Patrick Dorgu's only one is 353 px.
 
 ### Story photos and full-height cards (18 Nov 2026, owner's brief)
@@ -267,6 +269,51 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   `players:commons-photos` 02:40 London fills photos for clubs playing in the next 3 days (80 lookups, paced 1 s).
 - Safe zone top back to 150; scoreboard 162, chips 296, body from 384; panel text grows to headline size; kick-off and
   venue only on the build-up card.
+
+### Radio video covers, substitutions and story context (18 Nov 2026, owner's items 4-6)
+- radio_video renders failed in production with "Image rule: cover.png is not one of our renders": production serves
+  public/ from `APP_PUBLIC_PATH` (public_html), so `public_path('images/radio/cover.png')` was not under
+  `base_path('public/images/radio')`. `Canvas::assertImage` now also checks every `public/...` token directory under
+  `public_path()` (own renders and banned folders alike). Reproduced locally with edition 87 (rebuilt from its public
+  page and mp3) and a separate web root: fails before, renders 142.5 s after, design check passes
+  (`docs/design/checks/radio-87-video.*`). Re-render edition 87 from the Content studio after deploy.
+- ESPN `keyEvents` list a substitution's player coming **on** first ("Habib Diarra replaces Tymur Tutierov"); the mapper
+  stored that name as `player_name`, which the rest of the code (and football-data.org) reads as the player going off.
+  `EspnMatchMapper` now stores off/on correctly (event ids unchanged: they still hash the first participant). Rows saved
+  before the fix stay reversed; the next summary sync of a match rewrites its rows. Stories never trust the stored order:
+  `App\Support\Substitutions` checks each change against line-ups and goals/cards and drops what it cannot verify. The
+  match chronicle (`MythGrammarService`) still prints the stored order for old rows.
+- Stories: one "Elsewhere" card (the four highest-scoring other results); new beats: earlier meetings with scorers (1-2
+  meetings), the decisive scorer's record, a group table from our own results (closed, complete groups only), starting
+  line-ups. Match 5212 re-rendered locally: 63 s, 13 distinct cards, design check passes; it now shows the 13 Nov first
+  leg (Morocco 5-1 Niger, from public match page 5184), Hakimi's two goals there, and "61' Ayoub Oufkir on for Abdellah
+  Ouazane". No group table: our data holds only these two teams of the group. Production holds the same two AFCQ games, so
+  without the line-up card the story would fall short of 61 s.
+
+### Breaking news spot (18 Nov 2026, owner's brief item 7)
+- Owner (Richard): the agent's breaking news goes live straight away (he approves its judgement here); every item is logged
+  (`agent_audit_logs`, headline included) and listed on the admin dashboard and `/admin/breaking` with who posted it.
+- Images are hotlinked from the `image_url` given (https only, credit required, hidden if it fails to load). Only post
+  images we may use (licensed Commons files, our own renders); nothing checks the licence automatically, unlike story photos.
+- The agent can change and end only its own items; admins can change and end any. Docs: `matchday-africa/docs/agent-api.md`.
+
+### Match-story opening card (18 Nov 2026, owner's second review of match 5212)
+- The cover photo fills the whole 1080x1920 frame (`Canvas::coverFace`: crop to cover, the face from the head-and-shoulders
+  crop placed at `grid.hook_photo.face_at` 0.28); the hook, name, flag and credit sit on a dark gradient at the bottom
+  (`Scene::shade`, baked into the Ken Burns layer), never in the top 45% (`grid.hook_photo.no_text`) or across the face.
+  Hook and name lines are balanced (`Canvas::balanced`: no one-word last line). Without a photo the flags layout stays.
+- If the photo shows someone other than the player the generated hook names, the hook is rewritten (`StoryPlanner::hook`
+  with `$pictured`): "<Player> found the net for <team>" when the pictured player scored, else a team-level line.
+- Commons candidates are ordered by `CommonsPhotos::preferFewerCrests` (portraits and "(cropped)" first, crest/shirt/kit titles last).
+- Commons downloads now use Wikimedia's standard thumbnail sizes only (`CommonsPhotos::THUMB_STEPS` 960/1280, `standardThumb`):
+  upload.wikimedia.org answers 429 to non-standard sizes and to originals fetched by servers ("use thumbnail images in sizes listed
+  on https://w.wiki/GHai"), which was most of the "rate limit" seen on 18 Nov. The API itself (Wikidata query service, Commons
+  search) still throttles the shared cloud container's IP; production has its own.
+- Match 5212 was re-rendered locally from the public match page (`docs/design/checks/match-5212-story.*`); Ouazane still has no
+  free photo, so it opens on Achraf Hakimi (`File:Achraf Hakimi (cropped).jpg`, CC BY 4.0, Abdelali Bentarki, pinned with
+  `story:photo`) with the team-level hook "Who saw Morocco 1-0 coming?" (63 s, design check passes). Hakimi is the 9th candidate,
+  so the local run used `STORY_PHOTO_CANDIDATES=12` and no new Commons lookups (the API was throttling the container). The
+  production data (13 Nov first leg, other results) was rebuilt from public pages. Re-render on the server from the Content studio after deploy.
 
 ### Match-story videos and the agent role (17 Nov 2026)
 - Built from the owner's two-part brief. Stories use only stored data and the licence-checked Commons photos (credit on screen,

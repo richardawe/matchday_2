@@ -7,95 +7,95 @@
             "t": 0,
             "component": "hook",
             "problems": [],
-            "empty": 0.263,
-            "empty_checked_at": 0
+            "empty": 0.326,
+            "empty_checked_at": 0.7
         },
         {
             "t": 5,
             "component": "matchup",
             "problems": [],
-            "empty": 0.176,
+            "empty": 0.165,
             "empty_checked_at": 5
         },
         {
             "t": 10,
             "component": "goal",
             "problems": [],
-            "empty": 0.137,
+            "empty": 0.129,
             "empty_checked_at": 10
         },
         {
             "t": 15,
-            "component": "results",
+            "component": "fact_list",
             "problems": [],
-            "empty": 0.134,
+            "empty": 0.188,
             "empty_checked_at": 15
         },
         {
             "t": 20,
-            "component": "results",
+            "component": "fact_list",
             "problems": [],
-            "empty": 0.134,
+            "empty": 0.192,
             "empty_checked_at": 20
         },
         {
             "t": 25,
             "component": "results",
             "problems": [],
-            "empty": 0.134,
+            "empty": 0.113,
             "empty_checked_at": 25
         },
         {
             "t": 30,
-            "component": "results",
+            "component": "stat_bars",
             "problems": [],
-            "empty": 0.134,
+            "empty": 0.204,
             "empty_checked_at": 30
         },
         {
             "t": 35,
-            "component": "stat_bars",
+            "component": "fact_list",
             "problems": [],
-            "empty": 0.217,
+            "empty": 0.207,
             "empty_checked_at": 35
         },
         {
             "t": 40,
-            "component": "form_chips",
+            "component": "fact_list",
             "problems": [],
-            "empty": 0.128,
+            "empty": 0.196,
             "empty_checked_at": 40
         },
         {
             "t": 45,
-            "component": "score_block",
+            "component": "form_chips",
             "problems": [],
-            "empty": 0.217,
+            "empty": 0.12,
             "empty_checked_at": 45
         },
         {
             "t": 50,
-            "component": "fact_list",
+            "component": "score_block",
             "problems": [],
-            "empty": 0.216,
+            "empty": 0.204,
             "empty_checked_at": 50
         },
         {
             "t": 55,
             "component": "banter",
             "problems": [],
-            "empty": 0.173,
+            "empty": 0.162,
             "empty_checked_at": 55
         },
         {
             "t": 60,
             "component": "closing",
             "problems": [],
-            "empty": 0.143,
+            "empty": 0.134,
             "empty_checked_at": 60
         }
     ],
     "problems": [],
-    "sheet": "matchday-africa/public/generated/stories/1/story-contact-sheet.png",
+    "sheet": "docs/design/checks/match-5212-story.png",
     "manifest": true
 }

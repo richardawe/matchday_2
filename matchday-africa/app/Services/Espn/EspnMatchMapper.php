@@ -144,16 +144,21 @@ class EspnMatchMapper
             }
             [$minute, $extra] = $this->clock((string) data_get($key, 'clock.displayValue', ''));
             $text = (string) data_get($key, 'type.text', '');
+            // ESPN lists a substitution's player coming on first ("X replaces Y"): store the player going
+            // off as player_name and the one coming on as related_player_name, like football-data.org.
+            $first = data_get($key, 'participants.0.athlete.displayName');
+            $second = data_get($key, 'participants.1.athlete.displayName');
             $events[] = [
+                'key_name' => $first,
                 'type' => $type,
                 'sub_type' => Str::snake(Str::slug($text, ' ')),
                 'minute' => $minute ?? 0,
                 'extra_minute' => $extra,
                 'clock' => (float) data_get($key, 'clock.value', 0),
                 'side' => (string) data_get($key, 'team.id') === $homeTeamId ? 'home' : 'away',
-                'player_name' => data_get($key, 'participants.0.athlete.displayName'),
-                'assist_player_name' => $type === 'goal' ? data_get($key, 'participants.1.athlete.displayName') : null,
-                'related_player_name' => $type === 'substitution' ? data_get($key, 'participants.1.athlete.displayName') : null,
+                'player_name' => $type === 'substitution' ? $second : $first,
+                'assist_player_name' => $type === 'goal' ? $second : null,
+                'related_player_name' => $type === 'substitution' ? $first : null,
                 'is_own_goal' => str_contains(strtolower($text), 'own goal'),
                 'is_penalty' => str_contains(strtolower($text), 'penalty'),
                 'description' => $text,

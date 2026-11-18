@@ -8,7 +8,7 @@ namespace App\Design;
  * video's language, sides with names, flags and two colours) and returns a laid-out Scene.
  *
  * Layout follows the grid tokens: the scoreboard strip and the chips row sit at fixed places, the
- * photo area is the top 60% of the safe zone, and the body stack is stretched to fill the safe
+ * opening photo fills the frame (other photos sit in the top of the safe zone), and the body stack is stretched to fill the safe
  * zone (Scene::stack) so no card is more than tokens grid.max_empty bare backdrop.
  */
 final class Components
@@ -38,11 +38,13 @@ final class Components
     // ---------------------------------------------------------------- cards
 
     /**
-     * The opening card, visible from frame 0: the featured player's licensed photo filling the top of
-     * the frame (grid.hook_photo, at least 60%) with a slow Ken Burns push, the scoreboard with both
-     * flags, the hook centred over the photo on black bands, the player's name below and the credit.
-     * Without a licensed photo: both sides' colours with both flags filling the same area and the
-     * player's name big underneath. Never a single letter or an empty box.
+     * The opening card, visible from frame 0. With a licensed photo: the photo fills the whole
+     * 1080x1920 frame (crop to cover, the face placed high, grid.hook_photo.face_at) with a slow Ken
+     * Burns push and a dark gradient over the lower part; the scoreboard at the top; the hook, the
+     * player's name, flag and the credit on the gradient at the bottom of the safe zone. No text in
+     * the top grid.hook_photo.no_text of the frame or across the face. Without a licensed photo: both
+     * sides' colours with both flags, the hook over them and the player's name big underneath.
+     * Never a single letter or an empty box. Hook lines are balanced (no one-word last line).
      */
     public function hook(array $d): Scene
     {
@@ -50,19 +52,60 @@ final class Components
         $focus = $d['focus'] ?? 'home';
         $s = new Scene('hook', self::key('hook', $d), 'black', $sides[$focus]['colours'][0]);
         $w = $s->w;
-        $photoBottom = (int) Tokens::get('grid.hook_photo.bottom');
         $photo = $d['photo'] ?? null;
-        $hasPhoto = $s->photo($photo['file'] ?? null, $photo['crop'] ?? null, 0, 0, $w, $photoBottom, $photo['credit'] ?? null, useCrop: false);
-        if (!$hasPhoto) {
-            Canvas::versus($s->bg, $sides['home'], $sides['away'], 0, 0, $w, $photoBottom, 300);
-            $s->photos[] = ['file' => null, 'credit' => null, 'box' => [0, 0, $w, $photoBottom], 'own' => true];
-        }
+        $hasPhoto = $s->photo($photo['file'] ?? null, $photo['crop'] ?? null, 0, 0, $w, $s->h, $photo['credit'] ?? null,
+            faceAt: (float) Tokens::get('grid.hook_photo.face_at'));
+
+        return $hasPhoto ? $this->hookOnPhoto($s, $d, $sides, $photo) : $this->hookOnColours($s, $d, $sides, $focus);
+    }
+
+    /** The full-frame photo opening: scoreboard on top, everything else on the bottom gradient. */
+    private function hookOnPhoto(Scene $s, array $d, array $sides, array $photo): Scene
+    {
         $s->scoreboard($sides, (string) ($d['score'] ?? 'v'), 0.0);
-        // The hook, centred over the photo below the scoreboard, each line on a black band.
+        $face = end($s->photos)['face'] ?? null;
+        // Text stays below the no-text zone and below the face.
+        $noText = max((int) round($s->h * (float) Tokens::get('grid.hook_photo.no_text')), $face ? $face[1] + 24 : 0);
+        $bottom = $s->bottom - (!empty($photo['credit']) ? 44 : 0);
+        $who = $d['player']['name'] ?? null;
+        $sub = $who ? implode(' · ', array_filter([$d['player']['label'] ?? null, $d['player']['club'] ?? null])) : null;
+        $flagRoom = !empty($d['player']['flag']) ? 120 : 0;
+        $name = $who ? Canvas::balanced($who, 'headline', $s->width() - $flagRoom, 2 * 120, 2) : [];
+        $whoH = ($name ? $s->linesHeight($name, 'headline') : 0) + ($sub ? 52 : 0);
+        $hookRoom = $bottom - $whoH - 28 - $noText;
+        $hook = Canvas::balanced((string) $d['line'], 'hook', $s->width(), max(120, $hookRoom), 4);
+        $hookH = $s->linesHeight($hook, 'hook');
+        // Bottom up: the credit at its fixed place, then who it is, then the hook.
+        $y = $bottom - $whoH;
+        $hookTop = max($noText, $y - 28 - $hookH);
+        $s->shade(max(0, $hookTop - 420), $hookTop - 20, 0.9);
+        $s->paragraph($hook, 'hook', $s->L, $hookTop, 'yellow', 'black', 0.0, motion: 'punch', visible: true);
+        foreach ($name as $i => [$line, $px]) {
+            $s->text($line, 'headline', $s->L, $y + $s->ascent('headline', $px), 'white', 'black', 0.15, px: $px,
+                flag: $i === 0 ? ($d['player']['flag'] ?? null) : null);
+            $y += (int) round($px * (float) Tokens::get('type.headline.leading'));
+        }
+        if ($sub) {
+            $s->text($sub, 'body', $s->L, $y + 40, 'grey', 'black', 0.3, maxWidth: $s->width());
+        }
+        $s->credit($photo['credit'] ?? null);
+
+        return $s;
+    }
+
+    /** No licensed photo: both sides' colours and flags on top, the hook over them, the name below. */
+    private function hookOnColours(Scene $s, array $d, array $sides, string $focus): Scene
+    {
+        $w = $s->w;
+        $photoBottom = (int) Tokens::get('grid.hook_photo.bottom');
+        Canvas::versus($s->bg, $sides['home'], $sides['away'], 0, 0, $w, $photoBottom, 300);
+        $s->photos[] = ['file' => null, 'credit' => null, 'box' => [0, 0, $w, $photoBottom], 'own' => true];
+        $s->scoreboard($sides, (string) ($d['score'] ?? 'v'), 0.0);
+        // The hook, centred over the colours below the scoreboard, each line on a black band; the flags
+        // take the bottom of the colour field.
         $top = (int) Tokens::get('grid.scoreboard.top') + (int) Tokens::get('grid.scoreboard.height') + 30;
-        // Without a photo the flags take the bottom of the colour field; the hook sits above them.
-        $hookBottom = $hasPhoto ? $photoBottom - 40 : $photoBottom - 300;
-        $hook = Canvas::fitBox((string) $d['line'], 'hook', $s->width() - 48, $hookBottom - $top, 4);
+        $hookBottom = $photoBottom - 300;
+        $hook = Canvas::balanced((string) $d['line'], 'hook', $s->width() - 48, $hookBottom - $top, 4);
         $lead = (float) Tokens::get('type.hook.leading');
         $height = $s->linesHeight($hook, 'hook');
         $y = $top + intdiv($hookBottom - $top - $height, 2);
@@ -74,28 +117,23 @@ final class Components
             $s->panel($x - 24, $y + 4, $x + $tw + 24, $y + $lineH + 4, 'black', 0.0, 'none', 10);
             $y = $s->paragraph([[$line, $px]], 'hook', $x, $y + 6, 'yellow', 'black', 0.0, motion: 'punch', visible: true) - 6;
         }
-        // Below the photo: who it is, big; the credit small at its fixed place.
+        // Below the colours: who it is, big.
         $s->panel(0, $photoBottom, $w, $s->h, 'black', 0.0, 'none', 0);
         $s->panel(0, $photoBottom, $w, $photoBottom + 10, $sides[$focus]['colours'][0], 0.0, 'none', 0);
-        $creditRoom = !empty($photo['credit']) && $hasPhoto ? 44 : 0;
         $who = $d['player']['name'] ?? null;
         $sub = $who ? implode(' · ', array_filter([$d['player']['label'] ?? null, $d['player']['club'] ?? null])) : null;
         $flagRoom = !empty($d['player']['flag']) ? 120 : 0;
-        $nameStyle = $hasPhoto ? 'headline' : 'hook';
-        $name = $who ? Canvas::fitBox($who, $nameStyle, $s->width() - $flagRoom, $s->bottom - $creditRoom - $photoBottom - 40 - ($sub ? 60 : 0), 2) : [];
+        $name = $who ? Canvas::balanced($who, 'hook', $s->width() - $flagRoom, $s->bottom - $photoBottom - 40 - ($sub ? 60 : 0), 2) : [];
         $s->stack([
-            $name ? ['h' => $s->linesHeight($name, $nameStyle), 'draw' => function ($y) use ($s, $name, $nameStyle, $d) {
+            $name ? ['h' => $s->linesHeight($name, 'hook'), 'draw' => function ($y) use ($s, $name, $d) {
                 foreach ($name as $i => [$line, $px]) {
-                    $s->text($line, $nameStyle, $s->L, $y + $s->ascent($nameStyle, $px), 'white', 'black', 0.15, px: $px,
+                    $s->text($line, 'hook', $s->L, $y + $s->ascent('hook', $px), 'white', 'black', 0.15, px: $px,
                         flag: $i === 0 ? ($d['player']['flag'] ?? null) : null);
-                    $y += (int) round($px * (float) Tokens::get("type.{$nameStyle}.leading"));
+                    $y += (int) round($px * (float) Tokens::get('type.hook.leading'));
                 }
             }] : null,
             $sub ? ['h' => 52, 'draw' => fn ($y) => $s->text($sub, 'body', $s->L, $y + 40, 'grey', 'black', 0.3, maxWidth: $s->width())] : null,
-        ], $photoBottom + 24, $s->bottom - $creditRoom, 10);
-        if ($hasPhoto) {
-            $s->credit($photo['credit'] ?? null);
-        }
+        ], $photoBottom + 24, $s->bottom, 10);
 
         return $s;
     }
