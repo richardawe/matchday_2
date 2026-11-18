@@ -12,12 +12,12 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * /api/agent: a bearer token from api_tokens (SHA-256 hash lookup) belonging to an agent or an
  * admin. Sets the request's user, and writes one audit row per request (method, path, status,
- * query keys and the ids/filters it used; never the token or body text).
+ * query keys and the ids/filters it used, and a breaking news headline; never the token or body text).
  */
 class AgentApiToken
 {
     private const LOGGED_VALUES = ['status', 'from', 'to', 'competition', 'country', 'club', 'african', 'latest', 'days', 'type',
-        'match_id', 'episode_id', 'lang', 'channel', 'limit', 'page', 'id'];
+        'match_id', 'episode_id', 'lang', 'channel', 'limit', 'page', 'id', 'expires_in_hours', 'headline'];
 
     public function handle(Request $request, Closure $next): Response
     {

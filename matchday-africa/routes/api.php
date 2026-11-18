@@ -31,6 +31,7 @@ Route::prefix('agent')->name('api.agent.')->middleware(['throttle:agent-api', Ap
         Route::get('/analytics', 'analytics')->name('analytics');
         Route::get('/render/{id}', 'renderStatus')->where('id', '(story|slideshow):[0-9]+')->name('render.show');
         Route::get('/social-queue', 'socialQueue')->name('social-queue');
+        Route::get('/breaking', 'breaking')->name('breaking');
         Route::middleware('throttle:agent-api-write')->group(function () {
             Route::post('/render', 'render')->name('render');
             Route::post('/social-queue/{id}/posted', 'socialQueuePosted')->where('id', '[A-Za-z]+:[0-9]+')->name('social-queue.posted');
@@ -41,5 +42,8 @@ Route::prefix('agent')->name('api.agent.')->middleware(['throttle:agent-api', Ap
             Route::post('/player-photos', 'namedPlayerPhoto')->name('player-photos.store');
             Route::post('/radio', 'radioCreate')->name('radio.store');
             Route::post('/radio/{id}/retry', 'radioRetry')->whereNumber('id')->name('radio.retry');
+            Route::post('/breaking', 'breakingStore')->name('breaking.store');
+            Route::patch('/breaking/{id}', 'breakingUpdate')->whereNumber('id')->name('breaking.update');
+            Route::post('/breaking/{id}/end', 'breakingEnd')->whereNumber('id')->name('breaking.end');
         });
     });

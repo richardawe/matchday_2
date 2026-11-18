@@ -997,3 +997,32 @@
 .md-start-players,.md-start-fixtures{display:grid;gap:.6rem;grid-template-columns:minmax(0,1fr)}.md-start-players a{display:grid;grid-template-columns:3.5rem minmax(0,1fr) auto;align-items:center;gap:.8rem;padding:.7rem;border:1px solid var(--md-line);background:var(--md-panel);color:var(--md-paper)!important}.md-start-players img,.md-start-initial{width:3.5rem;height:3.5rem;border-radius:50%;object-fit:cover;background:#1b1d18;display:grid;place-items:center;font:700 1.3rem Georgia,serif;color:var(--md-gold-bright)}.md-start-who{display:grid;gap:.15rem;min-width:0}.md-start-who b{font-size:1rem;overflow-wrap:anywhere}.md-start-who small,.md-start-fixtures small{color:var(--md-muted);font-size:.8rem;overflow-wrap:anywhere}.md-start-players em{font-style:normal;font-weight:800;font-size:.85rem;color:var(--md-gold-bright);white-space:nowrap}.md-start-fixtures a{display:grid;gap:.2rem;padding:.8rem;border:1px solid var(--md-line);background:var(--md-panel);color:var(--md-paper)!important}.md-start-fixtures b{font-size:1.05rem}.md-start-more{margin-top:.9rem}.md-start-more a{color:var(--md-gold-bright);font-weight:700;text-decoration:underline}
 .md-start-radio{display:grid;gap:.15rem;padding:.8rem;margin-bottom:.9rem;border:1px solid var(--md-line);background:var(--md-panel);color:var(--md-paper)!important}.md-start-radio small{color:var(--md-muted)}
 @media(min-width:720px){.md-start{padding:3.5rem 0 2.5rem}.md-start-players{grid-template-columns:repeat(2,minmax(0,1fr))}.md-start-fixtures{grid-template-columns:repeat(2,minmax(0,1fr))}.md-start .md-start-go{width:auto;justify-self:start;padding-inline:2rem}}
+
+/* Breaking news (partials/breaking): the design-language tokens (resources/design/tokens.json), the same in
+   every look (selectors carry .md-breaking twice so the cartoon look's type and link rules do not reach in).
+   Black with brand yellow, sentence case, no sirens, no flashing or pulsing. */
+@font-face{font-family:Anton;src:url('../fonts/web/Anton-Regular.woff2') format('woff2');font-display:swap}
+.md-breaking{--bk-black:#0A0A0A;--bk-yellow:#FFD23F;--bk-white:#FFFFFF;--bk-grey:#C8C8C8;--bk-display:Anton,Impact,'Arial Narrow',sans-serif;--bk-text:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;background:var(--bk-black);color:var(--bk-white);border-bottom:4px solid var(--bk-yellow)}
+.md-breaking .md-breaking-inner{display:flex;align-items:flex-start;gap:1.25rem;padding-block:1rem}
+.md-breaking .md-breaking-tag{display:inline-block;flex:none;padding:.3rem .75rem;border-radius:999px;background:var(--bk-yellow);color:var(--bk-black);font:700 .8rem/1.2 var(--bk-text);letter-spacing:.02em}
+.md-breaking .md-breaking-copy{flex:1;min-width:0}
+.md-breaking .md-breaking-copy .md-breaking-tag{margin-bottom:.5rem}
+.md-breaking .md-breaking-headline,.md-breaking .md-breaking-headline a{margin:0;font:400 clamp(1.4rem,3.6vw,2.1rem)/1.12 var(--bk-display);color:var(--bk-white);text-decoration:none;overflow-wrap:anywhere}
+.md-breaking .md-breaking-headline a:hover,.md-breaking .md-breaking-headline a:focus-visible{color:var(--bk-yellow)}
+.md-breaking .md-breaking-body{margin:.4rem 0 0;max-width:46rem;font:400 .95rem/1.45 var(--bk-text);color:var(--bk-grey)}
+.md-breaking .md-breaking-link{display:inline-block;margin-top:.6rem;font:700 .9rem/1.3 var(--bk-text);color:var(--bk-yellow);text-decoration:none}
+.md-breaking .md-breaking-link:hover,.md-breaking .md-breaking-link:focus-visible{text-decoration:underline}
+.md-breaking .md-breaking-image{flex:none;width:10rem;margin:0}
+.md-breaking .md-breaking-image img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:.5rem;background:var(--bk-black)}
+.md-breaking .md-breaking-image figcaption{margin-top:.3rem;font:400 .65rem/1.3 var(--bk-text);color:var(--bk-grey);overflow-wrap:anywhere}
+.md-breaking .md-breaking-image[hidden]{display:none}
+.md-breaking--strip{border-bottom-width:3px}
+.md-breaking--strip .md-breaking-inner{align-items:center;padding-block:.55rem;gap:.75rem}
+.md-breaking--strip .md-breaking-tag{font-size:.72rem;padding:.2rem .6rem}
+.md-breaking--strip .md-breaking-headline,.md-breaking--strip .md-breaking-headline a{flex:1;min-width:0;font-size:1.1rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.md-breaking--strip .md-breaking-link{margin:0;flex:none;font-size:.8rem}
+@media(max-width:640px){
+  .md-breaking--banner .md-breaking-inner{flex-direction:column;gap:.75rem}
+  .md-breaking .md-breaking-image{width:100%;display:grid;grid-template-columns:7.5rem 1fr;gap:.6rem;align-items:end}
+  .md-breaking--strip .md-breaking-link{display:none}
+}

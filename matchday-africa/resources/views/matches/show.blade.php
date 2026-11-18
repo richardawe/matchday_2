@@ -1,5 +1,6 @@
 @extends('layouts.public')
 @section('content')
+@include('partials.breaking', ['variant' => 'strip'])
 <section class="md-room-head"><div class="md-wrap">
     <div class="md-room-label"><span class="md-live-dot"></span>{{ in_array($match->status,\App\Models\FootballMatch::LIVE_STATUSES,true)?'LIVE MATCH ROOM':'MATCH ROOM' }} · {{ $match->league?->name }}</div>
     <div class="md-scoreboard"><div>@if($warTeams['home'])<img class="md-war-avatar" src="{{ $warTeams['home'] }}" alt="">@elseif($match->homeTeam?->logo)<img class="md-war-avatar" src="{{ $match->homeTeam->logo }}" alt="">@endif<strong>{{ $match->homeTeam?->name }}</strong></div><b><span id="match-home-score">{{ $match->home_score ?? '–' }}</span> <i>:</i> <span id="match-away-score">{{ $match->away_score ?? '–' }}</span></b><div>@if($warTeams['away'])<img class="md-war-avatar" src="{{ $warTeams['away'] }}" alt="">@elseif($match->awayTeam?->logo)<img class="md-war-avatar" src="{{ $match->awayTeam->logo }}" alt="">@endif<strong>{{ $match->awayTeam?->name }}</strong></div></div>

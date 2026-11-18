@@ -43,6 +43,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/agent', [\App\Http\Controllers\Admin\AgentAccessController::class, 'store'])->name('agent.store');
     Route::post('/agent/{user}/token', [\App\Http\Controllers\Admin\AgentAccessController::class, 'token'])->whereNumber('user')->name('agent.token');
     Route::post('/agent/tokens/{token}/revoke', [\App\Http\Controllers\Admin\AgentAccessController::class, 'revoke'])->whereNumber('token')->name('agent.revoke');
+    Route::get('/breaking', [\App\Http\Controllers\Admin\BreakingNewsController::class, 'index'])->name('breaking.index');
+    Route::post('/breaking', [\App\Http\Controllers\Admin\BreakingNewsController::class, 'store'])->name('breaking.store');
+    Route::put('/breaking/{breaking}', [\App\Http\Controllers\Admin\BreakingNewsController::class, 'update'])->whereNumber('breaking')->name('breaking.update');
+    Route::post('/breaking/{breaking}/end', [\App\Http\Controllers\Admin\BreakingNewsController::class, 'end'])->whereNumber('breaking')->name('breaking.end');
     Route::get('/social-queue', [\App\Http\Controllers\Admin\SocialQueueController::class, 'index'])->name('social-queue.index');
     Route::post('/social-queue/posted', [\App\Http\Controllers\Admin\SocialQueueController::class, 'posted'])->name('social-queue.posted');
     Route::post('/social-queue/undo', [\App\Http\Controllers\Admin\SocialQueueController::class, 'undo'])->name('social-queue.undo');
