@@ -1,7 +1,7 @@
 # Matchday Africa: agent guide
 
 Read this first. It is the project memory for coding agents (Codex reads `AGENTS.md`; Claude Code
-reads `CLAUDE.md`, which points here). Last updated 17 Nov 2026 (design language for video and social output, see section 7 "Design language"; match-story videos, the agent role and /api/agent: deployed, see section 7); before that 8 Nov 2026, after the social queue for the posting bot (social autopost off), Beat the Griot, the stream screen, YouTube LIVE
+reads `CLAUDE.md`, which points here). Last updated 18 Nov 2026 (story photos from Commons with fallback, agent photo API, full-height story cards: deployed, see section 7 "Story photos and full-height cards"); before that 17 Nov 2026 (design language for video and social output, see section 7 "Design language"; match-story videos, the agent role and /api/agent: deployed, see section 7); before that 8 Nov 2026, after the social queue for the posting bot (social autopost off), Beat the Griot, the stream screen, YouTube LIVE
 and Shorts, player photos, social media uploads (PRs #55–#66), and club and player names in the Griot's words with a
 20-second commentary reel (see section 7 "Griot names and the commentary reel").
 
@@ -265,8 +265,20 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 - Agent: `GET /api/agent/players?q=`, `POST /api/agent/players/{id}/photo` and `POST /api/agent/player-photos`
   ({name, source_url}) with the same licence check (`CommonsPhotos::attach`, `fileFromUrl`). Nightly
   `players:commons-photos` 02:40 London fills photos for clubs playing in the next 3 days (80 lookups, paced 1 s).
-- Safe zone top back to 150; scoreboard 162, chips 296, body from 384; panel text grows to headline size; kick-off and
-  venue only on the build-up card.
+- Safe zone top back to 150; scoreboard 162, chips 296, body from 384; panel text grows to headline size (the closing
+  question to hook size when it fits); kick-off and venue only on the build-up card (the facts padding no longer repeats
+  them). New optional "Changes" card (beat `changes`, rank 50, `fact_list`): up to four substitutions from match events
+  (`player_name` = off, `related_player_name` = on). Without it 5212 had 12 distinct cards (58 s) and failed `StoryTooShort`.
+- **Deployed 18 Nov 2026 08:36 UTC** (PR #80, merge `55f6b26`; CI green; `/deploy-version.txt` matched; `/api/agent/players`
+  401 without a token, `/api/agent/players/{id}/photo` answers POST only).
+- Checked locally on 5212 (data from the public pages, `design:check` PASS, 63 s): Ouazane and Belahyane have no free photo,
+  so the story opens on Youssef En-Nesyri (`File:Ennesyri.jpg`, CC BY-SA 4.0, Nawfel Ajari) with his name under the photo.
+- Not done at the time of writing: the live 5212 story (`/generated/stories/10/story.mp4`, rendered 07:48 UTC) predates the
+  deploy; re-render it from `/admin/studio` or `POST /api/agent/render`. Stories redraw automatically only when score/goals change.
+- Open choices for the owner: the hook names the scorer while the photo may show the fallback player (could reword the hook
+  to follow the photo); the hook card leaves ~300 px of black between the credit and y 1540 (passes the 35% rule).
+- Wikimedia rate-limits the cloud container (429) after a few lookups and clears within ~10-60 min; wait rather than
+  change user agents. The production server makes its own requests.
 
 ### Match-story videos and the agent role (17 Nov 2026)
 - Built from the owner's two-part brief. Stories use only stored data and the licence-checked Commons photos (credit on screen,
