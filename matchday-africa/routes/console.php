@@ -58,6 +58,8 @@ Schedule::command('youtube:uploads')->everyFiveMinutes()->withoutOverlapping(30)
 // Heritage from the sourced roster, after Monday's squad sync, for players who joined our squads since (never over an editor's decision).
 Schedule::command('players:heritage-import')->weeklyOn(1, '05:00')->withoutOverlapping(30)->name('players-heritage-import');
 Schedule::command('players:roster')->dailyAt('06:20')->timezone('Europe/London')->withoutOverlapping(30)->name('players-roster');
+// Fill missing player photos from Wikimedia Commons for players in the next few days' matches (stories open on them).
+Schedule::command('players:commons-photos')->dailyAt('02:40')->timezone('Europe/London')->withoutOverlapping(60)->runInBackground()->name('player-commons-photos');
 Schedule::command('slideshow:photos')->dailyAt('05:10')->timezone('Europe/London')->withoutOverlapping(30)->runInBackground()->name('slideshow-photos');
 Schedule::command('slideshow:generate daily')->dailyAt('05:40')->timezone('Europe/London')->withoutOverlapping(30)->name('slideshow-daily');
 Schedule::command('slideshow:generate post_match')->everyTenMinutes()->withoutOverlapping(10)->name('slideshow-post-match');

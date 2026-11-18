@@ -80,17 +80,41 @@ standings[] (the competition's current table), stories[] {id, lang, status, mp4_
 
 ### GET /players
 
+`q` (name search: every word must appear, so `salah`, `mohamed salah` and `M. Salah` all find Mohamed Salah),
 `country` (FIFA code such as `NGA` or a name; includes confirmed heritage), `club` (team id or part of the name),
 `african=true` (only players we cover: an African nationality or a confirmed, sourced heritage record), `limit`.
 
 ```bash
 curl -s "https://matchday.africa/api/agent/players?african=true&club=Fulham" -H "Authorization: Bearer $MD_TOKEN"
+curl -s "https://matchday.africa/api/agent/players?q=ouazane" -H "Authorization: Bearer $MD_TOKEN"
 ```
 
 Each player: `nationality, nationality_code, in_african_scope, african_label` ("Nigeria", "of Ghanaian descent"),
 `heritage[] {country, kind, status, source_url}`, `season {goals, assists, league}` (Premier League only, from
 match events), `photo {url, credit, licence, licence_url, source_url, artist}` (licence-checked Wikimedia Commons
 photos only; null when there is none; always show the credit), `page_url`.
+
+### POST /players/{id}/photo and POST /player-photos (give a player a photo)
+
+When a story or slideshow shows flags because a player has no photo, find a free photo of them on Wikimedia
+Commons and attach it. The site checks it exactly as its own lookups do: the file must be on Commons (a
+`commons.wikimedia.org/wiki/File:…` page or an `upload.wikimedia.org/wikipedia/commons/…` image), a JPEG or PNG,
+at least 700 px wide, under CC0, public domain, CC BY or CC BY-SA. Anything else is refused with 422 and the
+reason (non-Commons URL, NC/ND or unknown licence, too small). English Wikipedia uploads are refused: many are
+fair-use.
+
+```bash
+# A player we have a row for (find the id with GET /players?q=): 201 {player_id, name, photo}
+curl -s -X POST "https://matchday.africa/api/agent/players/6850/photo" -H "Authorization: Bearer $MD_TOKEN" \
+  -H "Content-Type: application/json" -d '{"source_url":"https://commons.wikimedia.org/wiki/File:Alex_Iwobi_2023.jpg"}'
+# A player with no row (a national-team scorer): stored in the name library the stories also read
+curl -s -X POST "https://matchday.africa/api/agent/player-photos" -H "Authorization: Bearer $MD_TOKEN" \
+  -H "Content-Type: application/json" -d '{"name":"Abdellah Ouazane","source_url":"https://commons.wikimedia.org/wiki/File:…"}'
+```
+
+`photo` is `{url, credit, licence, licence_url, source_url, artist, title, library}`; `url` is the original on
+upload.wikimedia.org, the site keeps its own cropped copy. Commons unreachable or rate-limiting: 503, try later.
+A new photo is used from the next render: re-render the story with `POST /render` to see it.
 
 ### GET /radio
 
@@ -234,7 +258,12 @@ A `match_story` item:
   score counter. Text stays inside the TikTok safe zone (top 150 px, bottom 380 px, right 140 px clear):
   a render fails rather than break it.
 * Photos: only the licence-checked Wikimedia Commons library (credit stored and shown). No crests, broadcast
-  footage or agency photos.
+  footage or agency photos. The opening card features the winning (or last) scorer, then the top scorer, then the
+  best-rated African player, then anyone named in the match events; when the first choice has no photo, the
+  site looks them up on Commons (Wikidata image, else a Commons file named after them) and, if none is free,
+  the next player on that list who has one leads instead (up to `STORY_PHOTO_CANDIDATES`, 8). Only when nobody
+  has a photo does the card show the name and both flags. Every night at 02:40 London `players:commons-photos`
+  fills missing photos for players at clubs playing in the next three days.
 * Music: only `matchday_original_beat_v1.mp3`, looked for in `resources/audio/`, `storage/app/music/`
   or `STORY_MUSIC_PATH`. Until it is there, stories render silent and the studio says so.
   Check with `php artisan story:render --check`.

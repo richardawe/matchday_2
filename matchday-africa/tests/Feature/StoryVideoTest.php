@@ -308,7 +308,7 @@ class StoryVideoTest extends TestCase
         $this->assertSame($sent, count(Http::recorded()));
 
         // The opening card: the photo fills at least 60% of the frame with a Ken Burns push, the hook is at
-        // least 90 px, centred over the photo and on screen from frame 0; nothing sits in the top 250 px.
+        // least 90 px, centred over the photo and on screen from frame 0; nothing sits in the top safe margin (150 px).
         $scene = app(StoryFrames::class)->build($hook);
         $photo = collect($scene->items)->firstWhere('kind', 'photo');
         $this->assertNotNull($photo);
@@ -323,7 +323,7 @@ class StoryVideoTest extends TestCase
             $this->assertLessThan($photo['box'][3], $w['bottom']);
         }
         foreach (collect($scene->items)->where('kind', 'text') as $item) {
-            $this->assertGreaterThanOrEqual(250, $item['top'], $item['text']);
+            $this->assertGreaterThanOrEqual(\App\Design\Tokens::safe()['top'], $item['top'], $item['text']);
         }
         $this->assertSame('Photo: Sam Photographer / Wikimedia Commons / CC BY-SA 4.0', $scene->credit);
         $scene->destroy();
@@ -378,6 +378,45 @@ class StoryVideoTest extends TestCase
         $none = $this->match('Burnley', 'Fulham', [0, 0]);
         $this->iwobiAt($none->awayTeam);
         $this->assertNull($lead($none)); // no line-up or rating data: nobody is claimed
+    }
+
+    public function test_without_a_photo_for_the_scorer_the_next_player_with_a_photo_leads(): void
+    {
+        $planner = app(StoryPlanner::class);
+        $match = $this->match('Niger', 'Morocco', [0, 1]);
+        $this->event($match, 'goal', 'away', 22, 'Abdellah Ouazane');
+        $this->event($match, 'yellow_card', 'away', 40, 'Achraf Hakimi');
+        Player::create(['team_id' => $match->away_team_id, 'name' => 'Abdellah Ouazane', 'nationality' => 'Morocco', 'nationality_code' => 'MAR', 'is_active' => true]);
+        $hakimi = Player::create(['team_id' => $match->away_team_id, 'name' => 'Achraf Hakimi', 'nationality' => 'Morocco', 'nationality_code' => 'MAR', 'is_active' => true]);
+        // Nobody has a photo: the scorer leads (the hook then shows the name and flags).
+        $lead = $planner->leadPlayer($match, $planner->incidents($match), $planner->sides($match));
+        $this->assertSame(['Abdellah Ouazane', null], [$lead['name'], $lead['photo']]);
+        // Hakimi has a licensed photo: he leads, and the scorer is recorded as the one passed over.
+        $this->photo($hakimi);
+        $lead = $planner->leadPlayer($match, $planner->incidents($match), $planner->sides($match));
+        $this->assertSame('Achraf Hakimi', $lead['name']);
+        $this->assertSame('Abdellah Ouazane', $lead['fallback']);
+        $this->assertSame('CC BY-SA 4.0', $lead['photo']['licence']);
+    }
+
+    public function test_substitutions_make_a_changes_card_and_kick_off_shows_once(): void
+    {
+        $match = $this->match('Niger', 'Morocco', [0, 1]);
+        $match->forceFill(['venue_name' => 'Stade Prince Moulay Abdallah'])->save();
+        $this->event($match, 'goal', 'away', 22, 'Abdellah Ouazane');
+        MatchEvent::create(['football_data_id' => 990100, 'match_id' => $match->id, 'team_id' => $match->away_team_id, 'type' => 'substitution',
+            'minute' => 61, 'player_name' => 'Youssef En-Nesyri', 'related_player_name' => 'Yassir Zabiri']);
+        $planner = app(StoryPlanner::class);
+        $t = \App\Services\Story\StoryText::for('en');
+        $sides = $planner->sides($match->fresh());
+        $call = fn (string $method, ...$args) => (new \ReflectionMethod($planner, $method))->invoke($planner, ...$args);
+        $this->assertSame(["61' Yassir Zabiri on for Youssef En-Nesyri (Morocco)"], $call('changes', $match, $t, $sides));
+        // The build-up card names the venue and kick-off; the padding never repeats them.
+        $this->assertStringContainsString('Moulay Abdallah', json_encode($call('buildup', $match, $t, $sides, ['home' => null, 'away' => null])['lines']));
+        $goals = $planner->incidents($match)->where('type', 'goal')->values();
+        $pads = json_encode($call('padding', $match, $t, $sides, $goals));
+        $this->assertStringNotContainsString('Moulay Abdallah', $pads);
+        $this->assertStringNotContainsString('Kick-off', $pads);
     }
 
     public function test_a_story_never_shows_a_card_twice(): void

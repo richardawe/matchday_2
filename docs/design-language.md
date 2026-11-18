@@ -78,15 +78,17 @@ The MD square mark (`public/icons/icon-512.png`) top-left at x 80, y 124, 96 px,
 
 ![grid](design/hook.png)
 
-- **Safe zone:** top 250 px, bottom 380 px and right 140 px stay clear of text (TikTok, Reels and
-  YouTube Shorts UI); left margin 80. Text area x 80–940, y 250–1540. Every text box and flag is
+- **Safe zone:** top 150 px, bottom 380 px and right 140 px stay clear of text (TikTok, Reels and
+  YouTube Shorts UI; the owner's brief of 18 Nov, was top 250); left margin 80. Text area x 80–940, y 150–1540. Every text box and flag is
   checked when a card is laid out (`Film::check`); a box outside fails the render.
 - **Fill:** each card's body is a stack of blocks stretched to the safe zone (`Scene::stack`), so
-  content is centred and fills it. No frame may be more than **35%** bare backdrop inside the safe
+  content is centred and fills it, from the chips row to y 1540; text in a stretched panel grows to the
+  largest headline size (72 down to 56) that fits it, else stays body text. Kick-off and venue appear once
+  (on the build-up card), never again on a facts card. No frame may be more than **35%** bare backdrop inside the safe
   zone (`grid.max_empty`; measured on the pixels by the design check).
-- **Fixed positions:** scoreboard strip y 262–374; chips row (label chip left, minute tag right)
-  y 398–462; photo area = top 60% of the safe zone (y 250–1024); caption area y 1048–1540; photo
-  credit baseline y 1532; body stack from y 486.
+- **Fixed positions:** logo y 36 (inside the top margin, not text); scoreboard strip y 162–274; chips row
+  (label chip left, minute tag right) y 296–360; photo area y 150–984; caption area y 1008–1540; photo
+  credit baseline y 1532; body stack from y 384.
 
 ## 3. Components
 

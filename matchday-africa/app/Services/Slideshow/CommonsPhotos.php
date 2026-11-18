@@ -56,6 +56,8 @@ class CommonsPhotos
     {
         try {
             [$fileName, $qid] = $fileName ? [$fileName, null] : $this->wikidataImage($player);
+            // No Wikidata image: a Commons file named after the player (free licence still checked below).
+            $fileName ??= $this->commonsSearch($player->name)[0] ?? null;
             if (!$fileName) {
                 return $this->remember($player, ['status' => 'none', 'reason' => 'No unambiguous Wikidata footballer with an image.']);
             }
@@ -82,7 +84,7 @@ class CommonsPhotos
 
             return $this->remember($player, [
                 'status' => 'ok', 'path' => $path, 'crop' => $crop, 'wikidata' => $qid, 'title' => $info['title'],
-                'source_url' => $info['page'], 'licence' => $info['licence'], 'licence_url' => $info['licence_url'],
+                'url' => $info['url'], 'source_url' => $info['page'], 'licence' => $info['licence'], 'licence_url' => $info['licence_url'],
                 'artist' => $info['artist'], 'credit' => self::credit($info['artist'], $info['licence']),
                 'pinned' => $qid ? null : $fileName,
             ]);
@@ -211,8 +213,76 @@ class CommonsPhotos
         $crop = self::crop(imagesx($image), imagesy($image), self::BOX[0], self::BOX[1]);
         imagedestroy($image);
 
-        return ['path' => $path, 'crop' => $crop, 'title' => $info['title'], 'source_url' => $info['page'], 'licence' => $info['licence'],
+        return ['path' => $path, 'crop' => $crop, 'title' => $info['title'], 'url' => $info['url'], 'source_url' => $info['page'], 'licence' => $info['licence'],
             'licence_url' => $info['licence_url'], 'artist' => $info['artist'], 'credit' => self::credit($info['artist'], $info['licence'])];
+    }
+
+    /**
+     * Attaches a Commons file an editor or the agent chose to a player: the same licence and size
+     * checks as the lookups. Returns the stored photo record; throws InvalidArgumentException with
+     * the reason when the URL is not a Commons file or the file is not free to use.
+     */
+    public function attach(Player $player, string $sourceUrl): array
+    {
+        $file = self::fileFromUrl($sourceUrl) ?? throw new \InvalidArgumentException('Only Wikimedia Commons files can be used (commons.wikimedia.org/wiki/File:… or upload.wikimedia.org/wikipedia/commons/…).');
+        $this->assertUsable($file);
+        $photo = $this->lookup($player, $file);
+        if (!$photo) {
+            throw new \RuntimeException('Commons could not be reached; try again shortly.');
+        }
+
+        return $photo;
+    }
+
+    /** The same for a player we have no row for, in the name library (national-team scorers). */
+    public function attachName(string $name, string $sourceUrl): array
+    {
+        $file = self::fileFromUrl($sourceUrl) ?? throw new \InvalidArgumentException('Only Wikimedia Commons files can be used (commons.wikimedia.org/wiki/File:… or upload.wikimedia.org/wikipedia/commons/…).');
+        $this->assertUsable($file);
+        $photo = $this->pinName($name, $file);
+        if (!$photo) {
+            throw new \RuntimeException('Commons could not be reached; try again shortly.');
+        }
+
+        return $photo;
+    }
+
+    /** Throws InvalidArgumentException unless the file exists on Commons under a free licence and is large enough. */
+    private function assertUsable(string $file): void
+    {
+        $info = $this->imageInfo($file) ?? throw new \InvalidArgumentException("Commons has no JPEG or PNG image called {$file}.");
+        if (!self::freeLicence($info['licence'])) {
+            throw new \InvalidArgumentException("Licence not allowed: {$info['licence']}. Only CC0, public domain, CC BY and CC BY-SA files can be used.");
+        }
+        if ($info['width'] < (int) config('slideshow.commons.min_width', 700)) {
+            throw new \InvalidArgumentException("The image is {$info['width']} px wide; at least ".config('slideshow.commons.min_width', 700).' px is needed.');
+        }
+    }
+
+    /**
+     * The Commons file name in a Commons URL ("File:X.jpg" page, ?title=File:X.jpg, or an upload.wikimedia.org
+     * original or thumbnail), or null for anything else.
+     */
+    public static function fileFromUrl(string $url): ?string
+    {
+        $parts = parse_url(trim($url));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        if (($parts['scheme'] ?? '') !== 'https') {
+            return null;
+        }
+        $path = rawurldecode((string) ($parts['path'] ?? ''));
+        if ($host === 'commons.wikimedia.org' || $host === 'commons.m.wikimedia.org') {
+            parse_str((string) ($parts['query'] ?? ''), $query);
+            $title = preg_match('#^/wiki/(File:.+)$#i', $path, $m) ? $m[1] : (string) ($query['title'] ?? '');
+            $title = str_replace('_', ' ', $title);
+
+            return preg_match('/^File:(.+\.(jpe?g|png))$/i', $title, $m) ? $m[1] : null;
+        }
+        if ($host === 'upload.wikimedia.org' && preg_match('#^/wikipedia/commons/(?:thumb/)?[0-9a-f]/[0-9a-f]{2}/([^/]+\.(?:jpe?g|png))(?:/.*)?$#i', $path, $m)) {
+            return str_replace('_', ' ', $m[1]);
+        }
+
+        return null;
     }
 
     public static function freeLicence(?string $licence): bool
@@ -291,6 +361,7 @@ class CommonsPhotos
             'title' => (string) data_get(collect($pages)->first(), 'title', $title),
             'page' => (string) ($info['descriptionurl'] ?? 'https://commons.wikimedia.org/wiki/'.rawurlencode(str_replace(' ', '_', $title))),
             'thumb' => (string) ($info['thumburl'] ?? $info['url']),
+            'url' => (string) ($info['url'] ?? ''),
             'width' => (int) ($info['width'] ?? 0),
             'licence' => trim((string) data_get($meta, 'LicenseShortName.value', '')),
             'licence_url' => (string) data_get($meta, 'LicenseUrl.value', ''),
