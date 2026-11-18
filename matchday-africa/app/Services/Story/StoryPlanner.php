@@ -12,6 +12,7 @@ use App\Services\Slideshow\SlideshowFacts;
 use App\Support\AfricanScope;
 use App\Support\ClubName;
 use App\Support\PlayerNames;
+use App\Support\Substitutions;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -56,32 +57,46 @@ class StoryPlanner
         foreach ($incidents as $i => $incident) {
             $beats[] = ['type' => $incident['type'] === 'goal' ? 'goal' : 'red', 'keep' => true, 'rank' => 95] + $incident;
         }
-        // Optional beats, best first (rank): the lead scorer's record, the lead player's profile, the table
-        // and what it means, the next fixtures, other results that day, head-to-head (3+ meetings), key
-        // stats, form. The timing drops the lowest ranks when a story runs long.
+        // Optional beats, best first (rank): the lead player's and the decisive scorer's records, the lead
+        // player's profile, the table (stored standings, else a complete group from our results) and what it
+        // means, the next fixtures, head-to-head (3+ meetings; with one or two, the earlier meetings and their
+        // scorers), key stats, other results that day (one card), the verified changes, form. The timing
+        // drops the lowest ranks when a story runs long.
         if ($lead && ($record = $this->record($match, $t, $lead))) {
             $beats[] = ['type' => 'record', 'keep' => false, 'rank' => 80] + $record;
+        }
+        // The decisive scorer's record too, when the story opens on someone else (no photo of the scorer).
+        $scorer = $this->decisiveScorer($match, $goals);
+        if ($scorer && (!$lead || !PlayerNames::same($lead['name'], $scorer['name'])) && ($record = $this->record($match, $t, $scorer))) {
+            $beats[] = ['type' => 'record', 'keep' => false, 'rank' => 79] + $record;
         }
         if ($lead && ($profile = $this->profileBeat($match, $t, $lead, $sides))) {
             $beats[] = ['type' => 'player', 'keep' => false, 'rank' => 76] + $profile;
         }
         if ($table = $this->table($match, $t)) {
             $beats[] = ['type' => 'table', 'keep' => false, 'rank' => 72, 'title' => $t->t('table'), 'rows' => $table, 'note' => $this->tableNote($match, $t, $sides)];
+        } elseif ($group = $this->groupTable($match, $t)) {
+            $beats[] = ['type' => 'table', 'keep' => false, 'rank' => 72] + $group;
         }
         if ($next = $this->nextFixtures($match, $t)) {
             $beats[] = ['type' => 'next', 'keep' => false, 'rank' => 68, 'title' => $t->t('next_fixture'), 'lines' => $next];
         }
-        foreach ($this->elsewhere($match, $t) as $i => $chunk) {
-            $beats[] = ['type' => 'elsewhere', 'keep' => false, 'rank' => 64 - $i] + $chunk;
-        }
         if ($h2h = $this->headToHead($match, $t, $sides)) {
-            $beats[] = ['type' => 'h2h', 'keep' => false, 'rank' => 58] + $h2h;
+            $beats[] = ['type' => 'h2h', 'keep' => false, 'rank' => 66] + $h2h;
+        } elseif ($meetings = $this->earlierMeetings($match, $t)) {
+            $beats[] = ['type' => 'meetings', 'keep' => false, 'rank' => 66] + $meetings;
+        }
+        if ($elsewhere = $this->elsewhere($match, $t)) {
+            $beats[] = ['type' => 'elsewhere', 'keep' => false, 'rank' => 52] + $elsewhere;
         }
         if ($stats = $this->stats($match, $t)) {
             $beats[] = ['type' => 'stats', 'keep' => false, 'rank' => 55, 'title' => $t->t('key_stats'), 'rows' => $stats];
         }
         if ($changes = $this->changes($match, $t, $sides)) {
             $beats[] = ['type' => 'changes', 'keep' => false, 'rank' => 50, 'title' => $t->t('changes'), 'lines' => $changes];
+        }
+        if ($lineups = $this->lineups($match, $t, $sides)) {
+            $beats[] = ['type' => 'lineups', 'keep' => false, 'rank' => 47, 'title' => $t->t('lineups'), 'lines' => $lineups];
         }
         $form = ['home' => SlideshowFacts::form($match->homeTeam, $match), 'away' => SlideshowFacts::form($match->awayTeam, $match)];
         if ($form['home'] || $form['away']) {
@@ -326,15 +341,16 @@ class StoryPlanner
     }
 
     /** Substitutions from the match events: "61' Yassir Zabiri on for Youssef En-Nesyri (Morocco)", at most four, in order. */
+    /**
+     * The changes card: substitutions whose direction the match itself confirms (App\Support\Substitutions:
+     * line-ups, earlier and later goals and cards). Unverified ones are left out; with none left, no card.
+     */
     private function changes(FootballMatch $match, StoryText $t, array $sides): array
     {
-        return MatchEvent::where('match_id', $match->id)->where('type', 'substitution')
-            ->whereNotNull('player_name')->whereNotNull('related_player_name')
-            ->orderBy('minute')->orderBy('extra_minute')->orderBy('id')->limit(4)->get()
-            ->map(fn ($e) => $t->t('sub_on', ['min' => $e->minute.($e->extra_minute ? '+'.$e->extra_minute : '')."'",
-                'on' => trim((string) $e->related_player_name), 'off' => trim((string) $e->player_name),
-                'club' => $sides[$e->team_id === $match->away_team_id ? 'away' : 'home']['name']]))
-            ->all();
+        return Substitutions::oriented($match)->where('verified', true)->take(4)
+            ->map(fn ($s) => $t->t('sub_on', ['min' => $s['label'], 'on' => $s['on'], 'off' => $s['off'],
+                'club' => $sides[$s['team_id'] === $match->away_team_id ? 'away' : 'home']['name']]))
+            ->values()->all();
     }
 
     private function stats(FootballMatch $match, StoryText $t): array
@@ -729,11 +745,11 @@ class StoryPlanner
         return null;
     }
 
-    /** Other results in the same competition that day, four to a card (at most four cards). */
-    private function elsewhere(FootballMatch $match, StoryText $t): array
+    /** Other results in the same competition that day: one card of four, the highest-scoring first. */
+    private function elsewhere(FootballMatch $match, StoryText $t): ?array
     {
         if (!$match->league_id) {
-            return [];
+            return null;
         }
         $day = SlideshowFacts::kickoff($match)->format('Y-m-d');
         $others = FootballMatch::with(['homeTeam', 'awayTeam'])->where('league_id', $match->league_id)->where('id', '!=', $match->id)
@@ -741,9 +757,134 @@ class StoryPlanner
             ->whereBetween('match_date', [$day.' 00:00:00', $day.' 23:59:59'])->orderBy('match_date')->orderBy('id')->get();
         $title = $t->t('elsewhere', ['competition' => (string) ($match->league?->name ?: 'Football')]);
 
-        return $others->chunk(4)->take(4)->values()->map(fn ($chunk, $i) => ['title' => $title, 'part' => $i + 1,
-            'results' => $chunk->map(fn ($m) => ['home' => ClubName::short($m->homeTeam), 'away' => ClubName::short($m->awayTeam),
-                'score' => "{$m->home_score}-{$m->away_score}"])->values()->all()])->all();
+        if ($others->isEmpty()) {
+            return null;
+        }
+        $picked = $others->sortByDesc(fn ($m) => ($m->home_score + $m->away_score) * 100 - $others->search($m))->take(4)
+            ->sortBy(fn ($m) => $others->search($m));
+
+        return ['title' => $title, 'part' => 1,
+            'results' => $picked->map(fn ($m) => ['home' => ClubName::short($m->homeTeam), 'away' => ClubName::short($m->awayTeam),
+                'score' => "{$m->home_score}-{$m->away_score}"])->values()->all()];
+    }
+
+    /**
+     * One or two earlier meetings (too few for head-to-head counts): when and where, the score and its
+     * scorers, newest first. Null with none, or with three or more (the head-to-head card covers those).
+     */
+    private function earlierMeetings(FootballMatch $match, StoryText $t): ?array
+    {
+        $meetings = FootballMatch::with(['homeTeam', 'awayTeam'])->where('id', '!=', $match->id)
+            ->where('match_date', '<', $match->match_date)
+            ->where(fn ($q) => $q->where(fn ($q) => $q->where('home_team_id', $match->home_team_id)->where('away_team_id', $match->away_team_id))
+                ->orWhere(fn ($q) => $q->where('home_team_id', $match->away_team_id)->where('away_team_id', $match->home_team_id)))
+            ->whereIn('status', ['FINISHED', 'FT', 'AWARDED'])->whereNotNull('home_score')->whereNotNull('away_score')
+            ->orderByDesc('match_date')->limit(3)->get();
+        if ($meetings->isEmpty() || $meetings->count() >= 3) {
+            return null;
+        }
+        $lines = [];
+        foreach ($meetings as $m) {
+            $lines[] = $t->t('meeting_line', ['date' => SlideshowFacts::kickoff($m)->format('j M Y'), 'home' => ClubName::short($m->homeTeam),
+                'score' => "{$m->home_score}-{$m->away_score}", 'away' => ClubName::short($m->awayTeam)]);
+            $scorers = collect(SlideshowFacts::goals($m))->reject(fn ($g) => $g['own_goal'] || !$g['player'])
+                ->groupBy(fn ($g) => PlayerNames::surname((string) $g['player']))->map(fn ($g, $name) => $g->count() > 1 ? "{$name} {$g->count()}" : $name)->values();
+            if ($scorers->isNotEmpty()) {
+                $lines[] = $t->t('meeting_goals', ['list' => $scorers->join(', ')]);
+            }
+        }
+
+        return ['title' => $t->t($meetings->count() === 1 ? 'meeting_title_one' : 'meeting_title'), 'lines' => array_slice($lines, 0, 4)];
+    }
+
+    /**
+     * A group table from our own results, for competitions without stored standings (qualifying groups):
+     * only when this match's teams belong to a closed group in our data (3 to 6 teams that have played
+     * only each other in this competition over the last 300 days) and every team has played the same
+     * number of matches, so the table is complete. Null otherwise: never a partial table.
+     */
+    private function groupTable(FootballMatch $match, StoryText $t): ?array
+    {
+        if (!$match->league_id) {
+            return null;
+        }
+        $results = FootballMatch::with(['homeTeam', 'awayTeam'])->where('league_id', $match->league_id)
+            ->whereIn('status', ['FINISHED', 'FT', 'AWARDED'])->whereNotNull('home_score')->whereNotNull('away_score')
+            ->where('match_date', '<=', $match->match_date)->where('match_date', '>=', $match->match_date->copy()->subDays(300))->get();
+        $group = collect([$match->home_team_id]);
+        do {
+            $before = $group->count();
+            $group = $group->merge($results->filter(fn ($m) => $group->contains($m->home_team_id) || $group->contains($m->away_team_id))
+                ->flatMap(fn ($m) => [$m->home_team_id, $m->away_team_id]))->unique()->values();
+        } while ($group->count() !== $before && $group->count() <= 6);
+        if ($group->count() < 3 || $group->count() > 6 || !$group->contains($match->away_team_id)) {
+            return null;
+        }
+        $games = $results->filter(fn ($m) => $group->contains($m->home_team_id));
+        $rows = $group->mapWithKeys(fn ($id) => [$id => ['p' => 0, 'pts' => 0, 'gf' => 0, 'ga' => 0]])->all();
+        foreach ($games as $m) {
+            foreach ([[$m->home_team_id, $m->home_score, $m->away_score], [$m->away_team_id, $m->away_score, $m->home_score]] as [$id, $for, $against]) {
+                $rows[$id]['p']++;
+                $rows[$id]['gf'] += $for;
+                $rows[$id]['ga'] += $against;
+                $rows[$id]['pts'] += $for > $against ? 3 : ($for === $against ? 1 : 0);
+            }
+        }
+        if (count(array_unique(array_column($rows, 'p'))) !== 1) {
+            return null; // a team has a game in hand: the table would not be complete
+        }
+        $teams = $games->flatMap(fn ($m) => [$m->homeTeam, $m->awayTeam])->filter()->keyBy('id');
+        uksort($rows, fn ($a, $b) => [$rows[$b]['pts'], $rows[$b]['gf'] - $rows[$b]['ga'], $rows[$b]['gf'], ClubName::short($teams[$a])]
+            <=> [$rows[$a]['pts'], $rows[$a]['gf'] - $rows[$a]['ga'], $rows[$a]['gf'], ClubName::short($teams[$b])]);
+        $pos = 0;
+
+        return ['title' => $t->t('group_table'), 'note' => $t->t('group_note', ['n' => $games->count()]),
+            'rows' => collect($rows)->map(function ($r, $id) use (&$pos, $teams, $match) {
+                return ['pos' => ++$pos, 'name' => ClubName::short($teams[$id]), 'played' => $r['p'], 'pts' => $r['pts'],
+                    'side' => $id === $match->home_team_id ? 'home' : ($id === $match->away_team_id ? 'away' : null)];
+            })->values()->all()];
+    }
+
+    /**
+     * Both starting line-ups from the stored team sheets (API-Football, else ESPN), surnames in the
+     * provider's order (goalkeeper first), two lines a side. Only when both sides have eleven starters
+     * and can be told apart by name.
+     */
+    private function lineups(FootballMatch $match, StoryText $t, array $sides): array
+    {
+        $sheets = data_get($match->metadata, 'api_football_lineups') ?: data_get($match->metadata, 'espn_lineups') ?: [];
+        $lines = [];
+        foreach (['home' => $match->homeTeam, 'away' => $match->awayTeam] as $side => $team) {
+            $sheet = collect($sheets)->first(fn ($x) => $team && (ClubName::short($team) === ($x['team'] ?? null) || $team->name === ($x['team'] ?? null)
+                || str_contains(mb_strtolower((string) ($x['team'] ?? '')), mb_strtolower(ClubName::short($team)))));
+            $names = collect($sheet['starters'] ?? [])->pluck('name')->filter()->map(fn ($n) => PlayerNames::surname((string) $n))->values();
+            if ($names->count() !== 11) {
+                return [];
+            }
+            $label = $sides[$side]['name'].(!empty($sheet['formation']) ? ' ('.$sheet['formation'].')' : '');
+            $lines[] = $label.': '.$names->take(5)->join(', ');
+            $lines[] = $names->slice(5)->join(', ');
+        }
+
+        return $lines;
+    }
+
+    /** The scorer of the goal that decided it (the last goal in a draw), as a lead-like record subject. */
+    private function decisiveScorer(FootballMatch $match, Collection $goals): ?array
+    {
+        $h = (int) $match->home_score;
+        $a = (int) $match->away_score;
+        $winner = $h === $a ? null : ($h > $a ? 'home' : 'away');
+        $goal = $winner
+            ? $goals->first(fn ($g) => $g['side'] === $winner && ($winner === 'home' ? $g['home_after'] : $g['away_after']) === min($h, $a) + 1)
+            : $goals->last();
+        if (!$goal || $goal['own_goal'] || !$goal['player']) {
+            return null;
+        }
+        $teamId = $goal['side'] === 'home' ? $match->home_team_id : $match->away_team_id;
+
+        return ['name' => (string) $goal['player'], 'side' => $goal['side'],
+            'player' => Player::where('team_id', $teamId)->get()->first(fn (Player $p) => PlayerNames::same($p->name, (string) $goal['player']))];
     }
 
     public function banter(FootballMatch $match, StoryText $t, array $sides): string

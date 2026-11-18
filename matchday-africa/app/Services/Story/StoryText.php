@@ -35,6 +35,8 @@ class StoryText
             'record_title' => ':name in our records', 'record_line' => 'Scored v :opp, :date|:n goals v :opp, :date',
             'record_season' => ':n :league goal this season|:n :league goals this season', 'table_top' => ':club top the table on :pts points',
             'elsewhere' => 'Elsewhere in :competition',
+            'meeting_title' => 'Earlier meetings', 'meeting_title_one' => 'Last time they met', 'meeting_line' => ':date: :home :score :away',
+            'meeting_goals' => 'Goals: :list', 'lineups' => 'Starting line-ups', 'group_table' => 'Group table', 'group_note' => 'From all :n group results in our data',
             // Banter
             'banter_win' => ':winner fans, enjoy tonight. :loser fans, there is always next week.',
             'banter_win_big' => ':loser fans, maybe keep the phone off tonight.',
@@ -75,6 +77,8 @@ class StoryText
             'record_title' => ':name dans nos archives', 'record_line' => 'But contre :opp, :date|:n buts contre :opp, :date',
             'record_season' => ':n but en :league cette saison|:n buts en :league cette saison', 'table_top' => ':club en tête avec :pts points',
             'elsewhere' => 'Ailleurs en :competition',
+            'meeting_title' => 'Les dernières rencontres', 'meeting_title_one' => 'Leur dernière rencontre', 'meeting_line' => ':date : :home :score :away',
+            'meeting_goals' => 'Buts : :list', 'lineups' => 'Les compositions', 'group_table' => 'Classement du groupe', 'group_note' => 'D\'après les :n résultats du groupe dans nos données',
             'banter_win' => 'Supporters de :winner, profitez de la soirée. Ceux de :loser, il y a toujours la semaine prochaine.',
             'banter_win_big' => 'Supporters de :loser, mieux vaut éteindre le téléphone ce soir.',
             'banter_draw' => 'Match nul. Personne ne paie la première tournée ce soir.',

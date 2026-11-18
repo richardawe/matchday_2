@@ -261,18 +261,40 @@ final class Canvas
     {
         $real = realpath($file) ?: $file;
         foreach ((array) Tokens::get('images.banned_dirs') as $dir) {
-            if (str_starts_with($real, base_path($dir))) {
+            if (self::under($real, $dir)) {
                 throw new DesignViolation('Image rule: '.basename($file)." comes from {$dir} (crests or unlicensed photos).");
             }
         }
         foreach ((array) Tokens::get('images.own_render_dirs') as $dir) {
-            if (str_starts_with($real, base_path($dir))) {
+            if (self::under($real, $dir)) {
                 return;
             }
         }
         if (trim((string) $credit) === '') {
             throw new DesignViolation('Image rule: '.basename($file).' is not one of our renders and has no licence credit.');
         }
+    }
+
+    /**
+     * Whether $real lies in the token directory $dir. A "public/..." directory is also looked up under
+     * public_path(): production serves the public folder from APP_PUBLIC_PATH (public_html), outside
+     * base_path(), so public_path('images/radio/cover.png') is not under base_path('public/...').
+     */
+    private static function under(string $real, string $dir): bool
+    {
+        $roots = [base_path($dir)];
+        if (str_starts_with($dir, 'public/')) {
+            $roots[] = public_path(substr($dir, strlen('public/')));
+        }
+        foreach ($roots as $root) {
+            foreach (array_unique([$root, realpath($root) ?: $root]) as $r) {
+                if ($real === $r || str_starts_with($real, rtrim($r, '/').'/')) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /** Loads a PNG, JPEG or WebP. */

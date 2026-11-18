@@ -168,9 +168,18 @@ The reference images use `resources/design/samples.json`: the Niger v Morocco nu
   scoring"; 1-0 "One moment from <Player> settled it"; 0-0 "<team> had chances. Where was the finish?" (the side with more
   shots); otherwise "Who saw <winner> <score> coming?" / "<home> v <away>: who really deserved it?". An editor's hook
   (studio or `POST /api/agent/render`) always replaces it.
-- **Beats after the goals**, best first: the scorer's record in our data, the featured player's profile, the table, the
-  next fixtures, other results in the competition that day (four to a card), head-to-head (3+ meetings only), key stats,
-  form; then the final score and the match facts once each. Cuts of 3–5 s; over 75 s the lowest ranks drop.
+- **Beats after the goals**, best first: the featured player's record in our data and, when the story opens on someone
+  else, the decisive scorer's record; the featured player's profile; the table (stored standings, else a group table
+  built from our own results, only when the group is closed in our data, 3-6 teams, and every team has played the same
+  number of games: never a partial table); the next fixtures; head-to-head (3+ meetings) or, with one or two, the
+  earlier meetings with their scorers; key stats; other results in the competition that day (**one card**, the four
+  highest-scoring); the changes (only substitutions whose direction the match confirms, see below); the starting
+  line-ups (both sides with eleven starters); form; then the final score and the match facts once each. Cuts of 3-5 s;
+  over 75 s the lowest ranks drop.
+- **Substitutions** (`App\Support\Substitutions::oriented`): providers disagree on which name is coming on, so the
+  stored order is never trusted. A change is shown only when the match confirms its direction: the line-ups (a
+  starter is on the pitch, a named substitute on the bench), an earlier goal, assist or card (on the pitch), a later one
+  (did not go off), earlier verified changes. Unknown or contradictory evidence drops that change; none left, no card.
 - **Captions:** the hook, the result, one question, the tagged link, 2–4 hashtags including #MatchdayAfrica; the photo
   credit last when there is a licensed photo. No music credit (our own track).
 

@@ -1,7 +1,7 @@
 # Matchday Africa: agent guide
 
 Read this first. It is the project memory for coding agents (Codex reads `AGENTS.md`; Claude Code
-reads `CLAUDE.md`, which points here). Last updated 18 Nov 2026 (breaking news spot with agent endpoints; match-story opening card: full-frame photo, hook on a bottom gradient, hook never names a player the photo does not show; see section 7); before that 17 Nov 2026 (design language for video and social output, see section 7 "Design language"; match-story videos, the agent role and /api/agent: deployed, see section 7); before that 8 Nov 2026, after the social queue for the posting bot (social autopost off), Beat the Griot, the stream screen, YouTube LIVE
+reads `CLAUDE.md`, which points here). Last updated 18 Nov 2026 (radio video covers under public_html, substitution direction, one Elsewhere card; breaking news spot with agent endpoints; match-story opening card: full-frame photo, hook on a bottom gradient, hook never names a player the photo does not show; see section 7); before that 17 Nov 2026 (design language for video and social output, see section 7 "Design language"; match-story videos, the agent role and /api/agent: deployed, see section 7); before that 8 Nov 2026, after the social queue for the posting bot (social autopost off), Beat the Griot, the stream screen, YouTube LIVE
 and Shorts, player photos, social media uploads (PRs #55–#66), and club and player names in the Griot's words with a
 20-second commentary reel (see section 7 "Griot names and the commentary reel").
 
@@ -269,6 +269,26 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   `players:commons-photos` 02:40 London fills photos for clubs playing in the next 3 days (80 lookups, paced 1 s).
 - Safe zone top back to 150; scoreboard 162, chips 296, body from 384; panel text grows to headline size; kick-off and
   venue only on the build-up card.
+
+### Radio video covers, substitutions and story context (18 Nov 2026, owner's items 4-6)
+- radio_video renders failed in production with "Image rule: cover.png is not one of our renders": production serves
+  public/ from `APP_PUBLIC_PATH` (public_html), so `public_path('images/radio/cover.png')` was not under
+  `base_path('public/images/radio')`. `Canvas::assertImage` now also checks every `public/...` token directory under
+  `public_path()` (own renders and banned folders alike). Reproduced locally with edition 87 (rebuilt from its public
+  page and mp3) and a separate web root: fails before, renders 142.5 s after, design check passes
+  (`docs/design/checks/radio-87-video.*`). Re-render edition 87 from the Content studio after deploy.
+- ESPN `keyEvents` list a substitution's player coming **on** first ("Habib Diarra replaces Tymur Tutierov"); the mapper
+  stored that name as `player_name`, which the rest of the code (and football-data.org) reads as the player going off.
+  `EspnMatchMapper` now stores off/on correctly (event ids unchanged: they still hash the first participant). Rows saved
+  before the fix stay reversed; the next summary sync of a match rewrites its rows. Stories never trust the stored order:
+  `App\Support\Substitutions` checks each change against line-ups and goals/cards and drops what it cannot verify. The
+  match chronicle (`MythGrammarService`) still prints the stored order for old rows.
+- Stories: one "Elsewhere" card (the four highest-scoring other results); new beats: earlier meetings with scorers (1-2
+  meetings), the decisive scorer's record, a group table from our own results (closed, complete groups only), starting
+  line-ups. Match 5212 re-rendered locally: 63 s, 13 distinct cards, design check passes; it now shows the 13 Nov first
+  leg (Morocco 5-1 Niger, from public match page 5184), Hakimi's two goals there, and "61' Ayoub Oufkir on for Abdellah
+  Ouazane". No group table: our data holds only these two teams of the group. Production holds the same two AFCQ games, so
+  without the line-up card the story would fall short of 61 s.
 
 ### Breaking news spot (18 Nov 2026, owner's brief item 7)
 - Owner (Richard): the agent's breaking news goes live straight away (he approves its judgement here); every item is logged

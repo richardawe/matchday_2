@@ -444,19 +444,89 @@ class StoryVideoTest extends TestCase
         $match = $this->match('Niger', 'Morocco', [0, 1]);
         $match->forceFill(['venue_name' => 'Stade Prince Moulay Abdallah'])->save();
         $this->event($match, 'goal', 'away', 22, 'Abdellah Ouazane');
-        MatchEvent::create(['football_data_id' => 990100, 'match_id' => $match->id, 'team_id' => $match->away_team_id, 'type' => 'substitution',
-            'minute' => 61, 'player_name' => 'Youssef En-Nesyri', 'related_player_name' => 'Yassir Zabiri']);
+        $this->event($match, 'yellow_card', 'home', 90, 'Aboubacar Camara');
+        $sub = fn (int $minute, string $side, string $first, string $second) => MatchEvent::create(['football_data_id' => 990100 + MatchEvent::count(),
+            'match_id' => $match->id, 'team_id' => $side === 'home' ? $match->home_team_id : $match->away_team_id, 'type' => 'substitution',
+            'minute' => $minute, 'player_name' => $first, 'related_player_name' => $second]);
+        // As production stored them before the mapper fix: the player coming on in player_name.
+        $sub(61, 'away', 'Ayoub Oufkir', 'Abdellah Ouazane');   // Ouazane scored at 22': he went off
+        $sub(61, 'away', 'Youssef En-Nesyri', 'Yassir Zabiri');  // nothing tells which way: dropped
+        $sub(70, 'home', 'Aboubacar Camara', 'Mamane Sabo');     // the player going off first, but Camara is booked at 90': he came on
         $planner = app(StoryPlanner::class);
         $t = \App\Services\Story\StoryText::for('en');
         $sides = $planner->sides($match->fresh());
         $call = fn (string $method, ...$args) => (new \ReflectionMethod($planner, $method))->invoke($planner, ...$args);
-        $this->assertSame(["61' Yassir Zabiri on for Youssef En-Nesyri (Morocco)"], $call('changes', $match, $t, $sides));
+        $this->assertSame(["61' Ayoub Oufkir on for Abdellah Ouazane (Morocco)", "70' Aboubacar Camara on for Mamane Sabo (Niger)"],
+            $call('changes', $match, $t, $sides));
+
+        // With the line-ups the rest is settled too: Zabiri started, En-Nesyri was on the bench.
+        $match->forceFill(['metadata' => ['espn_lineups' => [
+            ['team' => 'Niger', 'starters' => [['name' => 'Mamane Sabo']], 'substitutes' => [['name' => 'Aboubacar Camara']]],
+            ['team' => 'Morocco', 'starters' => [['name' => 'Yassir Zabiri'], ['name' => 'Abdellah Ouazane']],
+                'substitutes' => [['name' => 'Youssef En-Nesyri'], ['name' => 'Ayoub Oufkir']]],
+        ]]])->save();
+        $this->assertSame(["61' Ayoub Oufkir on for Abdellah Ouazane (Morocco)", "61' Youssef En-Nesyri on for Yassir Zabiri (Morocco)",
+            "70' Aboubacar Camara on for Mamane Sabo (Niger)"], $call('changes', $match->fresh(), $t, $sides));
+
+        // Evidence that contradicts itself (a bench player who scored before coming on) drops the change.
+        $other = $this->match('Arsenal', 'Chelsea', [1, 0], when: '2026-11-16 15:00:00');
+        $other->forceFill(['metadata' => ['espn_lineups' => [['team' => 'Arsenal', 'starters' => [['name' => 'Bukayo Saka']], 'substitutes' => [['name' => 'Ethan Nwaneri']]]]]])->save();
+        $this->event($other, 'goal', 'home', 10, 'Ethan Nwaneri');
+        MatchEvent::create(['football_data_id' => 990200, 'match_id' => $other->id, 'team_id' => $other->home_team_id, 'type' => 'substitution',
+            'minute' => 60, 'player_name' => 'Bukayo Saka', 'related_player_name' => 'Ethan Nwaneri']);
+        $this->assertSame([], $call('changes', $other->fresh(), $t, $planner->sides($other->fresh())));
+
         // The build-up card names the venue and kick-off; the padding never repeats them.
         $this->assertStringContainsString('Moulay Abdallah', json_encode($call('buildup', $match, $t, $sides, ['home' => null, 'away' => null])['lines']));
         $goals = $planner->incidents($match)->where('type', 'goal')->values();
         $pads = json_encode($call('padding', $match, $t, $sides, $goals));
         $this->assertStringNotContainsString('Moulay Abdallah', $pads);
         $this->assertStringNotContainsString('Kick-off', $pads);
+    }
+
+    public function test_one_elsewhere_card_and_the_time_goes_to_meetings_records_and_a_complete_group_table(): void
+    {
+        config(['story.min_seconds' => 1]); // thin test data: look at which beats are chosen, not the length
+        $afcq = League::create(['football_data_id' => 9001, 'short_code' => 'AFCQ', 'name' => 'AFCON Qualifying']);
+        $match = $this->match('Niger', 'Morocco', [0, 1], $afcq, '2026-11-17 20:00:00');
+        $this->event($match, 'goal', 'away', 22, 'Abdellah Ouazane');
+        // Twelve other results that day: one card of four, the highest-scoring ones.
+        foreach (range(1, 12) as $i) {
+            $this->match("Home {$i}", "Away {$i}", [$i % 4, 0], $afcq, '2026-11-17 15:00:00');
+        }
+        // The first leg four days earlier, with its scorers: Ouazane scored there too.
+        $first = $this->match('Morocco', 'Niger', [5, 1], $afcq, '2026-11-13 20:00:00');
+        foreach ([[4, 'home', 'Yassir Zabiri'], [27, 'home', 'Achraf Hakimi'], [41, 'away', 'Mohamed Abdouramane'], [45, 'home', 'Achraf Hakimi'],
+            [77, 'home', 'Abdellah Ouazane'], [90, 'home', 'Ayoub Oufkir']] as [$min, $side, $who]) {
+            $this->event($first, 'goal', $side, $min, $who);
+        }
+        $plan = app(StoryPlanner::class)->plan($match->fresh(['homeTeam', 'awayTeam', 'league']));
+        $types = array_column($plan['beats'], 'type');
+        $this->assertSame(1, count(array_keys($types, 'elsewhere')));
+        $elsewhere = collect($plan['beats'])->firstWhere('type', 'elsewhere');
+        $this->assertCount(4, $elsewhere['results']);
+        $this->assertSame(['2-0', '3-0', '3-0', '3-0'], array_column($elsewhere['results'], 'score')); // the highest-scoring four, in kick-off order
+        $meetings = collect($plan['beats'])->firstWhere('type', 'meetings');
+        $this->assertSame(['Last time they met', ['13 Nov 2026: Morocco 5-1 Niger', 'Goals: Zabiri, Hakimi 2, Abdouramane, Ouazane, Oufkir']],
+            [$meetings['title'], $meetings['lines']]);
+        $record = collect($plan['beats'])->firstWhere('type', 'record');
+        $this->assertSame('Ouazane in our records', $record['title']);
+        // Only two teams of the group in our data: no group table rather than a partial one.
+        $this->assertNotContains('table', $types);
+
+        // A closed four-team group with every team on two games: the table from our results.
+        $group = League::create(['football_data_id' => 9002, 'short_code' => 'AFCQB', 'name' => 'AFCON Qualifying B']);
+        $g = $this->match('Ghana', 'Sudan', [2, 0], $group, '2026-11-17 18:00:00');
+        $this->match('Angola', 'Niger B', [1, 1], $group, '2026-11-17 18:00:00');
+        $this->match('Sudan', 'Angola', [0, 1], $group, '2026-11-13 18:00:00');
+        $this->match('Niger B', 'Ghana', [0, 3], $group, '2026-11-13 18:00:00');
+        $table = collect(app(StoryPlanner::class)->plan($g->fresh(['homeTeam', 'awayTeam', 'league']))['beats'])->firstWhere('type', 'table');
+        $this->assertSame('Group table', $table['title']);
+        $this->assertSame([['Ghana', 2, 6], ['Angola', 2, 4], ['Niger B', 2, 1], ['Sudan', 2, 0]],
+            array_map(fn ($r) => [$r['name'], $r['played'], $r['pts']], $table['rows']));
+        // A game in hand anywhere in the group: no table.
+        $this->match('Ghana', 'Angola', [1, 0], $group, '2026-11-16 18:00:00');
+        $this->assertNotContains('table', array_column(app(StoryPlanner::class)->plan($g->fresh(['homeTeam', 'awayTeam', 'league']))['beats'], 'type'));
     }
 
     public function test_a_story_never_shows_a_card_twice(): void
