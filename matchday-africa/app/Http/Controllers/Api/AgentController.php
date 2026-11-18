@@ -17,6 +17,7 @@ use App\Models\Standing;
 use App\Models\StoryVideo;
 use App\Models\User;
 use App\Models\UserPrediction;
+use App\Services\Agent\AgentMedia;
 use App\Services\BreakingNewsDesk;
 use App\Services\RadioVideo;
 use App\Services\Slideshow\CommonsPhotos;
@@ -520,6 +521,36 @@ class AgentController extends Controller
         $b->update(['status' => 'queued', 'stage' => 'script', 'attempts' => 0]);
 
         return response()->json($this->edition($b->fresh()) + ['status_url' => SocialQueue::https(route('api.agent.radio.show', $b))], 202);
+    }
+
+    // ------------------------------------------------------------------ media
+
+    /**
+     * POST /api/agent/media (multipart: file = an mp4 up to 200 MB, render_id = "story:45" or "slideshow:7",
+     * optional): stored at /generated/agent/{uuid}.mp4, served by the host as video/mp4 with byte ranges, and
+     * deleted after 7 days. Returns 201 with the public https URL.
+     */
+    public function mediaStore(Request $request, AgentMedia $media): JsonResponse
+    {
+        $file = $request->file('file');
+        if ($file && !$file->isValid()) {
+            // PHP refused the upload (upload_max_filesize / post_max_size on the server, or a partial upload).
+            return response()->json(['message' => 'The upload did not arrive: '.$file->getErrorMessage()
+                .' The server accepts up to '.ini_get('upload_max_filesize').' per file ('.ini_get('post_max_size').' per request).',
+                'errors' => ['file' => [$file->getErrorMessage()]]], $file->getError() === UPLOAD_ERR_INI_SIZE || $file->getError() === UPLOAD_ERR_FORM_SIZE ? 413 : 422);
+        }
+        $data = $request->validate([
+            'file' => ['required', 'file', 'max:'.AgentMedia::MAX_KB, 'mimetypes:video/mp4,application/mp4'],
+            'render_id' => ['nullable', 'string', 'regex:/^(story|slideshow):\d+$/'],
+        ], ['file.max' => 'The video may be at most 200 MB.', 'file.mimetypes' => 'Only MP4 video (video/mp4) is accepted.']);
+        if (!AgentMedia::looksLikeMp4($file->getRealPath())) {
+            return response()->json(['message' => 'Only MP4 video (video/mp4) is accepted.', 'errors' => ['file' => ['The file is not an MP4 container.']]], 422);
+        }
+        if (!empty($data['render_id']) && !AgentMedia::render($data['render_id'])) {
+            return response()->json(['message' => 'Unknown render id.', 'errors' => ['render_id' => ['No render with that id.']]], 422);
+        }
+
+        return response()->json($media->store($file, $request->user(), $data['render_id'] ?? null), 201);
     }
 
     // ------------------------------------------------------------------ breaking news

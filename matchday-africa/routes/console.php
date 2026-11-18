@@ -70,3 +70,4 @@ Schedule::command('matches:enrich-events')->everyThirtyMinutes()->withoutOverlap
 Schedule::command('statsbomb:import-open')->weeklyOn(1,'01:30')->withoutOverlapping(120)->name('statsbomb-open-data-weekly');
 Schedule::command('matchday:send-digest')->dailyAt('08:00')->withoutOverlapping(30)->name('matchday-digest');
 Schedule::call(fn()=>\App\Models\WarRoom::where('expires_at','<',now())->delete())->hourly()->name('war-clean-expired-rooms');
+Schedule::command('agent:media-prune')->hourly()->withoutOverlapping(30)->name('agent-media-prune');
