@@ -104,20 +104,46 @@ Each edition: `audio_url` (static mp3), `video_url` (when the radio video exists
 `running_order[] {position, text, start, end, stories[] {headline, source, url, rumour}}`, `disclosure`
 (the AI/voice line that must go with any post).
 
+### GET /radio/{id}, POST /radio/{id}/retry, POST /radio (making editions)
+
+```bash
+# Any edition's state, queued and failed ones included: status, stage, attempts, failure_reason
+curl -s https://matchday.africa/api/agent/radio/87 -H "Authorization: Bearer $MD_TOKEN"
+# Re-queue a FAILED edition (as Server operations radio-retry): 202, then poll status_url
+curl -s -X POST https://matchday.africa/api/agent/radio/87/retry -H "Authorization: Bearer $MD_TOKEN"
+# A fresh edition outside the 06:00/12:00/18:00 WAT slots, from the facts available now: 202
+curl -s -X POST https://matchday.africa/api/agent/radio -H "Authorization: Bearer $MD_TOKEN"
+```
+
+The server's minute worker (`radio:work`) writes the script, runs the script checks and the fact review, voices it and,
+with auto-publish on, publishes it; poll `GET /radio/{id}` until `status` is `published` or `failed` (a few minutes).
+Every check still applies: a script that repeats a story or adds a detail the facts don't support fails, and
+`failure_reason` says why. Rules: one edition in the queue at a time (`409` with the busy edition), at most
+`RADIO_AGENT_EXTRA_PER_DAY` (4) extra editions a Lagos day (`429`), only `failed` editions are retried, and not
+once they are six hours old (`409`: start a fresh one instead). `503` while radio is off.
+
 ### GET /articles
 
 `status=draft|published|archived`, `limit`. Drafts included. `url` is set for published articles only.
 
-### POST /articles (draft only)
+### POST /articles and PATCH /articles/{id} (publish the agent's own articles)
 
 ```bash
 curl -s -X POST https://matchday.africa/api/agent/articles -H "Authorization: Bearer $MD_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"title":"Iwobi rescues Fulham","content":"<p>…</p>","excerpt":"…","match_id":123,"sources":["https://…"]}'
+  -d '{"title":"Iwobi rescues Fulham","content":"<p>…</p>","excerpt":"…","match_id":123,"sources":["https://…"],"publish":true}'
+curl -s -X PATCH https://matchday.africa/api/agent/articles/42 -H "Authorization: Bearer $MD_TOKEN" \
+  -H "Content-Type: application/json" -d '{"title":"…","publish":false}'
 ```
 
-Always saved as a **draft** (a `status` field is ignored). An editor publishes it from `/admin/blogs`.
-Returns `201` with the article.
+A draft unless `"publish": true` (then live at once, `url` set). `PATCH` edits `title`, `content`, `excerpt` and
+publishes or unpublishes (`publish`) articles **the agent created**; a person's article answers `403`. Returns `201` /
+`200` with the article. (In the admin, `/admin/blogs` still saves the agent's work as drafts.)
+
+### POST /slideshows/{id}/approve
+
+Puts a ready slideshow live (its page, the reels feed, the social queue and YouTube), as an editor's approval does.
+`409` until it is rendered.
 
 ### GET /predictions
 

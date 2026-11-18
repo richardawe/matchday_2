@@ -25,6 +25,7 @@ Route::prefix('agent')->name('api.agent.')->middleware(['throttle:agent-api', Ap
         Route::get('/matches', 'matches')->name('matches');
         Route::get('/players', 'players')->name('players');
         Route::get('/radio', 'radio')->name('radio');
+        Route::get('/radio/{id}', 'radioEdition')->whereNumber('id')->name('radio.show');
         Route::get('/articles', 'articles')->name('articles');
         Route::get('/predictions', 'predictions')->name('predictions');
         Route::get('/analytics', 'analytics')->name('analytics');
@@ -34,5 +35,9 @@ Route::prefix('agent')->name('api.agent.')->middleware(['throttle:agent-api', Ap
             Route::post('/render', 'render')->name('render');
             Route::post('/social-queue/{id}/posted', 'socialQueuePosted')->where('id', '[A-Za-z]+:[0-9]+')->name('social-queue.posted');
             Route::post('/articles', 'storeArticle')->name('articles.store');
+            Route::patch('/articles/{id}', 'updateArticle')->whereNumber('id')->name('articles.update');
+            Route::post('/slideshows/{id}/approve', 'approveSlideshow')->whereNumber('id')->name('slideshows.approve');
+            Route::post('/radio', 'radioCreate')->name('radio.store');
+            Route::post('/radio/{id}/retry', 'radioRetry')->whereNumber('id')->name('radio.retry');
         });
     });
