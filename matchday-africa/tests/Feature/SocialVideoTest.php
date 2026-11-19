@@ -269,4 +269,75 @@ class SocialVideoTest extends TestCase
         $this->post('/api/social-queue/videos', ['file' => $this->upload(), 'title' => 'Doc'], $this->api())->assertCreated();
         $this->assertSame(0, \App\Models\FootballMatch::whereNotNull('youtube_video_id')->count());
     }
+    // ---------------------------------------------------------------- storage cleanup
+
+    public function test_prune_deletes_only_files_idle_for_30_days_and_keeps_row_poster_and_page(): void
+    {
+        $make = function (string $title, bool $featured, string $status, array $extra = []) {
+            $video = app(SocialVideos::class)->create($this->upload(), null, ['title' => $title, 'type' => 'documentary', 'featured' => $featured] + $extra, 240, null, 'admin', $status);
+            File::put($video->directory().'/poster.jpg', 'jpg');
+            $video->update(['poster_path' => "generated/videos/{$video->id}/poster.jpg"]);
+
+            return $video->fresh();
+        };
+        $plain = $make('Old plain doc', false, 'approved', ['tiktok_url' => 'https://www.tiktok.com/@matchday/video/1']);
+        $off = $make('Old taken down', true, 'off');
+        $featured = $make('Old featured', true, 'approved');
+        $queued = $make('Old queued', false, 'queued');
+        $recent = $make('Recent plain doc', false, 'approved');
+
+        $this->assertNotNull($plain->idle_since);
+        $this->assertNotNull($off->idle_since);
+        $this->assertNull($featured->idle_since);
+        $this->assertNull($queued->idle_since);
+
+        // Featured and queued rows are never idle, however old; force old timestamps to prove it.
+        foreach ([$plain, $off, $featured, $queued] as $v) {
+            SocialVideo::whereKey($v->id)->update(['idle_since' => $v->isIdle() ? now()->subDays(31) : null, 'updated_at' => now()->subDays(40)]);
+        }
+        SocialVideo::whereKey($recent->id)->update(['idle_since' => now()->subDays(29)]);
+
+        $this->artisan('videos:prune-files')->assertSuccessful();
+
+        foreach ([$plain, $off] as $v) {
+            $v->refresh();
+            $this->assertFileDoesNotExist($v->publicVideoPath());
+            $this->assertFileExists($v->directory().'/poster.jpg');
+            $this->assertNotNull($v->video_removed_at);
+        }
+        foreach ([$featured, $queued, $recent] as $v) {
+            $this->assertFileExists($v->fresh()->publicVideoPath());
+            $this->assertNull($v->fresh()->video_removed_at);
+        }
+        $this->assertSame(5, SocialVideo::count());
+
+        // The page stays: poster and the TikTok link instead of the player; the taken-down one stays hidden.
+        $this->get("/reels/videos/{$plain->id}")->assertOk()
+            ->assertSee("generated/videos/{$plain->id}/poster.jpg", false)
+            ->assertSee('https://www.tiktok.com/@matchday/video/1', false)
+            ->assertSee('Watch it on TikTok')
+            ->assertDontSee("generated/videos/{$plain->id}/video.mp4", false);
+        $this->get("/reels/videos/{$off->id}")->assertNotFound();
+        $this->get("/reels/videos/{$featured->id}")->assertOk()->assertSee("generated/videos/{$featured->id}/video.mp4", false);
+    }
+
+    public function test_featuring_or_queueing_clears_the_idle_clock(): void
+    {
+        $video = app(SocialVideos::class)->create($this->upload(), null, ['title' => 'Clock', 'type' => 'other'], 240, null, 'admin', 'approved');
+        $this->assertNotNull($video->fresh()->idle_since);
+        $video->update(['featured' => true]);
+        $this->assertNull($video->fresh()->idle_since);
+        $video->update(['featured' => false]);
+        $this->assertNotNull($video->fresh()->idle_since);
+        app(SocialVideos::class)->setStatus($video->fresh(), 'queued');
+        $this->assertNull($video->fresh()->idle_since);
+    }
+
+    public function test_prune_is_scheduled_daily(): void
+    {
+        $events = collect(app(\Illuminate\Console\Scheduling\Schedule::class)->events())
+            ->filter(fn ($e) => str_contains((string) $e->command, 'videos:prune-files'));
+        $this->assertCount(1, $events);
+        $this->assertSame('20 3 * * *', $events->first()->expression);
+    }
 }

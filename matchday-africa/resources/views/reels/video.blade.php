@@ -3,7 +3,14 @@
 <section class="md-reels md-reel-page" aria-labelledby="video-title">
     <div class="md-wrap md-reels-grid">
         <div class="md-reels-player">
+            @if($video->hasVideo())
             <video controls playsinline preload="metadata" @if($video->posterUrl()) poster="{{ $video->posterUrl() }}" @endif src="{{ $video->videoUrl() }}" aria-label="{{ $video->title }}">Your browser can't play this video.</video>
+            @else
+            @if($video->externalUrl())<a href="{{ $video->externalUrl() }}" target="_blank" rel="noopener" class="md-video-archived">@endif
+            @if($video->posterUrl())<img src="{{ $video->posterUrl() }}" alt="{{ $video->title }}" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block">@endif
+            @if($video->externalUrl())</a>@endif
+            @if($video->externalUrl())<p class="md-reels-now"><a href="{{ $video->externalUrl() }}" target="_blank" rel="noopener">Watch it on {{ $video->tiktok_url ? 'TikTok' : 'YouTube' }}</a></p>@endif
+            @endif
         </div>
         <div class="md-reels-copy">
             <p class="md-eyebrow">{{ strtoupper($video->typeLabel()) }}@if($video->lengthLabel()) · {{ strtoupper($video->lengthLabel()) }}@endif</p>

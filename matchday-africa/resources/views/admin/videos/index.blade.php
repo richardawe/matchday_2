@@ -52,6 +52,7 @@
      <small>{{ $video->typeLabel() }} · {{ $video->lengthLabel() ?? 'length unknown' }} · {{ $video->source === 'api' ? 'from the bot' : 'by '.($video->uploader?->name ?? 'an admin') }} · {{ $video->created_at?->setTimezone('Africa/Lagos')->format('j M H:i') }}</small>
      @if($video->hasVideo())<br><video controls preload="none" playsinline @if($video->posterUrl()) poster="{{ $video->posterUrl() }}" @endif src="{{ $video->videoUrl() }}" style="width:8rem;aspect-ratio:9/16;background:#000;margin-top:.4rem"></video>
       <br><a href="{{ $video->pageUrl() }}" target="_blank" rel="noopener">Page</a> · <a href="{{ $video->videoUrl() }}" target="_blank" rel="noopener">mp4</a>
+     @elseif($video->videoRemoved())<br><small>mp4 deleted {{ $video->video_removed_at->setTimezone('Africa/Lagos')->format('j M') }} after 30 idle days; the page shows the poster@if($video->externalUrl()) and the TikTok/YouTube link@endif.</small> <a href="{{ $video->pageUrl() }}" target="_blank" rel="noopener">Page</a>
      @else<br><b>The file is missing.</b>@endif
     </td>
     <td>{{ ['approved' => 'Page live, not on the queue', 'queued' => 'On the social queue', 'off' => 'Taken down'][$video->status] ?? $video->status }}<br>{{ $video->featured ? 'Featured' : 'Not featured' }}</td>

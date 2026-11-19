@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\Schema;
  *
  * status: approved (public page, not on the social queue), queued (public page and on the social
  * queue as "video:<id>"), off (taken down: no page, no row, no queue item).
+ *
+ * idle_since: when it went off, or was left neither featured nor queued (stamped on save, cleared when it
+ * is featured or queued again). videos:prune-files deletes the mp4 after 30 idle days and stamps
+ * video_removed_at; the row, poster and page stay (the page then shows the poster and the TikTok/YouTube link).
  */
 class SocialVideo extends Model
 {
@@ -24,13 +28,55 @@ class SocialVideo extends Model
     protected $fillable = [
         'title', 'caption', 'captions', 'description', 'duration_seconds', 'type', 'campaign', 'featured', 'sort_order',
         'credits', 'landing_path', 'video_path', 'poster_path', 'video_bytes', 'tiktok_url', 'youtube_url', 'status',
-        'source', 'uploaded_by', 'queued_at',
+        'source', 'uploaded_by', 'queued_at', 'idle_since', 'video_removed_at',
     ];
 
     protected $casts = [
         'captions' => 'array', 'featured' => 'boolean', 'sort_order' => 'integer', 'duration_seconds' => 'float',
-        'video_bytes' => 'integer', 'queued_at' => 'datetime',
+        'video_bytes' => 'integer', 'queued_at' => 'datetime', 'idle_since' => 'datetime', 'video_removed_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (SocialVideo $video) {
+            if (!self::tracksIdle()) {
+                return;
+            }
+            if ($video->isIdle()) {
+                $video->idle_since ??= now();
+            } else {
+                $video->idle_since = null;
+            }
+        });
+    }
+
+    private static function tracksIdle(): bool
+    {
+        return self::ready() && Schema::hasColumn('social_videos', 'idle_since');
+    }
+
+    /** Taken down, or neither featured nor queued: its mp4 may be deleted after 30 days. */
+    public function isIdle(): bool
+    {
+        return $this->status === 'off' || (!$this->featured && $this->status !== 'queued');
+    }
+
+    public function scopeIdle(Builder $query): Builder
+    {
+        return $query->where(fn ($q) => $q->where('status', 'off')->orWhere(fn ($q) => $q->where('featured', false)->where('status', '!=', 'queued')));
+    }
+
+    /** The mp4 was deleted by videos:prune-files. */
+    public function videoRemoved(): bool
+    {
+        return $this->video_removed_at !== null && !$this->hasVideo();
+    }
+
+    /** Where to watch once the file is gone: TikTok first, then YouTube. */
+    public function externalUrl(): ?string
+    {
+        return $this->tiktok_url ?: ($this->youtube_url ?: null);
+    }
 
     public static function ready(): bool
     {
@@ -70,7 +116,7 @@ class SocialVideo extends Model
 
     public function isPublic(): bool
     {
-        return in_array($this->status, ['approved', 'queued'], true) && $this->hasVideo();
+        return in_array($this->status, ['approved', 'queued'], true) && ($this->hasVideo() || $this->videoRemoved());
     }
 
     public function videoUrl(): ?string

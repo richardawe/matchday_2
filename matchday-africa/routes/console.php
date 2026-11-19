@@ -71,3 +71,4 @@ Schedule::command('statsbomb:import-open')->weeklyOn(1,'01:30')->withoutOverlapp
 Schedule::command('matchday:send-digest')->dailyAt('08:00')->withoutOverlapping(30)->name('matchday-digest');
 Schedule::call(fn()=>\App\Models\WarRoom::where('expires_at','<',now())->delete())->hourly()->name('war-clean-expired-rooms');
 Schedule::command('agent:media-prune')->hourly()->withoutOverlapping(30)->name('agent-media-prune');
+Schedule::command('videos:prune-files')->dailyAt('03:20')->timezone('Europe/London')->withoutOverlapping(30)->name('videos-prune-files');
