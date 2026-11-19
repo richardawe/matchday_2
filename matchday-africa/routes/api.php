@@ -10,6 +10,9 @@ Route::get('/social-queue', [SocialQueueController::class, 'index'])
 Route::post('/social-queue/{id}/posted', [SocialQueueController::class, 'posted'])
     ->where('id', '[A-Za-z]+:[0-9]+')
     ->middleware(['throttle:social-queue-write', SocialQueueToken::class])->name('api.social-queue.posted');
+// A long video from the bot: multipart mp4 → public/generated/videos/{id}/video.mp4, /reels/videos/{id}, queue item video:<id>.
+Route::post('/social-queue/videos', [App\Http\Controllers\Api\SocialVideoController::class, 'store'])
+    ->middleware(['throttle:social-queue-write', SocialQueueToken::class])->name('api.social-queue.videos');
 
 // Matchday Radio for the posting bot: a day's published editions, mp3 and vertical mp4 (same bearer token).
 Route::middleware(['throttle:social-queue-read', SocialQueueToken::class])->group(function () {

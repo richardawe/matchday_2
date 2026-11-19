@@ -24,6 +24,8 @@ use Throwable;
  *   - every published Matchday Radio edition whose vertical video is rendered ("radio:<id>"), with the
  *     static mp4 and mp3, per-platform captions, the /listen page tagged utm_campaign=radio and the
  *     AI/Kokoro disclosure. Holding (withdrawing) an edition drops it;
+ *   - every long video an editor or the bot put on the queue ("video:<id>", SocialVideos), with its
+ *     static mp4, per-platform captions, credits and the landing page tagged with its campaign.
  *   - every ready match-story video ("story:<id>", type match_story, 61-75 s after full time) and
  *     story radio video (type radio_video; it replaces that edition's "radio:<id>" item), with
  *     duration_seconds, hook, captions per channel tagged utm_campaign=story, hashtags and the photo credit.
@@ -48,6 +50,7 @@ class SocialQueue
     public function items(): Collection
     {
         $items = $this->reelItems()->concat($this->growthItems())->concat($this->slideshowItems())->concat($this->radioItems())->concat($this->storyItems())
+            ->concat(app(SocialVideos::class)->queueItems($this->since()))
             ->sortByDesc(fn ($item) => $item['created_at'])->values();
         $posted = self::ready()
             ? SocialQueuePost::whereIn('subject', $items->pluck('id'))->get()->groupBy('subject')
@@ -291,8 +294,8 @@ class SocialQueue
             return $show->youtube_video_id ? ['posted' => true, 'posted_at' => self::iso($show->youtube_uploaded_at), 'external_post_id' => $show->youtube_video_id,
                 'url' => $item['youtube_url'], 'source' => 'youtube_upload'] : null;
         }
-        if (isset($item['_slideshow']) || isset($item['_radio']) || isset($item['_story'])) {
-            return null; // The site never posted slideshows, radio videos or stories itself.
+        if (isset($item['_slideshow']) || isset($item['_radio']) || isset($item['_story']) || isset($item['_video'])) {
+            return null; // The site never posted slideshows, radio videos, stories or long videos itself.
         }
         if ($channel === 'youtube') {
             $match = $item['_match'] ?? null;
