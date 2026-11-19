@@ -67,6 +67,11 @@ class SlideshowFacts
         if (!$team) {
             return null;
         }
+        // The teams table is the source (design language): both colours when they are stored as hex.
+        $stored = array_values(array_filter([$team->primary_color, $team->secondary_color], fn ($c) => is_string($c) && preg_match('/^#[0-9a-f]{6}$/i', trim($c))));
+        if (count($stored) === 2) {
+            return array_map('strtoupper', array_map('trim', $stored));
+        }
         if ($army = Armies::for($team)) {
             return array_slice($army['colours'], 0, 2);
         }

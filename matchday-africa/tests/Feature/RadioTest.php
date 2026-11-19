@@ -257,6 +257,20 @@ class RadioTest extends TestCase
         (new RadioScript($editor))->write([$fact]);
     }
 
+    public function test_the_writer_is_told_not_to_embellish_repeat_or_signpost(): void
+    {
+        // 18 Nov 06:00: three scripts failed in a row: a fact cited twice, "host" for "face", and an outcome
+        // added to a penalty protest; the first also opened "Starting with African football."
+        $fact = ['key' => 'news:a', 'kind' => 'news', 'source' => 'BBC Sport', 'rumour' => false, 'text' => 'A striker scores twice.'];
+        $editor = Mockery::mock(OpenRouterService::class);
+        $editor->shouldReceive('editFootballArticle')->once()->withArgs(fn ($prompt) => str_contains($prompt, 'Say only what each fact states')
+            && str_contains($prompt, 'never "X host Y"')
+            && str_contains($prompt, 'every fact_key belongs to exactly one paragraph')
+            && str_contains($prompt, 'never with signposting such as "Starting with"'))
+            ->andReturn(json_encode(['segments' => [['fact_keys' => ['news:a'], 'text' => 'A striker scores twice.']]]));
+        (new RadioScript($editor))->write([$fact]);
+    }
+
     public function test_writer_adds_exact_source_credits_from_facts(): void
     {
         $fact = ['key' => 'news:a', 'kind' => 'news', 'source' => 'BBC Sport', 'rumour' => false,

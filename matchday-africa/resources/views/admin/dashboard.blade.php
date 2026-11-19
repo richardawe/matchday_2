@@ -28,6 +28,13 @@
         </aside>
     </section>
 
+    @if($breaking ?? null)
+    <section class="md-ops-panel md-ops-breaking">
+        <header><div><p class="md-eyebrow">BREAKING NEWS</p><h2>{{ $breaking['current'] ? 'On the site: '.$breaking['current']->headline : 'Nothing on the site' }}</h2></div><a href="{{ route('admin.breaking.index') }}">Edit or end →</a></header>
+        <div class="md-run-list">@forelse($breaking['items'] as $item)<div><i class="{{ $item->status() === 'live' ? 'success' : 'skipped' }}"></i><span><strong>{{ $item->headline }}</strong><small>{{ $item->author?->name ?? 'unknown' }} · {{ $item->source === 'agent' ? 'agent API' : 'admin page' }} · {{ $item->status() === 'ended' ? 'ended by '.($item->ender?->name ?? 'unknown') : ucfirst($item->status()) }}</small></span><time>{{ $item->created_at->diffForHumans() }}</time></div>@empty<div class="md-ops-empty">No breaking news posted yet.</div>@endforelse</div>
+    </section>
+    @endif
+
     <section class="md-ops-actions"><header><p class="md-eyebrow">ADMIN TOOLS</p><h2>Run the club.</h2></header><div>
         <a href="{{ route('admin.matches.index') }}"><b>01</b><strong>Match desk</strong><span>Fixtures, results and scoring →</span></a>
         <a href="{{ route('admin.griot.index') }}"><b>02</b><strong>Beat the Griot</strong><span>Rounds and winners to credit →</span></a>

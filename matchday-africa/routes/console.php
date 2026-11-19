@@ -44,6 +44,9 @@ Schedule::command('radio:edition')->cron('0 6,12,18 * * *')->timezone('Africa/La
 Schedule::command('radio:work')->everyMinute()->withoutOverlapping(30)->runInBackground()->name('radio-worker');
 // Vertical video of each published edition for the social queue (RADIO_VIDEO_ENABLED; one edition a run).
 Schedule::command('radio:video')->everyMinute()->withoutOverlapping(30)->runInBackground()->name('radio-video');
+// Match-story videos (61-75 s, STORY_VIDEOS): queued after full time, one render started a minute while fewer than
+// STORY_CONCURRENCY run, so a full Saturday's stories are ready within minutes. No withoutOverlapping: renders claim rows.
+Schedule::command('story:render')->everyMinute()->runInBackground()->name('story-videos');
 // Beat the Griot: plan the next round's three calls, remind, score and draw the winners (GRIOT_CHALLENGE).
 // YouTube LIVE: a broadcast per matchday (YOUTUBE_AUTO) and ending finished ones; quiet until /admin/youtube is connected.
 Schedule::command('youtube:broadcasts')->everyTenMinutes()->withoutOverlapping(10)->name('youtube-broadcasts');
@@ -55,6 +58,8 @@ Schedule::command('youtube:uploads')->everyFiveMinutes()->withoutOverlapping(30)
 // Heritage from the sourced roster, after Monday's squad sync, for players who joined our squads since (never over an editor's decision).
 Schedule::command('players:heritage-import')->weeklyOn(1, '05:00')->withoutOverlapping(30)->name('players-heritage-import');
 Schedule::command('players:roster')->dailyAt('06:20')->timezone('Europe/London')->withoutOverlapping(30)->name('players-roster');
+// Fill missing player photos from Wikimedia Commons for players in the next few days' matches (stories open on them).
+Schedule::command('players:commons-photos')->dailyAt('02:40')->timezone('Europe/London')->withoutOverlapping(60)->runInBackground()->name('player-commons-photos');
 Schedule::command('slideshow:photos')->dailyAt('05:10')->timezone('Europe/London')->withoutOverlapping(30)->runInBackground()->name('slideshow-photos');
 Schedule::command('slideshow:generate daily')->dailyAt('05:40')->timezone('Europe/London')->withoutOverlapping(30)->name('slideshow-daily');
 Schedule::command('slideshow:generate post_match')->everyTenMinutes()->withoutOverlapping(10)->name('slideshow-post-match');
@@ -65,3 +70,4 @@ Schedule::command('matches:enrich-events')->everyThirtyMinutes()->withoutOverlap
 Schedule::command('statsbomb:import-open')->weeklyOn(1,'01:30')->withoutOverlapping(120)->name('statsbomb-open-data-weekly');
 Schedule::command('matchday:send-digest')->dailyAt('08:00')->withoutOverlapping(30)->name('matchday-digest');
 Schedule::call(fn()=>\App\Models\WarRoom::where('expires_at','<',now())->delete())->hourly()->name('war-clean-expired-rooms');
+Schedule::command('agent:media-prune')->hourly()->withoutOverlapping(30)->name('agent-media-prune');

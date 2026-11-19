@@ -1,7 +1,7 @@
 # Matchday Africa: agent guide
 
 Read this first. It is the project memory for coding agents (Codex reads `AGENTS.md`; Claude Code
-reads `CLAUDE.md`, which points here). Last updated 8 Nov 2026, after the social queue for the posting bot (social autopost off), Beat the Griot, the stream screen, YouTube LIVE
+reads `CLAUDE.md`, which points here). Last updated 18 Nov 2026 (agent media uploads `POST /api/agent/media`; radio video covers under public_html, substitution direction, one Elsewhere card; breaking news spot with agent endpoints; match-story opening card: full-frame photo, hook on a bottom gradient, hook never names a player the photo does not show; see section 7); before that 17 Nov 2026 (design language for video and social output, see section 7 "Design language"; match-story videos, the agent role and /api/agent: deployed, see section 7); before that 8 Nov 2026, after the social queue for the posting bot (social autopost off), Beat the Griot, the stream screen, YouTube LIVE
 and Shorts, player photos, social media uploads (PRs #55–#66), and club and player names in the Griot's words with a
 20-second commentary reel (see section 7 "Griot names and the commentary reel").
 
@@ -85,6 +85,11 @@ Key docs in `matchday-africa/`: `CPANEL_DEPLOYMENT_RUNBOOK.md` (server setup), `
 | Long videos and "As seen on TikTok" (documentaries, compilations, other long TikTok videos; featured row at the top of `/reels`, 20-second grid below) | `App\Models\SocialVideo` (status `approved` = page live, `queued` = page + social queue item `video:<id>`, `off` = taken down; static `public/generated/videos/{id}/video.mp4` + poster, never `matches.youtube_*`), `App\Services\SocialVideos` (upload rules: mp4 up to 200 MB, over 60 s unless `short=1`, length from `SocialQueue::mp4Seconds`; captions per channel with X within `XText::LIMIT`; `SocialLink` landing URLs with `utm_campaign` = the video's campaign, default `documentary`; the row: featured long videos by sort order, then slideshows/radio pinned in `featured_items` (`slideshow:<id>`, `radio:<id>`), then the newest approved slideshows and ready radio videos; no row when nothing qualifies), page `/reels/videos/{id}` (`SocialVideoPageController`, CTA from `StartPage::primary`, signup), `partials/featured-videos`, admin `/admin/videos` (`Admin\VideoController`: upload, edit, feature, queue/take off/take down, pin slideshows and radio), bot upload `POST /api/social-queue/videos` (`Api\SocialVideoController`, same bearer token, throttle `social-queue-write`; 201 with the queue item), tables `social_videos`, `featured_items` | n/a | always on once migrated (nothing shows until a video is uploaded, a slideshow is approved or a radio video is ready) |
 | YouTube Shorts (every new reel uploaded as a public Short; title "Home h-a Away \| hook #Shorts", factual one-line summary, match link with UTM; at most `YOUTUBE_DAILY_UPLOADS` a quota day, the rest wait; resumable, 3 retries) | `App\Services\YouTube\ReelUploads` (queued from `ReelService::mark` when a reel becomes ready), job `UploadReelToYouTube`, `youtube:uploads`, `youtube:backfill {--days=7}`, admin `/admin/youtube/uploads` (status, Retry upload); columns `matches.youtube_*`; uses the channel connected at `/admin/youtube` (refresh token encrypted in `youtube_accounts`), refuses any channel but `YOUTUBE_CHANNEL_ID` | `youtube:uploads` 5m | `YOUTUBE_UPLOADS` (the deploy writes it from the GitHub variable, default true) + migration |
 | Matchday Radio video and export (each published edition over 60 s becomes a 1080x1920, 30 fps H.264/AAC +faststart video as long as the mp3: story slides from `RadioVisuals` cues with only rights-safe art, short captions from the script, `matchday.africa` pill, in the slideshow safe column x 140–940, y 150–1540; GD draws each scene once and repeats it through ffmpeg's image2pipe, so the reel renderer's small ffmpeg is enough; static `public/generated/radio/{id}/radio.mp4` + `poster.jpg`; queue items `radio:<id>` with captions per platform (X within 280 with a short AI/Kokoro note, the others with `config('radio.disclosure')`), `/listen/{id}` tagged `utm_campaign=radio`, no slideshow music; holding an edition drops it; token API `GET /api/radio-export?date=` (Lagos day) and `/api/radio-export/{id}/audio.mp3`, `/video.mp4`; `/admin/radio` shows the video state and Retry video; the podcast feed keeps its GUIDs and enclosures and gains a crest-free cover `public/images/radio/cover.png` and `itunes:owner`) | `App\Services\RadioVideo`, `radio:video {bulletin?} {--check}`, `Api\RadioExportController`, `SocialQueue::radioItems`, columns `radio_bulletins.video_*` | `radio:video` 1m (one edition a run, newest first, last 3 days, 3 attempts) | `RADIO_VIDEO_ENABLED` (+ migration; Server operations `configure-radio-video`) |
+| Match-story videos (61-75 s, 1080x1920, after full time; one beat per goal or red card, stats, featured African player with a licensed Commons photo, head-to-head, form, table, next fixtures, editable hook and banter, closing question; radio_video per Matchday Radio edition with word-by-word captions over the episode audio; French with lang=fr) | `app/Services/Story/*` (`StoryPlanner` running order and 61-75 s timing, `StoryFrames` GD frames with Ken Burns, kinetic text and the TikTok safe-zone check, `StoryVideos` queue/render/captions, `StoryText` en/fr), `story:render` (`--match`, `--radio`, `--check`), model `StoryVideo`, table `story_videos`, static files `public/generated/stories/{id}/story.mp4` + `cover.jpg`, queue items `story:<id>` (types `match_story`, `radio_video`; a story radio video hides that edition's `radio:<id>` item), Content studio `/admin/studio` (`Admin\StudioController`) | `story:render` 1m (no withoutOverlapping: up to `STORY_CONCURRENCY` renders claim rows; ~77 s per 67 s story on 4 cores) | `STORY_VIDEOS` (+ migration; **every deploy writes `STORY_VIDEOS=true`** unless the repository variable `STORY_VIDEOS` is `false`; the code default stays false for local and tests), music `resources/audio/matchday_original_beat_v1.mp3` |
+| Design language for video and social output (tokens, components, motion, design check) | `docs/design-language.md`, tokens `resources/design/tokens.json` (read by PHP `App\Design\Tokens` and the reel's `reel/src/design.js`), `app/Design/*` (`Canvas`, `Scene`, `Components` one per card, `Film` frame engine with Ken Burns, kinetic text and colour-band wipes, `CopyRules`, `DesignCheck`), `design:check` (contact sheet + rules), `design:references` (docs/design/*.png); stories, radio videos and slideshows render through `Film`; cards and reels read token colours and fonts; `DesignLanguageTest` fails on hard-coded colours or fonts in a renderer | n/a | always on |
+| Agent role and API (the social media assistant: reads content, renders, drafts; never billing, users, secrets or deletes) | role `agent` on `users.role` (`User::isAgent()`), admin allowlist `AdminMiddleware::AGENT_ROUTES` (runs before route-model binding), `/admin/agent` (admins: login, tokens shown once, audit log), `agent:create`, `App\Services\Agent\AgentAccess`, API `routes/api.php` `/api/agent/*` (`Api\AgentController`, `AgentApiToken` middleware, limiters `agent-api`/`agent-api-write`), tables `api_tokens` (SHA-256 only), `agent_audit_logs`, `utm_visits` (`App\Support\UtmVisits`, counted in `CaptureAttribution`); guide `matchday-africa/docs/agent-api.md` | n/a | migration + an agent token (`AGENT_API_PER_MINUTE`, `AGENT_API_WRITES_PER_MINUTE`) |
+| Breaking news (one short headline: a banner at the top of both homepages, a slim strip on match pages and `/listen`, `/listen/{id}`; optional body, link and licence-credited https image; the newest live item wins; expires after 1-48 h, default 6) | `App\Models\BreakingNews` (`current()`, cached 30 s), `App\Services\BreakingNewsDesk` (validation, CopyRules, create/update/end), `partials/breaking` (`banner`/`strip`, `.md-breaking` styles at the end of `app.css` with the design tokens; selectors doubled so the cartoon look leaves them alone), admin `/admin/breaking` (`Admin\BreakingNewsController`: who posted, edit, end, post) and a panel on the admin dashboard; agent API `GET/POST /api/agent/breaking`, `PATCH /api/agent/breaking/{id}`, `POST /api/agent/breaking/{id}/end` (live at once, own items only, audit-logged with the headline); table `breaking_news` | n/a | always on once migrated (hidden while nothing is live) |
+| Agent media uploads (`POST /api/agent/media`: an MP4 up to 200 MB plus an optional `render_id`, stored as a static file `public/generated/agent/{uuid}.mp4` served by the host with video/mp4 and byte ranges; private record `storage/app/agent-media/{uuid}.json`; deleted 7 days after upload) | `App\Services\Agent\AgentMedia`, `Api\AgentController::mediaStore`, `agent:media-prune` | `agent:media-prune` hourly | always on; the server's PHP `upload_max_filesize`/`post_max_size` cap the size (413 with the limit named) |
 | Home arena | `resources/views/partials/home-arena.blade.php`, `resources/js/arena.js` (GSAP), `arena3d.js` (three.js, desktop only) | rides the home pulse refresh | always on when a Premier League match qualifies |
 
 ## 4. CI/CD
@@ -186,6 +191,8 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `STREAM_PAGE` / `STREAM_COMPETITIONS` | false / PL,eng.1 | The `/stream` screen for live streams; competitions by league short code or ESPN slug |
 | `YOUTUBE_CLIENT_ID` / `_SECRET` / `YOUTUBE_AUTO` / `YOUTUBE_PRIVACY` / `YOUTUBE_MIN_MATCHES` | empty / empty / false / unlisted / 3 | YouTube LIVE: OAuth client, automatic broadcasts, their privacy, how many matches at once open one |
 | `SLIDESHOW_ENABLED` / `SLIDESHOW_FFMPEG` / `SLIDESHOW_MUSIC_PATH` / `SLIDESHOW_MUSIC_SOURCE_URL` / `SLIDESHOW_COMMONS` / `SLIDESHOW_YOUTUBE_DAILY` | false / `RADIO_FFMPEG` / `music/hot-amapiano-beats.mp3` (under storage/app) / empty / true / 2 | Colour slideshows: generation switch, ffmpeg binary (needs libx264, aac, xfade, zoompan, loudnorm: `slideshow:render --check`), the private music file, where the track came from, Commons photo lookups, slideshow Shorts per quota day (shared with reels, which go first) |
+| `STORY_VIDEOS` / `STORY_COMPETITIONS` / `STORY_DELAY_MINUTES` / `STORY_CONCURRENCY` / `STORY_MUSIC_PATH` | false (production: true, written by every deploy) / PL,eng.1 / 2 / 2 / empty | Match-story videos: switch, competitions rendered automatically, wait after the last update, renders at once, our own track (default `resources/audio/matchday_original_beat_v1.mp3`; missing = silent) |
+| `AGENT_API_PER_MINUTE` / `AGENT_API_WRITES_PER_MINUTE` | 120 / 20 | Agent API limits per token |
 | `YOUTUBE_CHANNEL_ID` / `YOUTUBE_UPLOADS` / `YOUTUBE_DAILY_UPLOADS` | Matchday Africa channel / false / 6 | YouTube Shorts: the only channel allowed, automatic reel uploads, uploads per quota day (1,600 of 10,000 units each). **Every deploy writes** `YOUTUBE_CLIENT_ID`/`_SECRET` (secrets), `YOUTUBE_CHANNEL_ID` and `YOUTUBE_UPLOADS` (repository variables; the channel defaults to `UCJ9Asmir1hBOHHQs9qSCkHg` in `config/youtube.php`, uploads to `true`) into the server `.env` (`scripts/ci/deploy-ssh.sh`, via `set-env.php`; blank secrets leave the server value alone) |
 
 ## 7. Open items and known issues
@@ -219,6 +226,115 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
   endpoint (`/matches/{id}/chronicle`) is JSON, not a page.
 - Local review tooling used on 3 Nov: a demo SQLite database plus Playwright scripts that screenshot every page at
   phone width and flag elements still in the classic serif/beige/Tailwind colours. Re-create them if needed; they are not in the repo.
+
+### Design language (17 Nov 2026)
+- Owner's brief: one design language for every video and social renderer (`docs/design-language.md`). Brand black #0A0A0A,
+  yellow #FFD23F, white, grey #C8C8C8; Anton + Inter (added, SIL OFL); safe zone top 150 / bottom 380 / right 140 (top was 250 on 17 Nov, back to 150 on 18 Nov);
+  no frame over 35% empty; sentence case; MD logo on every frame; no card twice in a video; our own beat only.
+- Behaviour changes: slideshows now use `matchday_original_beat_v1.mp3` (track `matchday-original`; the CC BY track stays in
+  config as the record of older slideshows), 4 s cuts with wipes instead of crossfades, and the component layouts instead of the
+  cream panels. Story padding no longer cycles recap cards: a match with little data gives a story shorter than 61 s (as long as
+  its distinct cards allow) instead of repeating one. Cards and the reel lost their sepia/cream palette and all-caps labels.
+- Match 5212 and radio edition 86 were re-rendered locally from what the public pages show (not the production database) and
+  pass `design:check`; contact sheets in `docs/design/checks/`. Re-render them on the server after deploy (Content studio).
+- Not done: the still cards' layouts and font sizes and the reel's layout are not on the shared components yet (they read the tokens).
+
+### Agent publishing and radio (18 Nov 2026)
+- Owner (18 Nov): the agent may retry failed radio editions, start extra editions outside the slots and publish
+  generated content. API only (`docs/agent-api.md`): `GET /radio/{id}`, `POST /radio/{id}/retry`, `POST /radio`
+  (one edition in the queue at a time, `RADIO_AGENT_EXTRA_PER_DAY` = 4), `POST /articles` with `publish`,
+  `PATCH /articles/{id}` (its own articles only), `POST /slideshows/{id}/approve`. Every radio check and the fact review
+  still apply; deletes, users, billing, secrets and other people's articles stay closed; the admin pages are unchanged.
+- 18 Nov 06:00 WAT edition (bulletin 87) failed three times on the writer (a repeated fact, "host" for "face", an
+  invented outcome); the prompt was tightened in #78.
+
+### Match-story fixes (18 Nov 2026, owner's review of story:10 = match 5212)
+- Opening card: featured player = winning/last scorer, else top scorer, else best-rated African in the line-up; the hook's
+  named player wins. Photo from the player row or the new name-based library (`CommonsPhotos::forName`,
+  `storage/app/player-media/`, Wikidata query service then Commons search, free licences only, >= 700 px; pin with
+  `story:photo`). No photo: both flags + the name big, never a letter.
+- Hooks rewritten (owner's rules, `docs/design-language.md` section 6), <= 8 words. Captions: hook, result, question, link,
+  2-4 hashtags; the music credit is gone.
+- No padding with repeats: new beats (scorer record, profile, table + note, next fixtures, other results that day,
+  head-to-head only with 3+ meetings); a match without enough distinct cards fails with `StoryTooShort`.
+- Wikimedia rate-limits the cloud container quickly (429): `forName` never caches a transient failure. (Partly our own doing: see
+  the standard thumbnail sizes note under "Match-story opening card".) Match 5212's scorer
+  (Abdellah Ouazane) has no free-licence photo on Commons or Wikidata (checked 18 Nov); Patrick Dorgu's only one is 353 px.
+
+### Story photos and full-height cards (18 Nov 2026, owner's brief)
+- No photo for the featured player: the planner looks them up on Commons (Wikidata P18, else a Commons search by name;
+  CC0, PD, CC BY, CC BY-SA, >= 700 px), then tries the next candidate (scorers, best-rated African, anyone in the events;
+  `STORY_PHOTO_CANDIDATES` = 8) before flags. The hook may still name the scorer while the photo shows another player
+  (labelled with that player's name).
+- Agent: `GET /api/agent/players?q=`, `POST /api/agent/players/{id}/photo` and `POST /api/agent/player-photos`
+  ({name, source_url}) with the same licence check (`CommonsPhotos::attach`, `fileFromUrl`). Nightly
+  `players:commons-photos` 02:40 London fills photos for clubs playing in the next 3 days (80 lookups, paced 1 s).
+- Safe zone top back to 150; scoreboard 162, chips 296, body from 384; panel text grows to headline size; kick-off and
+  venue only on the build-up card.
+
+### Radio video covers, substitutions and story context (18 Nov 2026, owner's items 4-6)
+- radio_video renders failed in production with "Image rule: cover.png is not one of our renders": production serves
+  public/ from `APP_PUBLIC_PATH` (public_html), so `public_path('images/radio/cover.png')` was not under
+  `base_path('public/images/radio')`. `Canvas::assertImage` now also checks every `public/...` token directory under
+  `public_path()` (own renders and banned folders alike). Reproduced locally with edition 87 (rebuilt from its public
+  page and mp3) and a separate web root: fails before, renders 142.5 s after, design check passes
+  (`docs/design/checks/radio-87-video.*`). Re-render edition 87 from the Content studio after deploy.
+- ESPN `keyEvents` list a substitution's player coming **on** first ("Habib Diarra replaces Tymur Tutierov"); the mapper
+  stored that name as `player_name`, which the rest of the code (and football-data.org) reads as the player going off.
+  `EspnMatchMapper` now stores off/on correctly (event ids unchanged: they still hash the first participant). Rows saved
+  before the fix stay reversed; the next summary sync of a match rewrites its rows. Stories never trust the stored order:
+  `App\Support\Substitutions` checks each change against line-ups and goals/cards and drops what it cannot verify. The
+  match chronicle (`MythGrammarService`) still prints the stored order for old rows.
+- Stories: one "Elsewhere" card (the four highest-scoring other results); new beats: earlier meetings with scorers (1-2
+  meetings), the decisive scorer's record, a group table from our own results (closed, complete groups only), starting
+  line-ups. Match 5212 re-rendered locally: 63 s, 13 distinct cards, design check passes; it now shows the 13 Nov first
+  leg (Morocco 5-1 Niger, from public match page 5184), Hakimi's two goals there, and "61' Ayoub Oufkir on for Abdellah
+  Ouazane". No group table: our data holds only these two teams of the group. Production holds the same two AFCQ games, so
+  without the line-up card the story would fall short of 61 s.
+
+### Breaking news spot (18 Nov 2026, owner's brief item 7)
+- Owner (Richard): the agent's breaking news goes live straight away (he approves its judgement here); every item is logged
+  (`agent_audit_logs`, headline included) and listed on the admin dashboard and `/admin/breaking` with who posted it.
+- Images are hotlinked from the `image_url` given (https only, credit required, hidden if it fails to load). Only post
+  images we may use (licensed Commons files, our own renders); nothing checks the licence automatically, unlike story photos.
+- The agent can change and end only its own items; admins can change and end any. Docs: `matchday-africa/docs/agent-api.md`.
+
+### Match-story opening card (18 Nov 2026, owner's second review of match 5212)
+- The cover photo fills the whole 1080x1920 frame (`Canvas::coverFace`: crop to cover, the face from the head-and-shoulders
+  crop placed at `grid.hook_photo.face_at` 0.28); the hook, name, flag and credit sit on a dark gradient at the bottom
+  (`Scene::shade`, baked into the Ken Burns layer), never in the top 45% (`grid.hook_photo.no_text`) or across the face.
+  Hook and name lines are balanced (`Canvas::balanced`: no one-word last line). Without a photo the flags layout stays.
+- If the photo shows someone other than the player the generated hook names, the hook is rewritten (`StoryPlanner::hook`
+  with `$pictured`): "<Player> found the net for <team>" when the pictured player scored, else a team-level line.
+- Commons candidates are ordered by `CommonsPhotos::preferFewerCrests` (portraits and "(cropped)" first, crest/shirt/kit titles last).
+- Commons downloads now use Wikimedia's standard thumbnail sizes only (`CommonsPhotos::THUMB_STEPS` 960/1280, `standardThumb`):
+  upload.wikimedia.org answers 429 to non-standard sizes and to originals fetched by servers ("use thumbnail images in sizes listed
+  on https://w.wiki/GHai"), which was most of the "rate limit" seen on 18 Nov. The API itself (Wikidata query service, Commons
+  search) still throttles the shared cloud container's IP; production has its own.
+- Match 5212 was re-rendered locally from the public match page (`docs/design/checks/match-5212-story.*`); Ouazane still has no
+  free photo, so it opens on Achraf Hakimi (`File:Achraf Hakimi (cropped).jpg`, CC BY 4.0, Abdelali Bentarki, pinned with
+  `story:photo`) with the team-level hook "Who saw Morocco 1-0 coming?" (63 s, design check passes). Hakimi is the 9th candidate,
+  so the local run used `STORY_PHOTO_CANDIDATES=12` and no new Commons lookups (the API was throttling the container). The
+  production data (13 Nov first leg, other results) was rebuilt from public pages. Re-render on the server from the Content studio after deploy.
+
+### Match-story videos and the agent role (17 Nov 2026)
+- Built from the owner's two-part brief. Stories use only stored data and the licence-checked Commons photos (credit on screen,
+  in the record and in every caption); no crests, footage or agency photos. Music: only the owner's
+  `matchday_original_beat_v1.mp3` (supplied 17 Nov, 2:00, 320 kbps, in `resources/audio/`; renders measure −14.0 LUFS, −1.7 dBFS peak). Captions use `utm_campaign=story`.
+- Rendering draws every frame in PHP/GD and streams JPEGs into ffmpeg (no xfade/zoompan needed). The Ken Burns layer is redrawn
+  every 3rd frame and identical frames reuse their JPEG; crop+imagescale is ~2x faster than imagecopyresampled at 1080x1920.
+- The agent account must be its own user (an existing admin or member email is refused). Tokens are shown once
+  (`/admin/agent` or `php artisan agent:create` in a private terminal, never a CI log).
+- `users.role` was `enum('user','admin')`; the migration widens it to include `agent`.
+- Owner (17 Nov): story videos on in production without editing `.env`: the deploy writes `STORY_VIDEOS=true` (variable `STORY_VIDEOS=false` turns them off).
+- **Deployed 17 Nov 2026 ~22:12 UTC** (PR #76, merge `c19ca11`, CI/CD run 242 green; `/deploy-version.txt` matched). Checked on the live
+  site: `/api/agent/matches` answers 401 without a token, `/admin/studio` asks for a login. The deploy wrote `STORY_VIDEOS=true`.
+- Still to do by the owner: create the agent login and issue its token at `/admin/agent` (not done at the time of writing);
+  watch `/admin/studio` after the next Premier League full time for the first automatic stories (the server's ffmpeg has not
+  rendered a story yet: if the page lists missing ffmpeg features, compare `php artisan story:render --check` with
+  `slideshow:render --check`). Not verified on the server: render speed on the shared host (77 s per 67 s story was measured on
+  a 4-core container) and Commons photo coverage for featured players (no photo = a monogram tile with initials and flag).
+- French captions and on-screen text (`StoryText`) need a native speaker's review.
 
 ### African player pages and the weekly roster (12 Nov 2026, prompt 2 of 4)
 - In scope everywhere (index, player pages, roster, match pages, home focus, line-up enrichment, slideshows): an African

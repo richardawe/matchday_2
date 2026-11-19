@@ -1,24 +1,22 @@
 import React from 'react';
 import { AbsoluteFill, Audio, Img, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { C, fontFaces, rgba } from './design.js';
 import { buildTimeline, keyMoment } from './timeline.js';
 import { ReelV2 } from './ReelV2.jsx';
 
 // Same look as the story cards: black, team-coloured light, crest-free armies,
 // Anton headlines, IBM Plex captions and a Kente-style band in team colours.
-const INK = '#070807';
-const PAPER = '#e8e1d3';
-const GOLD = '#edc781';
-const BLOOD = '#d6483c';
+const INK = C.black;
+const PAPER = C.white;
+const GOLD = C.yellow;
+const BLOOD = C.red;
 
-const fonts = `
-@font-face{font-family:Anton;src:url(${staticFile('fonts/Anton-Regular.ttf')})}
-@font-face{font-family:Plex;src:url(${staticFile('fonts/IBMPlexSans.ttf')})}
-@font-face{font-family:PlexMono;src:url(${staticFile('fonts/IBMPlexMono-SemiBold.ttf')})}`;
+const fonts = fontFaces(staticFile);
 
 const useUnit = () => useVideoConfig().width / 1080;
 
 const kente = (colours) =>
-    `repeating-linear-gradient(90deg, ${colours[0]} 0 46px, #d2a052 46px 58px, ${colours[1] ?? PAPER} 58px 86px, ${INK} 86px 94px, #d2a052 94px 106px, ${INK} 106px 112px)`;
+    `repeating-linear-gradient(90deg, ${colours[0]} 0 46px, ${C.yellow} 46px 58px, ${colours[1] ?? PAPER} 58px 86px, ${INK} 86px 94px, ${C.yellow} 94px 106px, ${INK} 106px 112px)`;
 
 const Glow = ({ colour, x = '50%', y = '40%', size = 85 }) => (
     <AbsoluteFill style={{ background: `radial-gradient(${size}% 55% at ${x} ${y}, ${colour}88 0%, ${colour}22 45%, transparent 75%)` }} />
@@ -48,13 +46,13 @@ const Army = ({ side, height, left, bottom = 0.14, flip, ghost, fallen, enter = 
 };
 
 const Shade = () => (
-    <AbsoluteFill style={{ background: 'linear-gradient(180deg, rgba(7,8,7,.85) 0%, transparent 16%, transparent 48%, rgba(7,8,7,.92) 72%, #070807 100%)' }} />
+    <AbsoluteFill style={{ background: `linear-gradient(180deg, ${rgba(C.black, 0.85)} 0%, transparent 16%, transparent 48%, ${rgba(C.black, 0.92)} 72%, ${C.black} 100%)` }} />
 );
 
 const Tag = ({ children, red }) => {
     const u = useUnit();
     return (
-        <div style={{ position: 'absolute', top: 64 * u, right: 64 * u, padding: `${12 * u}px ${18 * u}px`, border: `${2 * u}px solid ${red ? BLOOD : GOLD}`, color: red ? BLOOD : GOLD, font: `${30 * u}px PlexMono`, letterSpacing: 2 * u }}>
+        <div style={{ position: 'absolute', top: 64 * u, right: 64 * u, padding: `${12 * u}px ${18 * u}px`, border: `${2 * u}px solid ${red ? BLOOD : GOLD}`, color: red ? BLOOD : GOLD, font: `${30 * u}px InterBold`, letterSpacing: 2 * u }}>
             {children}
         </div>
     );
@@ -69,8 +67,8 @@ const Caption = ({ headline, line, score, delay = 4 }) => {
     return (
         <div style={{ position: 'absolute', left: 64 * u, right: 64 * u, bottom: 130 * u }}>
             <div style={{ font: `${128 * u}px/1.02 Anton`, color: PAPER, textTransform: 'uppercase', transform: `scale(${interpolate(slam, [0, 1], [1.25, 1])})`, transformOrigin: 'left bottom', opacity: slam }}>{headline}</div>
-            {line && <div style={{ font: `${40 * u}px/1.35 Plex`, color: '#d6cfc0', marginTop: 18 * u, opacity: fade }}>{line}</div>}
-            {score && <div style={{ font: `${40 * u}px PlexMono`, color: GOLD, marginTop: 18 * u, opacity: fade }}>{score}</div>}
+            {line && <div style={{ font: `${40 * u}px/1.35 Inter`, color: C.grey, marginTop: 18 * u, opacity: fade }}>{line}</div>}
+            {score && <div style={{ font: `${40 * u}px InterBold`, color: GOLD, marginTop: 18 * u, opacity: fade }}>{score}</div>}
         </div>
     );
 };
@@ -79,7 +77,7 @@ const Footer = ({ colours }) => {
     const u = useUnit();
     return (
         <>
-            <div style={{ position: 'absolute', left: 64 * u, bottom: 56 * u, font: `${24 * u}px PlexMono`, color: '#a39c8f', letterSpacing: 2 * u }}>MATCHDAY.AFRICA · TOLD BY THE GRIOT</div>
+            <div style={{ position: 'absolute', left: 64 * u, bottom: 56 * u, font: `${24 * u}px InterBold`, color: C.grey, letterSpacing: 2 * u }}>MATCHDAY.AFRICA · TOLD BY THE GRIOT</div>
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 22 * u, background: kente(colours) }} />
         </>
     );
@@ -94,7 +92,7 @@ const Title = ({ home, away, competition, beats, duration }) => {
     const key = keyMoment(beats ?? []);
     const settle = interpolate(frame, [0, 12], [1.04, 1], { extrapolateRight: 'clamp' });
     const keySide = key?.side === 'away' ? away : key?.side === 'home' ? home : null;
-    const name = { font: `${44 * u}px PlexMono`, color: PAPER, letterSpacing: 2 * u, textTransform: 'uppercase', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' };
+    const name = { font: `${44 * u}px InterBold`, color: PAPER, letterSpacing: 2 * u, textTransform: 'uppercase', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' };
     return (
         <AbsoluteFill style={{ background: INK }}>
             <Glow colour={home.colours[0]} x="25%" y="62%" size={60} />
@@ -102,22 +100,22 @@ const Title = ({ home, away, competition, beats, duration }) => {
             <Army side={home} height={0.44} left="25%" bottom={0.19} flip instant duration={duration} />
             <Army side={away} height={0.44} left="75%" bottom={0.19} instant duration={duration} />
             <Shade />
-            <div style={{ position: 'absolute', top: 72 * u, left: 64 * u, font: `${26 * u}px PlexMono`, color: '#a39c8f', letterSpacing: 3 * u }}>{competition}</div>
+            <div style={{ position: 'absolute', top: 72 * u, left: 64 * u, font: `${26 * u}px InterBold`, color: C.grey, letterSpacing: 3 * u }}>{competition}</div>
             <Tag>FULL TIME</Tag>
             <div style={{ position: 'absolute', top: 210 * u, left: 64 * u, right: 64 * u, textAlign: 'center' }}>
                 <div style={{ display: 'flex', gap: 24 * u }}>
                     <div style={{ ...name, textAlign: 'left', borderTop: `${10 * u}px solid ${home.colours[0]}`, paddingTop: 14 * u }}>{home.club}</div>
                     <div style={{ ...name, textAlign: 'right', borderTop: `${10 * u}px solid ${away.colours[0]}`, paddingTop: 14 * u }}>{away.club}</div>
                 </div>
-                <div style={{ font: `${400 * u}px/1 Anton`, color: PAPER, marginTop: 6 * u, transform: `scale(${settle})`, textShadow: `0 ${8 * u}px ${40 * u}px rgba(0,0,0,.6)` }}>
+                <div style={{ font: `${400 * u}px/1 Anton`, color: PAPER, marginTop: 6 * u, transform: `scale(${settle})`, textShadow: `0 ${8 * u}px ${40 * u}px ${rgba(C.black, 0.6)}` }}>
                     {home.score}<span style={{ color: GOLD, margin: `0 ${24 * u}px` }}>–</span>{away.score}
                 </div>
             </div>
             {key && (
-                <div style={{ position: 'absolute', left: 64 * u, right: 64 * u, bottom: 120 * u, padding: `${26 * u}px ${30 * u}px`, background: 'rgba(7,8,7,.84)', borderLeft: `${10 * u}px solid ${keySide ? keySide.colours[0] : GOLD}` }}>
-                    <div style={{ font: `${32 * u}px PlexMono`, color: key.type === 'red_card' ? BLOOD : GOLD, letterSpacing: 2 * u }}>KEY MOMENT · {key.tag}</div>
+                <div style={{ position: 'absolute', left: 64 * u, right: 64 * u, bottom: 120 * u, padding: `${26 * u}px ${30 * u}px`, background: rgba(C.black, 0.84), borderLeft: `${10 * u}px solid ${keySide ? keySide.colours[0] : GOLD}` }}>
+                    <div style={{ font: `${32 * u}px InterBold`, color: key.type === 'red_card' ? BLOOD : GOLD, letterSpacing: 2 * u }}>KEY MOMENT · {key.tag}</div>
                     <div style={{ font: `${76 * u}px/1.02 Anton`, color: PAPER, textTransform: 'uppercase', marginTop: 10 * u }}>{key.headline}</div>
-                    {key.line && <div style={{ font: `${36 * u}px/1.3 Plex`, color: '#d6cfc0', marginTop: 10 * u }}>{key.line}</div>}
+                    {key.line && <div style={{ font: `${36 * u}px/1.3 Inter`, color: C.grey, marginTop: 10 * u }}>{key.line}</div>}
                 </div>
             )}
             <Footer colours={home.colours} />
@@ -144,7 +142,7 @@ const Beat = ({ beat, home, away, duration }) => {
                 </>
             ) : (
                 <>
-                    <Glow colour={red ? '#7a1d16' : hero.colours[0]} x="58%" />
+                    <Glow colour={red ? C.red : hero.colours[0]} x="58%" />
                     <Army side={foe} height={0.48} left="16%" bottom={0.27} flip ghost duration={duration} />
                     <Army side={hero} height={0.72} left="58%" bottom={0.17} fallen={red} enter="right" duration={duration} />
                 </>
@@ -167,17 +165,17 @@ const Stats = ({ home, away, stats }) => {
         <AbsoluteFill style={{ background: INK }}>
             <Glow colour={home.colours[0]} x="20%" y="30%" size={55} />
             <Glow colour={away.colours[0]} x="80%" y="30%" size={55} />
-            <div style={{ position: 'absolute', top: 72 * u, left: 64 * u, font: `${26 * u}px PlexMono`, color: GOLD, letterSpacing: 3 * u }}>THE NUMBERS</div>
+            <div style={{ position: 'absolute', top: 72 * u, left: 64 * u, font: `${26 * u}px InterBold`, color: GOLD, letterSpacing: 3 * u }}>THE NUMBERS</div>
             <div style={{ position: 'absolute', top: 360 * u, left: 64 * u, right: 64 * u, display: 'grid', gap: 64 * u }}>
                 {(rows.length ? rows : [{ label: 'GOALS', home: home.score, away: away.score }]).map((row, i) => {
                     const grow = spring({ frame: frame - i * 6, fps, config: { damping: 20 } });
                     const total = Math.max(1, row.home + row.away);
                     return (
                         <div key={row.label}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', font: `${34 * u}px PlexMono`, color: PAPER }}>
-                                <span>{row.home}</span><span style={{ color: '#a39c8f', letterSpacing: 3 * u }}>{row.label}</span><span>{row.away}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', font: `${34 * u}px InterBold`, color: PAPER }}>
+                                <span>{row.home}</span><span style={{ color: C.grey, letterSpacing: 3 * u }}>{row.label}</span><span>{row.away}</span>
                             </div>
-                            <div style={{ display: 'flex', height: 22 * u, marginTop: 16 * u, background: '#1d1c18' }}>
+                            <div style={{ display: 'flex', height: 22 * u, marginTop: 16 * u, background: C.surface }}>
                                 <div style={{ width: `${(row.home / total) * 100 * grow}%`, background: home.colours[0] }} />
                                 <div style={{ flex: 1 }} />
                                 <div style={{ width: `${(row.away / total) * 100 * grow}%`, background: away.colours[0] }} />
@@ -199,8 +197,8 @@ const EndCard = () => {
     const u = useUnit();
     const show = spring({ frame: frame - 18, fps, config: { damping: 14 } });
     return (
-        <div style={{ position: 'absolute', top: 280 * u, left: 40 * u, right: 40 * u, padding: `${26 * u}px ${24 * u}px`, background: 'rgba(7,8,7,.82)', borderLeft: `${6 * u}px solid ${GOLD}`, opacity: show, transform: `translateY(${interpolate(show, [0, 1], [30, 0])}px)` }}>
-            <div style={{ font: `${30 * u}px PlexMono`, color: PAPER, letterSpacing: 3 * u }}>FULL STORY, STATS &amp; PREDICTIONS</div>
+        <div style={{ position: 'absolute', top: 280 * u, left: 40 * u, right: 40 * u, padding: `${26 * u}px ${24 * u}px`, background: rgba(C.black, 0.82), borderLeft: `${6 * u}px solid ${GOLD}`, opacity: show, transform: `translateY(${interpolate(show, [0, 1], [30, 0])}px)` }}>
+            <div style={{ font: `${30 * u}px InterBold`, color: PAPER, letterSpacing: 3 * u }}>FULL STORY, STATS &amp; PREDICTIONS</div>
             <div style={{ font: `${104 * u}px/1.05 Anton`, color: GOLD, marginTop: 10 * u }}>MATCHDAY.AFRICA</div>
         </div>
     );
@@ -228,7 +226,7 @@ const Final = ({ home, away, final, duration }) => {
             )}
             <Shade />
             <Tag>FULL TIME</Tag>
-            <div style={{ position: 'absolute', top: 72 * u, left: 64 * u, font: `${26 * u}px PlexMono`, color: '#a39c8f', letterSpacing: 3 * u }}>{home.club.toUpperCase()} {home.score}–{away.score} {away.club.toUpperCase()}</div>
+            <div style={{ position: 'absolute', top: 72 * u, left: 64 * u, font: `${26 * u}px InterBold`, color: C.grey, letterSpacing: 3 * u }}>{home.club.toUpperCase()} {home.score}–{away.score} {away.club.toUpperCase()}</div>
             <Caption headline={final.headline} line={final.line} delay={3} />
             <EndCard />
             <Footer colours={(winner ?? home).colours} />

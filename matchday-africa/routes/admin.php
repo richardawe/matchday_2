@@ -42,6 +42,17 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/videos/{video}', [\App\Http\Controllers\Admin\VideoController::class, 'update'])->whereNumber('video')->name('videos.update');
     Route::post('/videos/{video}/status', [\App\Http\Controllers\Admin\VideoController::class, 'status'])->whereNumber('video')->name('videos.status');
     Route::post('/videos/{video}/feature', [\App\Http\Controllers\Admin\VideoController::class, 'feature'])->whereNumber('video')->name('videos.feature');
+    Route::get('/studio', [\App\Http\Controllers\Admin\StudioController::class, 'index'])->name('studio.index');
+    Route::post('/studio/render', [\App\Http\Controllers\Admin\StudioController::class, 'render'])->name('studio.render');
+    Route::post('/studio/{story}', [\App\Http\Controllers\Admin\StudioController::class, 'update'])->whereNumber('story')->name('studio.update');
+    Route::get('/agent', [\App\Http\Controllers\Admin\AgentAccessController::class, 'index'])->name('agent.index');
+    Route::post('/agent', [\App\Http\Controllers\Admin\AgentAccessController::class, 'store'])->name('agent.store');
+    Route::post('/agent/{user}/token', [\App\Http\Controllers\Admin\AgentAccessController::class, 'token'])->whereNumber('user')->name('agent.token');
+    Route::post('/agent/tokens/{token}/revoke', [\App\Http\Controllers\Admin\AgentAccessController::class, 'revoke'])->whereNumber('token')->name('agent.revoke');
+    Route::get('/breaking', [\App\Http\Controllers\Admin\BreakingNewsController::class, 'index'])->name('breaking.index');
+    Route::post('/breaking', [\App\Http\Controllers\Admin\BreakingNewsController::class, 'store'])->name('breaking.store');
+    Route::put('/breaking/{breaking}', [\App\Http\Controllers\Admin\BreakingNewsController::class, 'update'])->whereNumber('breaking')->name('breaking.update');
+    Route::post('/breaking/{breaking}/end', [\App\Http\Controllers\Admin\BreakingNewsController::class, 'end'])->whereNumber('breaking')->name('breaking.end');
     Route::get('/social-queue', [\App\Http\Controllers\Admin\SocialQueueController::class, 'index'])->name('social-queue.index');
     Route::post('/social-queue/posted', [\App\Http\Controllers\Admin\SocialQueueController::class, 'posted'])->name('social-queue.posted');
     Route::post('/social-queue/undo', [\App\Http\Controllers\Admin\SocialQueueController::class, 'undo'])->name('social-queue.undo');

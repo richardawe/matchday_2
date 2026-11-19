@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\RadioBulletin;
 use App\Services\Slideshow\SlideshowVideo;
+use App\Services\Story\StoryFrames;
 use App\Support\SocialLink;
 use App\Support\XText;
 use Illuminate\Support\Collection;
@@ -18,29 +19,17 @@ use Throwable;
  * The vertical video of a published Matchday Radio edition, for TikTok, Reels and Shorts:
  * 1080x1920, 30 fps, H.264 yuv420p + AAC, +faststart, as long as the published mp3.
  *
- * Each scene (a story slide from RadioVisuals with a short caption from the script) is drawn once
- * with GD and streamed as repeated JPEG frames into ffmpeg's image2pipe with the bulletin's own
- * audio (the Griot voice over the talking-drum bed; no other music). That needs only mjpeg, mp3,
- * libx264 and aac, so the small ffmpeg the reel renderer ships is enough.
- *
- * Content stays in the TikTok-safe column the slideshows use: x 140–940, y 150–1540.
+ * Each scene (a story slide from RadioVisuals with a short caption from the script) is a radio
+ * cover cut drawn by the shared design engine (App\Design: tokens, components, motion) and streamed
+ * as JPEG frames into ffmpeg's image2pipe with the bulletin's own audio (the Griot voice over the
+ * talking-drum bed; no other music). That needs only mjpeg, mp3, libx264 and aac, so the small
+ * ffmpeg the reel renderer ships is enough. Text stays in the design tokens' safe zone.
  * The result is copied to public/generated/radio/{id}/radio.mp4 (and poster.jpg) so the host
  * serves byte ranges. A failure never touches the published audio.
  */
 class RadioVideo
 {
     public const NEEDS = ['encoder libx264', 'encoder aac', 'demuxer image2pipe', 'decoder mjpeg', 'decoder mp3'];
-
-    private const LEFT = 140;
-    private const WIDTH = 800;
-    private const TOP = 150;
-    private const BOTTOM = 1540;
-
-    private const INK = [16, 20, 15];
-    private const PANEL = [27, 32, 25];
-    private const GOLD = [233, 185, 73];
-    private const PAPER = [246, 239, 224];
-    private const MUTED = [190, 182, 168];
 
     public function __construct(private RadioVisuals $visuals, private SlideshowVideo $encoder) {}
 
@@ -250,181 +239,52 @@ class RadioVideo
     }
 
     /**
-     * Yields one JPEG per video frame, exactly as many as the audio lasts (ffmpeg stops reading once it
-     * has them all). Each scene is drawn once and its bytes repeated; $poster gets the first story scene.
+     * The scenes as radio cover cuts for the shared frame engine: the edition label, the segment's
+     * licensed photo or our own art, its headline, and the words being spoken. A new segment wipes
+     * in; caption changes within a segment do not.
+     */
+    public static function cuts(RadioBulletin $bulletin, array $scenes, ?array $photo = null, string $lang = 'en'): array
+    {
+        $cuts = [];
+        $previous = null;
+        $stories = array_values(array_unique(array_filter(array_map(fn ($sc) => !empty($sc['slide']['label']) && $sc['slide']['label'] !== "Today's bulletin"
+            ? ($sc['slide']['title'] ?? null) : null, $scenes))));
+        $last = count($scenes) - 1;
+        foreach ($scenes as $i => $scene) {
+            $title = $scene['slide']['title'] ?? $bulletin->title;
+            $n = array_search($title, $stories, true);
+            $story = $n !== false ? $scene['slide']['label'].' · '.($n + 1).' of '.count($stories) : null;
+            if ($story === null && $i === $last && $i > 0) {
+                // The sign-off gets its own card, so it never repeats the opening one.
+                $title = 'Every edition at matchday.africa/listen';
+            }
+            $art = !empty($scene['slide']['image']) ? public_path($scene['slide']['image']) : null;
+            // GD cannot draw the SVG pitch: the crest-free Matchday Radio cover stands in for it.
+            if (!$art || !is_file($art) || !preg_match('/\.(png|jpe?g|webp)$/i', $art)) {
+                $art = public_path('images/radio/cover.png');
+            }
+            $cuts[] = ['type' => 'radio', 'start' => $scene['start'], 'seconds' => $scene['end'] - $scene['start'],
+                'caption' => $scene['caption'], 'title' => $title, 'art' => $art, 'story' => $story,
+                'edition' => $bulletin->editionLabel().' · '.$bulletin->duration_label,
+                'photo' => $photo && $story === null ? ['file' => $photo['file'], 'crop' => $photo['crop'] ?? null, 'credit' => $photo['credit'] ?? null] : null,
+                'lang' => $lang, 'sides' => null, 'wipe' => $previous !== $title.'|'.$story, 'group' => $title.'|'.$story];
+            $previous = $title.'|'.$story;
+        }
+
+        return $cuts;
+    }
+
+    /**
+     * Yields one JPEG per video frame, exactly as many as the audio lasts, drawn by the shared design
+     * engine (App\Design\Film through StoryFrames); $poster gets an early frame.
      */
     public function frames(RadioBulletin $bulletin, array $scenes, float $seconds, ?string &$poster = null): \Generator
     {
-        $fps = (int) config('radio.video.fps', 30);
-        $total = max(1, (int) round($seconds * $fps));
-        $frame = 0;
-        foreach ($scenes as $i => $scene) {
-            $last = $i === count($scenes) - 1 ? $total : min($total, (int) round($scene['end'] * $fps));
-            if ($last <= $frame) {
-                continue;
-            }
-            $jpeg = $this->draw($bulletin, $scene['slide'], $scene['caption']);
-            if ($poster === null && ($scene['slide']['image'] ?? null)) {
-                $poster = $jpeg;
-            }
-            for (; $frame < $last; $frame++) {
-                yield $jpeg;
-            }
+        $cuts = self::cuts($bulletin, $scenes);
+        if ($cuts) {
+            $cuts[count($cuts) - 1]['seconds'] = $seconds - $cuts[count($cuts) - 1]['start'];
         }
-        if ($poster === null && isset($jpeg)) {
-            $poster = $jpeg;
-        }
-    }
-
-    /** One 1080x1920 frame as JPEG bytes. */
-    public function draw(RadioBulletin $bulletin, array $slide, ?string $caption): string
-    {
-        [$w, $h] = config('radio.video.size', [1080, 1920]);
-        $img = imagecreatetruecolor($w, $h);
-        imagealphablending($img, true);
-        $c = fn (array $rgb, int $alpha = 0) => imagecolorallocatealpha($img, $rgb[0], $rgb[1], $rgb[2], $alpha);
-        imagefill($img, 0, 0, $c(self::INK));
-        imagefilledellipse($img, (int) ($w * 0.82), 300, 760, 760, $c(self::GOLD, 118));
-
-        $anton = resource_path('fonts/Anton-Regular.ttf');
-        $bold = resource_path('fonts/AsapCondensed-Bold.ttf');
-        $semi = resource_path('fonts/AsapCondensed-SemiBold.ttf');
-
-        // Header: brand and edition.
-        $y = self::TOP + 70;
-        imagettftext($img, 54, 0, self::LEFT, $y, $c(self::GOLD), $anton, 'Matchday Radio');
-        $y += 58;
-        imagettftext($img, 30, 0, self::LEFT, $y, $c(self::MUTED), $semi, $bulletin->editionLabel().' · '.$bulletin->duration_label);
-
-        // Label pill and title.
-        $y += 40;
-        $label = (string) ($slide['label'] ?? 'Matchday Radio');
-        $box = imagettfbbox(28, 0, $bold, $label);
-        $pillW = ($box[2] - $box[0]) + 48;
-        imagefilledrectangle($img, self::LEFT, $y, self::LEFT + $pillW, $y + 56, $c(self::GOLD));
-        imagettftext($img, 28, 0, self::LEFT + 24, $y + 40, $c(self::INK), $bold, $label);
-        $y += 56 + 30;
-        $titleLines = array_slice(self::wrap((string) ($slide['title'] ?? ''), $anton, 60, self::WIDTH), 0, 3);
-        foreach ($titleLines as $line) {
-            $y += 86; // GD sizes are points: 60 pt is 80 px
-            imagettftext($img, 60, 0, self::LEFT, $y, $c(self::PAPER), $anton, $line);
-        }
-
-        // Caption panel and footer pill sit at the bottom of the safe column.
-        $footerTop = self::BOTTOM - 64;
-        $captionBottom = $footerTop - 28;
-        $captionTop = $captionBottom - 290;
-
-        // Artwork between the title and the caption.
-        $artTop = $y + 36;
-        $artBottom = $captionTop - 30;
-        if ($artBottom - $artTop > 160) {
-            imagefilledrectangle($img, self::LEFT, $artTop, self::LEFT + self::WIDTH, $artBottom, $c(self::PANEL));
-            $this->art($img, $slide['image'] ?? null, self::LEFT + 20, $artTop + 20, self::WIDTH - 40, $artBottom - $artTop - 40);
-        }
-
-        if ($caption !== null && $caption !== '') {
-            imagefilledrectangle($img, self::LEFT, $captionTop, self::LEFT + self::WIDTH, $captionBottom, $c(self::PAPER));
-            imagefilledrectangle($img, self::LEFT, $captionTop, self::LEFT + 10, $captionBottom, $c(self::GOLD));
-            $size = 46;
-            $lines = self::wrap($caption, $bold, $size, self::WIDTH - 80);
-            while (count($lines) > 4 && $size > 32) {
-                $size -= 4;
-                $lines = self::wrap($caption, $bold, $size, self::WIDTH - 80);
-            }
-            $lines = array_slice($lines, 0, 4);
-            $lineH = (int) round($size * 1.32);
-            $ty = $captionTop + (int) ((($captionBottom - $captionTop) - count($lines) * $lineH) / 2) + $size;
-            foreach ($lines as $line) {
-                imagettftext($img, $size, 0, self::LEFT + 44, $ty, $c(self::INK), $bold, $line);
-                $ty += $lineH;
-            }
-        }
-
-        $pill = 'matchday.africa';
-        $box = imagettfbbox(30, 0, $bold, $pill);
-        $pw = ($box[2] - $box[0]) + 60;
-        $px = (int) (self::LEFT + (self::WIDTH - $pw) / 2);
-        imagefilledrectangle($img, $px, $footerTop, $px + $pw, self::BOTTOM, $c(self::GOLD));
-        imagettftext($img, 30, 0, $px + 30, $footerTop + 44, $c(self::INK), $bold, $pill);
-
-        ob_start();
-        imagejpeg($img, null, 86);
-        imagedestroy($img);
-
-        return (string) ob_get_clean();
-    }
-
-    /** Fits the slide's rights-safe image (public path) into the box; draws a pitch when there is none or GD cannot read it. */
-    private function art(\GdImage $img, ?string $path, int $x, int $y, int $w, int $h): void
-    {
-        $src = null;
-        $file = $path ? public_path($path) : null;
-        if ($file && is_file($file)) {
-            $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-            $src = match ($ext) {
-                'webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($file) : null,
-                'png' => @imagecreatefrompng($file),
-                'jpg', 'jpeg' => @imagecreatefromjpeg($file),
-                default => null,
-            } ?: null;
-        }
-        if (!$src) {
-            $this->pitch($img, $x, $y, $w, $h);
-
-            return;
-        }
-        $sw = imagesx($src);
-        $sh = imagesy($src);
-        $scale = min($w / $sw, $h / $sh);
-        $dw = (int) round($sw * $scale);
-        $dh = (int) round($sh * $scale);
-        imagecopyresampled($img, $src, $x + (int) (($w - $dw) / 2), $y + (int) (($h - $dh) / 2), 0, 0, $dw, $dh, $sw, $sh);
-        imagedestroy($src);
-    }
-
-    /** A plain pitch drawing (the listen page's football.svg is not readable by GD). */
-    private function pitch(\GdImage $img, int $x, int $y, int $w, int $h): void
-    {
-        $green = imagecolorallocate($img, 46, 125, 74);
-        $stripe = imagecolorallocate($img, 52, 138, 82);
-        $line = imagecolorallocate($img, 236, 244, 236);
-        imagefilledrectangle($img, $x, $y, $x + $w, $y + $h, $green);
-        for ($i = 0; $i < 8; $i += 2) {
-            imagefilledrectangle($img, $x, $y + (int) ($h * $i / 8), $x + $w, $y + (int) ($h * ($i + 1) / 8), $stripe);
-        }
-        imagesetthickness($img, 5);
-        $m = 24;
-        imagerectangle($img, $x + $m, $y + $m, $x + $w - $m, $y + $h - $m, $line);
-        imageline($img, $x + $m, $y + (int) ($h / 2), $x + $w - $m, $y + (int) ($h / 2), $line);
-        $r = (int) min($w, $h) / 4;
-        imageellipse($img, $x + (int) ($w / 2), $y + (int) ($h / 2), $r * 2, $r * 2, $line);
-        imagesetthickness($img, 1);
-    }
-
-    /** Word-wraps $text to lines no wider than $width at $size in $font. */
-    private static function wrap(string $text, string $font, int $size, int $width): array
-    {
-        $lines = [];
-        $line = '';
-        foreach (preg_split('/\s+/u', trim($text)) as $word) {
-            if ($word === '') {
-                continue;
-            }
-            $try = $line === '' ? $word : $line.' '.$word;
-            $box = imagettfbbox($size, 0, $font, $try);
-            if ($line !== '' && ($box[2] - $box[0]) > $width) {
-                $lines[] = $line;
-                $line = $word;
-            } else {
-                $line = $try;
-            }
-        }
-        if ($line !== '') {
-            $lines[] = $line;
-        }
-
-        return $lines;
+        yield from app(StoryFrames::class)->frames($cuts, (int) config('radio.video.fps', 30), $poster);
     }
 
     /** A piece longer than $max broken into word runs of up to $max characters. */

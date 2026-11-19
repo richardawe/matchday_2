@@ -63,7 +63,13 @@ class AdminController extends Controller
             'unmatched' => (array) data_get($lastEspnRun?->context, 'unmatched', []),
         ];
         
-        return view('admin.dashboard', compact('stats', 'apiStatus', 'recentLogs', 'syncRuns', 'operations', 'espn'));
+        // Breaking news: what is on the site and the latest items, the agent's included (they go live at once).
+        $breaking = \App\Models\BreakingNews::ready() ? [
+            'current' => \App\Models\BreakingNews::current(),
+            'items' => \App\Models\BreakingNews::with(['author', 'ender'])->latest('created_at')->latest('id')->limit(5)->get(),
+        ] : null;
+
+        return view('admin.dashboard', compact('stats', 'apiStatus', 'recentLogs', 'syncRuns', 'operations', 'espn', 'breaking'));
     }
 
     /**

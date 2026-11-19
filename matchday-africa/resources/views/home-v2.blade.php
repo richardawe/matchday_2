@@ -2,6 +2,7 @@
 
 {{-- The reels-first homepage (config/home.php): live scores, Watch live, Beat the Griot, reels hero, next and results, news, players, play. --}}
 @section('content')
+@include('partials.breaking', ['variant' => 'banner'])
 @include('partials.home.radio-bar')
 @include('partials.home.live-now')
 @include('partials.home.watch-live')

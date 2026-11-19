@@ -102,7 +102,7 @@ jobs:
             sudo apt-get install -y -qq ffmpeg
           fi
           cd radio
-          npm ci --no-audit --no-fund
+          ONNXRUNTIME_NODE_INSTALL_CUDA=skip npm ci --no-audit --no-fund
           node render.mjs --check
           npm test
       - name: Test deployment scripts
@@ -243,6 +243,8 @@ jobs:
           SOCIAL_AUTOPOST_ENABLED: ${{ vars.SOCIAL_AUTOPOST_ENABLED || 'false' }}
           # The bot's bearer token for /api/social-queue; blank leaves the server's value alone.
           SOCIAL_QUEUE_TOKEN: ${{ secrets.SOCIAL_QUEUE_TOKEN }}
+          # Match-story videos after full time (story:render): on unless the repository variable STORY_VIDEOS is false (owner, 17 Nov 2026).
+          STORY_VIDEOS: ${{ vars.STORY_VIDEOS || 'true' }}
         run: bash scripts/ci/deploy-ssh.sh deploy
       - name: Verify the public release and application routes
         env:

@@ -15,6 +15,14 @@ class PlayerNames
         return trim(preg_replace('/[^a-z0-9]+/', ' ', Str::lower(Str::ascii($name))));
     }
 
+    /** The last name as written: "Patrick Dorgu" -> "Dorgu". */
+    public static function surname(string $name): string
+    {
+        $parts = preg_split('/\s+/u', trim($name)) ?: [];
+
+        return (string) (end($parts) ?: $name);
+    }
+
     public static function same(string $a, string $b): bool
     {
         $a = self::normalize($a);

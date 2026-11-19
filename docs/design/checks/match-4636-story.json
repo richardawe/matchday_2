@@ -1,0 +1,101 @@
+{
+    "ok": true,
+    "video": "matchday-africa/public/generated/stories/2/story.mp4",
+    "seconds": 63,
+    "frames": [
+        {
+            "t": 0,
+            "component": "hook",
+            "problems": [],
+            "empty": 0.238,
+            "empty_checked_at": 0
+        },
+        {
+            "t": 5,
+            "component": "matchup",
+            "problems": [],
+            "empty": 0.179,
+            "empty_checked_at": 5
+        },
+        {
+            "t": 10,
+            "component": "goal",
+            "problems": [],
+            "empty": 0.135,
+            "empty_checked_at": 10
+        },
+        {
+            "t": 15,
+            "component": "goal",
+            "problems": [],
+            "empty": 0.137,
+            "empty_checked_at": 15
+        },
+        {
+            "t": 20,
+            "component": "goal",
+            "problems": [],
+            "empty": 0.135,
+            "empty_checked_at": 20
+        },
+        {
+            "t": 25,
+            "component": "mini_table",
+            "problems": [],
+            "empty": 0.186,
+            "empty_checked_at": 25
+        },
+        {
+            "t": 30,
+            "component": "fixtures",
+            "problems": [],
+            "empty": 0.144,
+            "empty_checked_at": 30
+        },
+        {
+            "t": 35,
+            "component": "results",
+            "problems": [],
+            "empty": 0.138,
+            "empty_checked_at": 35
+        },
+        {
+            "t": 40,
+            "component": "stat_bars",
+            "problems": [],
+            "empty": 0.205,
+            "empty_checked_at": 40
+        },
+        {
+            "t": 45,
+            "component": "score_block",
+            "problems": [],
+            "empty": 0.205,
+            "empty_checked_at": 45
+        },
+        {
+            "t": 50,
+            "component": "fact_list",
+            "problems": [],
+            "empty": 0.204,
+            "empty_checked_at": 50
+        },
+        {
+            "t": 55,
+            "component": "banter",
+            "problems": [],
+            "empty": 0.153,
+            "empty_checked_at": 55
+        },
+        {
+            "t": 60,
+            "component": "closing",
+            "problems": [],
+            "empty": 0.143,
+            "empty_checked_at": 60
+        }
+    ],
+    "problems": [],
+    "sheet": "matchday-africa/public/generated/stories/2/story-contact-sheet.png",
+    "manifest": true
+}

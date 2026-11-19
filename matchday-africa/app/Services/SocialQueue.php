@@ -26,6 +26,9 @@ use Throwable;
  *     AI/Kokoro disclosure. Holding (withdrawing) an edition drops it;
  *   - every long video an editor or the bot put on the queue ("video:<id>", SocialVideos), with its
  *     static mp4, per-platform captions, credits and the landing page tagged with its campaign.
+ *   - every ready match-story video ("story:<id>", type match_story, 61-75 s after full time) and
+ *     story radio video (type radio_video; it replaces that edition's "radio:<id>" item), with
+ *     duration_seconds, hook, captions per channel tagged utm_campaign=story, hashtags and the photo credit.
  * Each channel's posted state comes from social_queue_posts (the bot or an admin marks it), else
  * from what the site sent itself earlier (growth_posts) or, for YouTube, the Shorts upload.
  * The admin page (/admin/social-queue) and the API (/api/social-queue) both read this.
@@ -46,7 +49,7 @@ class SocialQueue
     /** Every item, newest first. */
     public function items(): Collection
     {
-        $items = $this->reelItems()->concat($this->growthItems())->concat($this->slideshowItems())->concat($this->radioItems())
+        $items = $this->reelItems()->concat($this->growthItems())->concat($this->slideshowItems())->concat($this->radioItems())->concat($this->storyItems())
             ->concat(app(SocialVideos::class)->queueItems($this->since()))
             ->sortByDesc(fn ($item) => $item['created_at'])->values();
         $posted = self::ready()
@@ -211,7 +214,10 @@ class SocialQueue
             return collect();
         }
 
-        return \App\Models\RadioBulletin::published()->where('video_status', 'ready')
+        $covered = \App\Models\StoryVideo::ready()
+            ? \App\Models\StoryVideo::where('kind', 'radio_video')->where('status', 'ready')->pluck('radio_bulletin_id')->all() : [];
+
+        return \App\Models\RadioBulletin::published()->where('video_status', 'ready')->whereNotIn('id', $covered ?: [0])
             ->where('published_at', '>=', $this->since()->copy()->setTimezone(config('app.timezone')))
             ->get()
             ->filter(fn ($b) => $b->videoReady() && $b->audioFile())
@@ -243,6 +249,23 @@ class SocialQueue
             })->values();
     }
 
+    /** Ready story videos (StoryVideos::queueItem), with the match block the other items carry. */
+    private function storyItems(): Collection
+    {
+        if (!\App\Models\StoryVideo::ready()) {
+            return collect();
+        }
+
+        return \App\Models\StoryVideo::with(['match.homeTeam', 'match.awayTeam', 'match.league', 'bulletin'])
+            ->where('status', 'ready')->where('rendered_at', '>=', $this->since()->copy()->setTimezone(config('app.timezone')))
+            ->get()
+            ->map(function (\App\Models\StoryVideo $story) {
+                $item = \App\Services\Story\StoryVideos::queueItem($story);
+
+                return $item ? $item + ['match' => $story->match ? $this->matchInfo($story->match) : null, '_story' => $story] : null;
+            })->filter()->values();
+    }
+
     /** Adds the channels' posted state, cleans the caption and formats times; drops internals. */
     private function finish(array $item, Collection $marks): array
     {
@@ -255,7 +278,7 @@ class SocialQueue
         }
         $created = $item['created_at'];
 
-        return array_merge(array_diff_key($item, ['_match' => 1, '_growth' => 1, '_slideshow' => 1, '_radio' => 1]), [
+        return array_merge(array_diff_key($item, ['_match' => 1, '_growth' => 1, '_slideshow' => 1, '_radio' => 1, '_story' => 1]), [
             'caption' => self::plain((string) $item['caption']),
             'created_at' => self::iso($created),
             'channels' => $channels,
@@ -271,8 +294,8 @@ class SocialQueue
             return $show->youtube_video_id ? ['posted' => true, 'posted_at' => self::iso($show->youtube_uploaded_at), 'external_post_id' => $show->youtube_video_id,
                 'url' => $item['youtube_url'], 'source' => 'youtube_upload'] : null;
         }
-        if (isset($item['_slideshow']) || isset($item['_radio']) || isset($item['_video'])) {
-            return null; // The site never posted slideshows, radio or long videos itself.
+        if (isset($item['_slideshow']) || isset($item['_radio']) || isset($item['_story']) || isset($item['_video'])) {
+            return null; // The site never posted slideshows, radio videos, stories or long videos itself.
         }
         if ($channel === 'youtube') {
             $match = $item['_match'] ?? null;

@@ -269,7 +269,7 @@ class EspnSyncService
         foreach ($events as $event) {
             $team = $event['side'] === 'home' ? $match->homeTeam : $match->awayTeam;
             $row = MatchEvent::updateOrCreate(
-                ['football_data_id' => $this->stableId("{$match->espn_id}|{$event['type']}|{$event['clock']}|{$event['player_name']}")],
+                ['football_data_id' => $this->stableId("{$match->espn_id}|{$event['type']}|{$event['clock']}|".($event['key_name'] ?? $event['player_name']))],
                 [
                     'match_id' => $match->id, 'match_football_data_id' => $match->football_data_id,
                     'team_id' => $team->id, 'team_football_data_id' => $team->football_data_id,

@@ -173,6 +173,11 @@ class EspnSyncTest extends TestCase
         $this->assertSame(2, $match->events()->where('type', 'goal')->count());
         $this->assertSame(8, $match->events()->where('type', 'substitution')->count());
         $this->assertSame('Evanilson', $match->events()->where('type', 'goal')->where('minute', 6)->value('assist_player_name'));
+        // ESPN lists the player coming on first ("Habib Diarra replaces Tymur Tutierov"): stored as off / on.
+        $sub = $match->events()->where('type', 'substitution')->where('minute', 59)->where('related_player_name', 'Habib Diarra')->first();
+        $this->assertSame('Tymur Tutierov', $sub?->player_name);
+        $this->assertSame(['59\' Habib Diarra on for Tymur Tutierov'], \App\Support\Substitutions::oriented($match)
+            ->where('verified', true)->filter(fn ($x) => $x['on'] === 'Habib Diarra')->map(fn ($x) => "{$x['label']} {$x['on']} on for {$x['off']}")->values()->all());
 
         // Another scoreboard pass keeps the summary-only substitutions.
         app(EspnSyncService::class)->syncFixtures();

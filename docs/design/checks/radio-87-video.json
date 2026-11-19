@@ -1,0 +1,213 @@
+{
+    "ok": true,
+    "video": "matchday-africa/public/generated/stories/2/story.mp4",
+    "seconds": 142.5,
+    "frames": [
+        {
+            "t": 0,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.202,
+            "empty_checked_at": 0
+        },
+        {
+            "t": 5,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.202,
+            "empty_checked_at": 5
+        },
+        {
+            "t": 10,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 10
+        },
+        {
+            "t": 15,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 15
+        },
+        {
+            "t": 20,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 20
+        },
+        {
+            "t": 25,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 25
+        },
+        {
+            "t": 30,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 30
+        },
+        {
+            "t": 35,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 35
+        },
+        {
+            "t": 40,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 40
+        },
+        {
+            "t": 45,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 45
+        },
+        {
+            "t": 50,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 50
+        },
+        {
+            "t": 55,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 55
+        },
+        {
+            "t": 60,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 60
+        },
+        {
+            "t": 65,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 65
+        },
+        {
+            "t": 70,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 70
+        },
+        {
+            "t": 75,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 75
+        },
+        {
+            "t": 80,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 80
+        },
+        {
+            "t": 85,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 85
+        },
+        {
+            "t": 90,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 90
+        },
+        {
+            "t": 95,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 95
+        },
+        {
+            "t": 100,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 100
+        },
+        {
+            "t": 105,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 105
+        },
+        {
+            "t": 110,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 110
+        },
+        {
+            "t": 115,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 115
+        },
+        {
+            "t": 120,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 120
+        },
+        {
+            "t": 125,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 125
+        },
+        {
+            "t": 130,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 130
+        },
+        {
+            "t": 135,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.013,
+            "empty_checked_at": 135
+        },
+        {
+            "t": 140,
+            "component": "radio_cover",
+            "problems": [],
+            "empty": 0.217,
+            "empty_checked_at": 140
+        }
+    ],
+    "problems": [],
+    "sheet": "docs/design/checks/radio-87-video.png",
+    "manifest": true
+}
