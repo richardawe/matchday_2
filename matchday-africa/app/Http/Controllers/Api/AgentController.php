@@ -18,6 +18,7 @@ use App\Models\StoryVideo;
 use App\Models\User;
 use App\Models\UserPrediction;
 use App\Services\Agent\AgentMedia;
+use App\Services\Articles\ArticlePublisher;
 use App\Services\BreakingNewsDesk;
 use App\Services\RadioVideo;
 use App\Services\Slideshow\CommonsPhotos;
@@ -27,6 +28,7 @@ use App\Services\SocialQueue;
 use App\Services\Story\StoryVideos;
 use App\Support\AfricanScope;
 use App\Support\ClubName;
+use App\Support\SiteSettings;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -356,8 +358,12 @@ class AgentController extends Controller
         return $item ? response()->json($item) : response()->json(['message' => 'Unknown queue item.'], 404);
     }
 
-    /** POST /api/agent/articles: always a draft; an editor publishes it from /admin/blogs. */
-    public function storeArticle(Request $request): JsonResponse
+    /**
+     * POST /api/agent/articles: saved as a draft. With "publish": true it also goes live in the same
+     * call, under the same rules as POST /articles/{id}/publish (403, and nothing saved, while an admin
+     * has switched agent publishing off).
+     */
+    public function storeArticle(Request $request, ArticlePublisher $publisher): JsonResponse
     {
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -368,6 +374,9 @@ class AgentController extends Controller
             'publish' => ['nullable', 'boolean'],
         ]);
         $publish = (bool) ($data['publish'] ?? false);
+        if ($publish && ($closed = $this->publishingClosed())) {
+            return $closed;
+        }
         $slug = Str::slug($data['title']) ?: 'draft';
         $base = $slug;
         for ($i = 2; Blog::where('slug', $slug)->exists(); $i++) {
@@ -375,19 +384,80 @@ class AgentController extends Controller
         }
         $blog = Blog::create([
             'title' => $data['title'], 'slug' => $slug, 'content' => $data['content'], 'excerpt' => $data['excerpt'] ?? null,
-            'status' => $publish ? 'published' : 'draft', 'published_at' => $publish ? now() : null, 'author_name' => $request->user()->name,
+            'status' => 'draft', 'published_at' => null, 'author_name' => $request->user()->name,
             'metadata' => array_filter(['source' => 'agent', 'created_by' => $request->user()->id, 'match_id' => $data['match_id'] ?? null,
                 'sources' => $data['sources'] ?? null]),
         ]);
+        if ($publish) {
+            $publisher->publish($blog, ArticlePublisher::ACTOR_AGENT, $request->user()->id);
+        }
 
         return response()->json($this->article($blog->fresh()), 201);
     }
 
     /**
-     * PATCH /api/agent/articles/{id}: edit, publish or unpublish one of the agent's own articles.
-     * Articles a person wrote stay read-only to the agent.
+     * PATCH /api/agent/articles/{id}: edit one of the agent's own articles ("publish" true/false works as
+     * the publish/unpublish endpoints). Articles a person wrote stay read-only to the agent.
      */
-    public function updateArticle(Request $request, int $id): JsonResponse
+    public function updateArticle(Request $request, int $id, ArticlePublisher $publisher): JsonResponse
+    {
+        $blog = $this->ownArticle($id);
+        if ($blog instanceof JsonResponse) {
+            return $blog;
+        }
+        $data = $request->validate([
+            'title' => ['sometimes', 'string', 'max:255'],
+            'content' => ['sometimes', 'string', 'max:100000'],
+            'excerpt' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'publish' => ['sometimes', 'boolean'],
+        ]);
+        if (array_key_exists('publish', $data) && ($closed = $this->publishingClosed())) {
+            return $closed;
+        }
+        $blog->update(collect($data)->only(['title', 'content', 'excerpt'])->all());
+        if (array_key_exists('publish', $data)) {
+            if ($data['publish'] && $blog->status !== 'published') {
+                $publisher->publish($blog, ArticlePublisher::ACTOR_AGENT, $request->user()->id);
+            } elseif (!$data['publish'] && $blog->status !== 'draft') {
+                $publisher->unpublish($blog, ArticlePublisher::ACTOR_AGENT, $request->user()->id);
+            }
+        }
+
+        return response()->json($this->article($blog->fresh()));
+    }
+
+    /** POST /api/agent/articles/{id}/publish: one of the agent's own articles goes live, as the editor's Publish button does. */
+    public function publishArticle(Request $request, int $id, ArticlePublisher $publisher): JsonResponse
+    {
+        $blog = $this->ownArticle($id);
+        if ($blog instanceof JsonResponse) {
+            return $blog;
+        }
+        if ($closed = $this->publishingClosed()) {
+            return $closed;
+        }
+        $publisher->publish($blog, ArticlePublisher::ACTOR_AGENT, $request->user()->id);
+
+        return response()->json($this->article($blog->fresh()));
+    }
+
+    /** POST /api/agent/articles/{id}/unpublish: one of the agent's own articles goes back to draft. */
+    public function unpublishArticle(Request $request, int $id, ArticlePublisher $publisher): JsonResponse
+    {
+        $blog = $this->ownArticle($id);
+        if ($blog instanceof JsonResponse) {
+            return $blog;
+        }
+        if ($closed = $this->publishingClosed()) {
+            return $closed;
+        }
+        $publisher->unpublish($blog, ArticlePublisher::ACTOR_AGENT, $request->user()->id);
+
+        return response()->json($this->article($blog->fresh()));
+    }
+
+    /** The article, if the agent wrote it; else a 404 or 403 to send back. */
+    private function ownArticle(int $id): Blog|JsonResponse
     {
         $blog = Blog::find($id);
         if (!$blog) {
@@ -396,20 +466,15 @@ class AgentController extends Controller
         if (data_get($blog->metadata, 'source') !== 'agent') {
             return response()->json(['message' => 'The agent can only change articles it created.'], 403);
         }
-        $data = $request->validate([
-            'title' => ['sometimes', 'string', 'max:255'],
-            'content' => ['sometimes', 'string', 'max:100000'],
-            'excerpt' => ['sometimes', 'nullable', 'string', 'max:500'],
-            'publish' => ['sometimes', 'boolean'],
-        ]);
-        $fields = collect($data)->only(['title', 'content', 'excerpt'])->all();
-        if (array_key_exists('publish', $data)) {
-            $fields['status'] = $data['publish'] ? 'published' : 'draft';
-            $fields['published_at'] = $data['publish'] ? ($blog->published_at ?? now()) : null;
-        }
-        $blog->update($fields);
 
-        return response()->json($this->article($blog->fresh()));
+        return $blog;
+    }
+
+    /** 403 while agent publishing is switched off (AGENT_CAN_PUBLISH, or an admin at /admin/settings). */
+    private function publishingClosed(): ?JsonResponse
+    {
+        return SiteSettings::agentCanPublish() ? null
+            : response()->json(['message' => 'Agent publishing is switched off by an admin.'], 403);
     }
 
     /**
@@ -732,7 +797,7 @@ class AgentController extends Controller
             'content' => $b->content, 'author' => $b->author_name,
             'published_at' => $b->published_at?->utc()->toIso8601ZuluString(), 'updated_at' => $b->updated_at?->utc()->toIso8601ZuluString(),
             'url' => $b->status === 'published' ? SocialQueue::https(route('blogs.show', $b)) : null,
-            'source' => data_get($b->metadata, 'source'),
+            'source' => data_get($b->metadata, 'source'), 'published_by' => $b->status === 'published' ? data_get($b->metadata, 'published_by') : null,
         ];
     }
 

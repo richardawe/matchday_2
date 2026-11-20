@@ -9,6 +9,7 @@
                     <div>
                         <h1 class="text-3xl font-bold text-gray-900">📝 Blog Management</h1>
                         <p class="text-gray-600 mt-2">Manage your blog posts and articles</p>
+                        <p class="text-sm text-gray-500 mt-1">Agent publishing: <strong>{{ $agentPublishing ? 'on' : 'off' }}</strong>@if(auth()->user()?->isAdmin()) · <a class="underline" href="{{ route('admin.settings.index') }}">change</a>@endif</p>
                     </div>
                     <a href="{{ route('admin.blogs.create') }}" 
                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg inline-flex items-center">
@@ -93,6 +94,12 @@
                                             @if($blog->published_at)
                                                 <div class="text-xs text-gray-500 mt-1">
                                                     {{ $blog->formatted_published_date }}
+                                                </div>
+                                            @endif
+                                            @if($blog->publishedByAgent())
+                                                <div class="mt-1">
+                                                    <span class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800" data-agent-published>🤖 Published by agent</span>
+                                                    <div class="text-xs text-gray-500 mt-0.5">{{ $blog->published_at?->timezone(config('app.timezone'))->format('j M Y, H:i') }}</div>
                                                 </div>
                                             @endif
                                         </td>

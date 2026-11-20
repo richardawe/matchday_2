@@ -166,6 +166,25 @@ A draft unless `"publish": true` (then live at once, `url` set). `PATCH` edits `
 publishes or unpublishes (`publish`) articles **the agent created**; a person's article answers `403`. Returns `201` /
 `200` with the article. (In the admin, `/admin/blogs` still saves the agent's work as drafts.)
 
+### POST /articles/{id}/publish and POST /articles/{id}/unpublish
+
+```bash
+curl -s -X POST https://matchday.africa/api/agent/articles/42/publish -H "Authorization: Bearer $MD_TOKEN"
+curl -s -X POST https://matchday.africa/api/agent/articles/42/unpublish -H "Authorization: Bearer $MD_TOKEN"
+```
+
+Publish goes live exactly as the editor's Publish button on `/admin/blogs` does (`App\Services\Articles\ArticlePublisher`):
+status `published`, `published_at` now, a unique slug, the sitemap and the front page's article fragments ("New on
+Matchday", hero, Latest News) cleared. Unpublish puts it back to `draft`. `200` with the article (`published_by: "agent"`
+while live); `404` unknown id; `403` for an article a person wrote, and `403` while publishing is switched off.
+
+Rules for every publish or unpublish (these endpoints, `"publish"` on `POST`/`PATCH /articles`):
+- only articles the agent created;
+- the switch `AGENT_CAN_PUBLISH` (`.env`, default `true`) or an admin at `/admin/settings` (which wins) can turn it off;
+  while off, publishing answers `403` and a `POST /articles` with `"publish": true` saves nothing;
+- each one writes a row to `article_publish_logs` (article id, action, agent or editor, time); `/admin/blogs` shows
+  "Published by agent" with the time, `/admin/settings` the recent rows.
+
 ### POST /slideshows/{id}/approve
 
 Puts a ready slideshow live (its page, the reels feed, the social queue and YouTube), as an editor's approval does.

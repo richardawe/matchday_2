@@ -29,6 +29,16 @@ class FrontPage
 {
     public const CACHE_SECONDS = 45;
 
+    /** The article fragments, so a newly published or unpublished article shows (or goes) at once. */
+    public static function forgetArticles(): void
+    {
+        Cache::forget('front-page:hero-article');
+        foreach ([6, 10] as $limit) {
+            Cache::forget('front-page:fresh:'.$limit);
+            Cache::forget('front-page:news:'.$limit);
+        }
+    }
+
     /** Radio and streams count as "on air" for this long after they are published. */
     public const ON_AIR_HOURS = 3;
 

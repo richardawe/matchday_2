@@ -145,6 +145,12 @@ class Blog extends Model
         ]);
     }
 
+    /** Live and published by the agent API (App\Services\Articles\ArticlePublisher). */
+    public function publishedByAgent(): bool
+    {
+        return $this->status === 'published' && data_get($this->metadata, 'published_by') === 'agent';
+    }
+
     /**
      * Unpublish the blog
      */
