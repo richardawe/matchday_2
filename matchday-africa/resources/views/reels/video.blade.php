@@ -15,11 +15,8 @@
         <div class="md-reels-copy">
             <p class="md-eyebrow">{{ strtoupper($video->typeLabel()) }}@if($video->lengthLabel()) · {{ strtoupper($video->lengthLabel()) }}@endif</p>
             <h1 id="video-title">{{ $video->title }}</h1>
-            @if($video->description)
-                @foreach(preg_split('/\n\s*\n/', trim($video->description)) as $para)<p class="md-reels-now">{!! nl2br(e($para)) !!}</p>@endforeach
-            @elseif($video->caption)
-                <p class="md-reels-now">{{ \App\Services\SocialQueue::plain($video->caption) }}</p>
-            @endif
+            {{-- Never the raw YouTube/social description: a clean summary (App\Support\VideoText); credits and the AI disclosure go in the small print below. --}}
+            @if($summary = $video->summary())<p class="md-reels-now md-video-summary">{{ $summary }}</p>@endif
             <div class="md-home-actions">
                 @if($cta)<a class="md-primary" href="{{ $cta['href'] }}">{{ $cta['label'] }}</a>@endif
                 <a class="md-secondary" href="{{ route('reels.index') }}">More videos and reels</a>
@@ -29,7 +26,6 @@
                 <p class="md-reels-now">Sign up free to save your calls and get match alerts.</p>
                 @include('partials.signup-options', ['return' => $cta['href'] ?? route('reels.video', $video, false)])
             @endguest
-            @if($video->credits)<p class="md-reels-now"><small>Credits: {{ $video->credits }}</small></p>@endif
             @if($video->tiktok_url || $video->youtube_url)
                 <p class="md-reels-now"><small>Also on
                     @if($video->tiktok_url)<a href="{{ $video->tiktok_url }}" target="_blank" rel="noopener">TikTok</a>@endif
@@ -48,6 +44,14 @@
                         </a>
                     @endforeach
                 </div>
+            @endif
+            @php($print = $video->smallPrint())
+            @if($video->credits || $print['credits'] || $print['disclosure'])
+                <footer class="md-video-notes">
+                    @if($video->credits)<p><small>Credits: {{ $video->credits }}</small></p>@endif
+                    @foreach($print['credits'] as $credit)<p><small>{{ $credit }}</small></p>@endforeach
+                    @if($print['disclosure'])<p><small>{{ $print['disclosure'] }}</small></p>@endif
+                </footer>
             @endif
         </div>
     </div>

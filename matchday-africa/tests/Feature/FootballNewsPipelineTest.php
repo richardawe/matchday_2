@@ -30,9 +30,12 @@ class FootballNewsPipelineTest extends TestCase {
         $blog=Blog::first();
         $this->assertSame('published',$blog->status);
         $this->assertStringContainsString($url,$blog->content);
-        $this->assertNotNull($blog->featured_image);
+        // Never the source site's picture: the og:image is not even fetched; our branded text card stands in.
+        Http::assertNotSent(fn($request)=>$request->url()===$imageUrl);
+        $this->assertStringStartsWith('blog-images/card-'.$blog->id.'-',$blog->featured_image);
         Storage::disk('public')->assertExists($blog->featured_image);
-        $this->assertSame($imageUrl,$blog->metadata['source_image_url']);
+        $this->assertArrayNotHasKey('source_image_url',$blog->metadata);
+        $this->assertSame('text_card',$blog->metadata['image_kind']);
         $this->assertTrue($blog->metadata['automated']);
         app(FootballNewsService::class)->discover();
         $this->assertDatabaseCount('news_candidates',1);

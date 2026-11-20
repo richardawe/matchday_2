@@ -11,11 +11,13 @@ use App\Models\Slideshow;
 use App\Models\SocialVideo;
 use App\Support\AfricanScope;
 use App\Support\AfricanStories;
+use App\Support\ImageIdentity;
 use App\Support\StreamLink;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * The live front page (home-v2): one hero chosen in priority order, the "New on Matchday" rail of
@@ -259,6 +261,72 @@ class FrontPage
 
             return $blog;
         })->filter(fn (?Blog $b) => $b?->isPublished())->values();
+    }
+
+    /** The picture the hero shows, if any. */
+    public static function heroImage(array $hero): ?string
+    {
+        return match ($hero['kind']) {
+            'radio' => $hero['bulletin']->posterUrl(),
+            'video' => $hero['video']->posterUrl(),
+            'article' => $hero['blog']->imageUrl() ? $hero['blog']->featured_image_url : null,
+            'breaking' => $hero['item']->image_url ?: null,
+            default => null,
+        };
+    }
+
+    /**
+     * No picture twice on the front page: walking down the page (hero, New on Matchday, Latest News),
+     * an item whose picture (same file or same sha1, App\Support\ImageIdentity) was already shown
+     * gets its fallback card instead: an article its branded text card (NewsImages), anything else the
+     * CSS card ('card' => true). Each news article gets front_image (the picture to show, or null) and
+     * front_card (true when both its picture and its text card were already shown: the CSS card instead).
+     *
+     * @return array{0: Collection, 1: ?Collection}
+     */
+    public function distinctImages(array $hero, Collection $fresh, ?Collection $news = null): array
+    {
+        $seen = [];
+        $take = function (?string $url) use (&$seen): bool {
+            $key = ImageIdentity::key($url);
+            if ($key === null || isset($seen[$key])) {
+                return false;
+            }
+            $seen[$key] = true;
+
+            return true;
+        };
+        $card = function (?Blog $blog) use ($take): ?string {
+            try {
+                $url = $blog ? app(NewsImages::class)->cardUrl($blog) : null;
+            } catch (\Throwable $e) {
+                Log::notice('Front page fallback card failed', ['blog_id' => $blog?->id, 'error' => $e->getMessage()]);
+
+                return null;
+            }
+
+            return $take($url) ? $url : null;
+        };
+        $take(self::heroImage($hero));
+
+        $fresh = $fresh->map(function (array $item) use ($take, $card) {
+            if (!$item['image'] || $take($item['image'])) {
+                return $item + ['card' => false];
+            }
+            $fallback = $item['kind'] === 'article' ? $card(Blog::find((int) Str::after($item['key'], 'article:'))) : null;
+
+            return ['image' => $fallback, 'portrait' => $fallback ? false : $item['portrait'], 'card' => $fallback === null] + $item;
+        });
+
+        $news = $news?->each(function (Blog $blog) use ($take, $card) {
+            $image = $blog->imageUrl() ? $blog->featured_image_url : null;
+            $shown = !$image || $take($image) ? $image : $card($blog);
+            $blog->setAttribute('front_image', $shown);
+            // Its picture and its text card are both higher up the page: the CSS card stands in.
+            $blog->setAttribute('front_card', $image !== null && $shown === null);
+        });
+
+        return [$fresh, $news];
     }
 
     /** "As seen on TikTok": SocialVideos::row(), cached like the rest of the page. */

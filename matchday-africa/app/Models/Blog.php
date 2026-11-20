@@ -105,6 +105,9 @@ class Blog extends Model
         $url = null;
         if (Str::startsWith($key, ['http://', 'https://'])) {
             $url = $key;
+        } elseif (Str::startsWith($key, '/') && !Str::startsWith($key, '//')) {
+            // One of our own pictures by site path (App\Services\NewsImages): a match card or a Commons photo.
+            $url = url($key);
         } elseif ($key !== '' && Storage::disk('public')->exists('blog-images/'.basename($key))) {
             $url = route('blogs.image', ['filename' => basename($key)]);
         }

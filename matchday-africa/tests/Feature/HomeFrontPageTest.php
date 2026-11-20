@@ -16,6 +16,7 @@ use App\Services\FrontPage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -33,6 +34,7 @@ class HomeFrontPageTest extends TestCase
         parent::setUp();
         $this->travelTo('2026-11-20 12:00:00');
         config(['home.v2' => true, 'radio.enabled' => true]);
+        Storage::fake('public'); // fallback text cards for repeated pictures (FrontPage::distinctImages)
     }
 
     protected function tearDown(): void
