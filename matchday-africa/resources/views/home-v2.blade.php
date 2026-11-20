@@ -1,13 +1,19 @@
 @extends('layouts.public')
 
-{{-- The reels-first homepage (config/home.php): live scores, Watch live, Beat the Griot, reels hero, next and results, news, players, play. --}}
+{{-- The live front page (config/home.php, App\Services\FrontPage): one hero chosen in priority order, "Updated HH:MM",
+     New on Matchday, Watch live, Beat the Griot, reels, As seen on TikTok, next and results, African-first news, players, play. --}}
 @section('content')
-@include('partials.breaking', ['variant' => 'banner'])
-@include('partials.home.radio-bar')
-@include('partials.home.live-now')
-@include('partials.home.watch-live')
+<div class="md-front" id="home-front">
+@include('partials.home.updated')
+@include('partials.home.hero')
+</div>
+@if($hero['kind'] !== 'breaking')@include('partials.breaking', ['variant' => 'banner'])@endif
+@if($hero['kind'] !== 'radio')@include('partials.home.radio-bar')@endif
+@include('partials.home.fresh')
+@if($hero['kind'] !== 'stream')@include('partials.home.watch-live')@endif
 @include('partials.home.griot-challenge')
 @include('partials.home.reels-strip')
+<div class="md-wrap">@include('partials.featured-videos')</div>
 <x-whatsapp-channel context="home" />
 <x-sponsor-slot slot="home" />
 
@@ -20,12 +26,13 @@
 </div></section>
 
 
-@if($hasFeaturedBlogs)
+{{-- African stories first, each group newest first, from the last 7 days when there are any (FrontPage::news). --}}
+@if($news->isNotEmpty())
 <section class="md-home-stories md-news-compact"><div class="md-wrap">
     <div class="md-home-heading"><div><p class="md-eyebrow">LATEST NEWS</p><h2>Football stories worth your time.</h2></div><a href="{{ route('blogs.index') }}">All stories →</a></div>
-    <div class="md-news-list">
-        @foreach($featuredBlogs->take(3) as $blog)
-            <article><a href="{{ route('blogs.show', $blog) }}">@if($blog->imageUrl())<img src="{{ $blog->featured_image_url }}" alt="" loading="lazy">@endif<div><small>{{ $blog->published_at?->format('j M') }}</small><h3>{{ $blog->title }}</h3><p>{{ Str::limit(strip_tags((string) $blog->excerpt), 120) }}</p></div></a></article>
+    <div class="md-news-list" id="home-news">
+        @foreach($news as $blog)
+            <article data-news-id="{{ $blog->id }}"@if($blog->is_african) data-african @endif><a href="{{ route('blogs.show', $blog) }}">@if($blog->imageUrl())<img src="{{ $blog->featured_image_url }}" alt="" loading="lazy">@endif<div><small>@if($blog->is_african)Africa · @endif{{ $blog->published_at?->copy()->timezone('Africa/Lagos')->format('j M') }}</small><h3>{{ $blog->title }}</h3><p>{{ Str::limit(strip_tags((string) $blog->excerpt), 120) }}</p></div></a></article>
         @endforeach
     </div>
 </div></section>

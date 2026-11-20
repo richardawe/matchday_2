@@ -1,5 +1,5 @@
 import './bootstrap';
-import './radio';
+import { bindRadioPlayers } from './radio';
 import { start as startInstall } from './install';
 
 import Alpine from 'alpinejs';
@@ -33,8 +33,12 @@ if (pulse) {
     const refreshPulse = async () => {
         try {
             const reels = document.getElementById('reels-hero');
+            const hero = document.getElementById('home-hero');
+            const fresh = document.getElementById('home-fresh');
             const url = new URL(pulse.dataset.pulseUrl, window.location.href);
             if (reels) url.searchParams.set('reels', reels.dataset.reelsKey || '');
+            if (hero) url.searchParams.set('hero', hero.dataset.heroKey || '');
+            if (fresh) url.searchParams.set('fresh', fresh.dataset.freshKey || '');
             const response = await fetch(url, {headers: {'Accept': 'application/json'}});
             if (!response.ok) return;
             const data = await response.json();
@@ -49,12 +53,27 @@ if (pulse) {
                     if (fresh) startReels(fresh);
                 }
             }
-            // Live scores lead the homepage while a match is on (partials/home/live-now).
+            if (hero && data.hero && data.hero_key !== hero.dataset.heroKey) {
+                // The front page's one hero (partials/home/hero): swapped when it changes, never while
+                // its radio or video is playing.
+                const playing = [...hero.querySelectorAll('audio, video')].some((media) => !media.paused && !media.ended);
+                if (!playing) {
+                    hero.outerHTML = data.hero;
+                    const swapped = document.getElementById('home-hero');
+                    if (swapped) bindRadioPlayers(swapped.parentElement);
+                }
+            }
+            if (fresh && data.fresh_html) fresh.outerHTML = data.fresh_html;
+            if (data.updated) document.getElementById('home-updated')?.replaceWith(Object.assign(document.createElement('template'), {innerHTML: data.updated.trim()}).content.firstChild);
+            // Live scores lead the homepage while a match is on (partials/home/live-now); on the front
+            // page they are part of the hero.
             const liveNow = document.getElementById('home-live');
-            if (liveNow && data.live !== undefined) liveNow.outerHTML = data.live;
+            if (!hero && liveNow && data.live !== undefined) liveNow.outerHTML = data.live;
             if (data.arena) document.getElementById('arena')?.dispatchEvent(new CustomEvent('arena:update', {detail: data.arena}));
-            window.setTimeout(refreshPulse, data.has_live ? 30000 : 120000);
-        } catch (_) { window.setTimeout(refreshPulse, 120000); }
+            // The front page checks every minute so new videos, articles, radio and breaking news show quickly.
+            const idle = hero ? 60000 : 120000;
+            window.setTimeout(refreshPulse, data.has_live ? 30000 : idle);
+        } catch (_) { window.setTimeout(refreshPulse, document.getElementById('home-hero') ? 60000 : 120000); }
     };
     window.setTimeout(refreshPulse, 30000);
 }
