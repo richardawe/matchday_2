@@ -40,6 +40,8 @@ Route::prefix('agent')->name('api.agent.')->middleware(['throttle:agent-api', Ap
             Route::post('/social-queue/{id}/posted', 'socialQueuePosted')->where('id', '[A-Za-z]+:[0-9]+')->name('social-queue.posted');
             Route::post('/articles', 'storeArticle')->name('articles.store');
             Route::patch('/articles/{id}', 'updateArticle')->whereNumber('id')->name('articles.update');
+            Route::post('/articles/{id}/publish', 'publishArticle')->whereNumber('id')->name('articles.publish');
+            Route::post('/articles/{id}/unpublish', 'unpublishArticle')->whereNumber('id')->name('articles.unpublish');
             Route::post('/slideshows/{id}/approve', 'approveSlideshow')->whereNumber('id')->name('slideshows.approve');
             Route::post('/players/{id}/photo', 'playerPhoto')->whereNumber('id')->name('players.photo');
             Route::post('/player-photos', 'namedPlayerPhoto')->name('player-photos.store');

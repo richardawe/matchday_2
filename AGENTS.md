@@ -194,6 +194,7 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 | `SLIDESHOW_ENABLED` / `SLIDESHOW_FFMPEG` / `SLIDESHOW_MUSIC_PATH` / `SLIDESHOW_MUSIC_SOURCE_URL` / `SLIDESHOW_COMMONS` / `SLIDESHOW_YOUTUBE_DAILY` | false / `RADIO_FFMPEG` / `music/hot-amapiano-beats.mp3` (under storage/app) / empty / true / 2 | Colour slideshows: generation switch, ffmpeg binary (needs libx264, aac, xfade, zoompan, loudnorm: `slideshow:render --check`), the private music file, where the track came from, Commons photo lookups, slideshow Shorts per quota day (shared with reels, which go first) |
 | `STORY_VIDEOS` / `STORY_COMPETITIONS` / `STORY_DELAY_MINUTES` / `STORY_CONCURRENCY` / `STORY_MUSIC_PATH` | false (production: true, written by every deploy) / PL,eng.1 / 2 / 2 / empty | Match-story videos: switch, competitions rendered automatically, wait after the last update, renders at once, our own track (default `resources/audio/matchday_original_beat_v1.mp3`; missing = silent) |
 | `AGENT_API_PER_MINUTE` / `AGENT_API_WRITES_PER_MINUTE` | 120 / 20 | Agent API limits per token |
+| `AGENT_CAN_PUBLISH` | true | The agent may publish and unpublish its own articles; an admin at `/admin/settings` overrides it (off = 403) |
 | `YOUTUBE_CHANNEL_ID` / `YOUTUBE_UPLOADS` / `YOUTUBE_DAILY_UPLOADS` | Matchday Africa channel / false / 6 | YouTube Shorts: the only channel allowed, automatic reel uploads, uploads per quota day (1,600 of 10,000 units each). **Every deploy writes** `YOUTUBE_CLIENT_ID`/`_SECRET` (secrets), `YOUTUBE_CHANNEL_ID` and `YOUTUBE_UPLOADS` (repository variables; the channel defaults to `UCJ9Asmir1hBOHHQs9qSCkHg` in `config/youtube.php`, uploads to `true`) into the server `.env` (`scripts/ci/deploy-ssh.sh`, via `set-env.php`; blank secrets leave the server value alone) |
 
 ## 7. Open items and known issues
@@ -244,7 +245,11 @@ See the block at the end of `matchday-africa/.env.example` / `production.env.exa
 - Owner (18 Nov): the agent may retry failed radio editions, start extra editions outside the slots and publish
   generated content. API only (`docs/agent-api.md`): `GET /radio/{id}`, `POST /radio/{id}/retry`, `POST /radio`
   (one edition in the queue at a time, `RADIO_AGENT_EXTRA_PER_DAY` = 4), `POST /articles` with `publish`,
-  `PATCH /articles/{id}` (its own articles only), `POST /slideshows/{id}/approve`. Every radio check and the fact review
+  `PATCH /articles/{id}` (its own articles only), `POST /slideshows/{id}/approve`.
+  20 Nov: `POST /articles/{id}/publish` and `/unpublish` (own articles only) go through `App\Services\Articles\ArticlePublisher`,
+  shared with the editor's Publish button (slug, sitemap and front-page caches cleared, a row in `article_publish_logs`;
+  "Published by agent" badge on `/admin/blogs`). Kill switch `AGENT_CAN_PUBLISH` (default true), overridden by an admin at
+  `/admin/settings` (table `site_settings`, `App\Support\SiteSettings`); off = 403. Every radio check and the fact review
   still apply; deletes, users, billing, secrets and other people's articles stay closed; the admin pages are unchanged.
 - 18 Nov 06:00 WAT edition (bulletin 87) failed three times on the writer (a repeated fact, "host" for "face", an
   invented outcome); the prompt was tightened in #78.

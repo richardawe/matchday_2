@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Blog;
+use App\Services\Articles\ArticlePublisher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -19,8 +20,9 @@ class BlogController extends Controller
     {
         $blogs = Blog::orderBy('created_at', 'desc')
                     ->paginate(15);
+        $agentPublishing = \App\Support\SiteSettings::agentCanPublish();
 
-        return view('admin.blogs.index', compact('blogs'));
+        return view('admin.blogs.index', compact('blogs', 'agentPublishing'));
     }
 
     /**
@@ -274,14 +276,14 @@ class BlogController extends Controller
     /**
      * Toggle blog status
      */
-    public function toggleStatus(Blog $blog)
+    public function toggleStatus(Blog $blog, ArticlePublisher $publisher)
     {
         try {
             if ($blog->status === 'published') {
-                $blog->unpublish();
+                $publisher->unpublish($blog, ArticlePublisher::ACTOR_EDITOR, auth()->id());
                 $message = 'Blog post unpublished successfully!';
             } else {
-                $blog->publish();
+                $publisher->publish($blog, ArticlePublisher::ACTOR_EDITOR, auth()->id());
                 $message = 'Blog post published successfully!';
             }
 

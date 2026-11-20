@@ -42,6 +42,7 @@
                         <a href="{{ route('admin.radio.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">📻 Radio</a>
                         <a href="{{ route('admin.studio.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🎬 Content studio</a>
                         <a href="{{ route('admin.agent.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🤖 Agent access</a>
+                        <a href="{{ route('admin.settings.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">⚙️ Settings</a>
                         <a href="{{ route('admin.twitter.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">📣 Social posts</a>
                         <a href="{{ route('admin.griot.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🥁 Beat the Griot</a>
                         <a href="{{ route('admin.messages.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🔔 Messages to users</a>

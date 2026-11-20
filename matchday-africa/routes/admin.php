@@ -45,6 +45,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/studio', [\App\Http\Controllers\Admin\StudioController::class, 'index'])->name('studio.index');
     Route::post('/studio/render', [\App\Http\Controllers\Admin\StudioController::class, 'render'])->name('studio.render');
     Route::post('/studio/{story}', [\App\Http\Controllers\Admin\StudioController::class, 'update'])->whereNumber('story')->name('studio.update');
+    Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
+    Route::post('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('settings.update');
     Route::get('/agent', [\App\Http\Controllers\Admin\AgentAccessController::class, 'index'])->name('agent.index');
     Route::post('/agent', [\App\Http\Controllers\Admin\AgentAccessController::class, 'store'])->name('agent.store');
     Route::post('/agent/{user}/token', [\App\Http\Controllers\Admin\AgentAccessController::class, 'token'])->whereNumber('user')->name('agent.token');
