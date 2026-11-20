@@ -17,8 +17,7 @@ class SocialVideoPageController extends Controller
         $primary = $start->primary([]);
         $cta = $primary['href'] ? $primary : null;
         $more = $videos->row()->reject(fn ($c) => $c['key'] === "video:{$video->id}")->take(6)->values();
-        $summary = $video->description ?: ($video->caption ?: "{$video->title}, a ".Str::lower($video->typeLabel()).' from Matchday Africa.');
-        $description = Str::limit(preg_replace('/\s+/', ' ', SocialQueue::plain($summary)), 155);
+        $description = Str::limit($video->summary() ?: "{$video->title}, a ".Str::lower($video->typeLabel()).' from Matchday Africa.', 155);
 
         return view('reels.video', ['video' => $video, 'cta' => $cta, 'more' => $more])->with('content', [
             'title' => "{$video->title}: ".Str::lower($video->typeLabel())." | Matchday Africa",

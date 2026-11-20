@@ -32,7 +32,7 @@
     <div class="md-home-heading"><div><p class="md-eyebrow">LATEST NEWS</p><h2>Football stories worth your time.</h2></div><a href="{{ route('blogs.index') }}">All stories →</a></div>
     <div class="md-news-list" id="home-news">
         @foreach($news as $blog)
-            <article data-news-id="{{ $blog->id }}"@if($blog->is_african) data-african @endif><a href="{{ route('blogs.show', $blog) }}">@if($blog->imageUrl())<img src="{{ $blog->featured_image_url }}" alt="" loading="lazy">@endif<div><small>@if($blog->is_african)Africa · @endif{{ $blog->published_at?->copy()->timezone('Africa/Lagos')->format('j M') }}</small><h3>{{ $blog->title }}</h3><p>{{ Str::limit(strip_tags((string) $blog->excerpt), 120) }}</p></div></a></article>
+            <article data-news-id="{{ $blog->id }}"@if($blog->is_african) data-african @endif><a href="{{ route('blogs.show', $blog) }}">@if($image = $blog->getAttribute('front_image'))<img src="{{ $image }}" alt="" loading="lazy">@elseif($blog->getAttribute('front_card'))<span class="md-news-fallback" data-fallback-card aria-hidden="true">Matchday Africa news</span>@endif<div><small>@if($blog->is_african)Africa · @endif{{ $blog->published_at?->copy()->timezone('Africa/Lagos')->format('j M') }}</small><h3>{{ $blog->title }}</h3><p>{{ Str::limit(strip_tags((string) $blog->excerpt), 120) }}</p></div></a></article>
         @endforeach
     </div>
 </div></section>

@@ -6,25 +6,22 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
+
 
 class FootballNewsService {
     public function __construct(private OpenRouterService $editor){}
 
+    /**
+     * Pictures for automated articles that have none: always our own (NewsImages: match card, Commons
+     * photo or the branded text card), never the source site's.
+     */
     public function backfillImages(int $limit=20): array {
         $updated=0;$missing=0;
-        $blogs=Blog::whereNull('featured_image')->whereNotNull('metadata')->latest('published_at')->limit(max(1,min($limit,100)))->get();
+        $blogs=Blog::where(fn($q)=>$q->whereNull('featured_image')->orWhere('featured_image',''))->whereNotNull('metadata')->latest('published_at')->limit(max(1,min($limit,100)))->get();
         foreach($blogs as $blog){
             if(!($blog->metadata['automated']??false))continue;
-            $candidate=NewsCandidate::where('blog_id',$blog->id)->first();
-            if(!$candidate){$missing++;continue;}
-            $material=$this->sourceMaterial($candidate);
-            $image=$this->downloadSourceImage($candidate,$material['image_url']);
-            if(!$image){$missing++;continue;}
-            $metadata=$blog->metadata;
-            $metadata['source_image_url']=$material['image_url'];
-            $blog->update(['featured_image'=>$image,'metadata'=>$metadata]);
-            $updated++;
+            try { app(NewsImages::class)->apply($blog)->save(); $updated++; }
+            catch(\Throwable $e){ $missing++; Log::notice('Could not add a news picture',['blog_id'=>$blog->id,'error'=>$e->getMessage()]); }
         }
         return ['updated'=>$updated,'missing'=>$missing];
     }
@@ -75,8 +72,10 @@ class FootballNewsService {
         if(!preg_match('/TITLE:\s*(.*?)\s+EXCERPT:\s*(.*?)\s+BODY:\s*(.+)/is',$edited,$m)) throw new \RuntimeException('Editorial response failed structure validation.');
         $title=trim(strip_tags($m[1]));$excerpt=trim(strip_tags($m[2]));$body=trim($m[3]);
         if(Str::length($title)<12||Str::length($title)>180||Str::length($excerpt)>200||substr_count($body,'<p>')<3||!str_contains($body,$candidate->source_url)) throw new \RuntimeException('Article failed publication validation.');
-        $featuredImage=$this->downloadSourceImage($candidate,$sourceMaterial['image_url']);
-        $blog=Blog::create(['title'=>$title,'slug'=>Str::slug($title).'-'.$candidate->id,'excerpt'=>$excerpt,'content'=>$body,'featured_image'=>$featuredImage,'status'=>'published','published_at'=>now(),'author_name'=>'Matchday Africa News Desk','metadata'=>['category'=>'Football News','automated'=>true,'source'=>$candidate->source,'source_url'=>$candidate->source_url,'source_image_url'=>$sourceMaterial['image_url'],'source_published_at'=>$candidate->source_published_at?->toIso8601String(),'editor_model'=>config('services.openrouter.model')]]);
+        // Never the source site's picture (agency photos, watermarks): our own, else the branded text card.
+        $blog=Blog::create(['title'=>$title,'slug'=>Str::slug($title).'-'.$candidate->id,'excerpt'=>$excerpt,'content'=>$body,'featured_image'=>null,'status'=>'published','published_at'=>now(),'author_name'=>'Matchday Africa News Desk','metadata'=>['category'=>'Football News','automated'=>true,'source'=>$candidate->source,'source_url'=>$candidate->source_url,'source_published_at'=>$candidate->source_published_at?->toIso8601String(),'editor_model'=>config('services.openrouter.model')]]);
+        try { app(NewsImages::class)->apply($blog)->save(); }
+        catch(\Throwable $e){ Log::warning('Could not draw the news picture',['blog_id'=>$blog->id,'error'=>$e->getMessage()]); }
         $candidate->update(['status'=>'published','blog_id'=>$blog->id]);
         return $blog;
     }
@@ -85,23 +84,14 @@ class FootballNewsService {
         $fallback=trim((string)$candidate->summary);
         try {
             $response=Http::timeout(20)->withHeaders(['User-Agent'=>'MatchdayAfrica/1.0'])->get($candidate->source_url);
-            if(!$response->successful())return ['facts'=>$fallback,'image_url'=>null];
+            if(!$response->successful())return ['facts'=>$fallback];
             $html=$response->body();
             $dom=new \DOMDocument();
             libxml_use_internal_errors(true);
             $loaded=$dom->loadHTML($html,LIBXML_NOERROR|LIBXML_NOWARNING);
             libxml_clear_errors();
-            if(!$loaded)return ['facts'=>$fallback,'image_url'=>null];
+            if(!$loaded)return ['facts'=>$fallback];
             $xpath=new \DOMXPath($dom);
-            $imageUrl=null;
-            foreach([
-                '//meta[@property="og:image"]/@content',
-                '//meta[@name="twitter:image"]/@content',
-                '//meta[@property="twitter:image"]/@content',
-            ] as $query){
-                $value=trim((string)($xpath->query($query)?->item(0)?->nodeValue??''));
-                if(filter_var($value,FILTER_VALIDATE_URL)){$imageUrl=html_entity_decode($value,ENT_QUOTES|ENT_HTML5);break;}
-            }
             $paragraphs=[];
             foreach($xpath->query('//article//p | //main//p')?:[] as $node){
                 $text=trim(preg_replace('/\s+/u',' ',$node->textContent));
@@ -109,29 +99,10 @@ class FootballNewsService {
                 if(Str::length(implode(' ',$paragraphs))>=6000)break;
             }
             $facts=trim(implode("\n",array_unique($paragraphs)));
-            return ['facts'=>$facts!==''?Str::limit($facts,6500,''):$fallback,'image_url'=>$imageUrl];
+            return ['facts'=>$facts!==''?Str::limit($facts,6500,''):$fallback];
         } catch(\Throwable $e){
             Log::notice('Could not enrich football news candidate',['candidate_id'=>$candidate->id,'error'=>$e->getMessage()]);
-            return ['facts'=>$fallback,'image_url'=>null];
-        }
-    }
-
-    private function downloadSourceImage(NewsCandidate $candidate, ?string $imageUrl): ?string {
-        if(!$imageUrl||!filter_var($imageUrl,FILTER_VALIDATE_URL))return null;
-        try {
-            $response=Http::timeout(25)->withHeaders([
-                'User-Agent'=>'MatchdayAfrica/1.0',
-                'Referer'=>$candidate->source_url,
-            ])->get($imageUrl);
-            $contentType=Str::lower(trim(explode(';',(string)$response->header('Content-Type'))[0]));
-            $extensions=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/gif'=>'gif'];
-            $bytes=$response->body();
-            if(!$response->successful()||!isset($extensions[$contentType])||$bytes===''||strlen($bytes)>5*1024*1024)return null;
-            $path='blog-images/news-'.$candidate->id.'-'.substr(hash('sha256',$imageUrl),0,12).'.'.$extensions[$contentType];
-            return Storage::disk('public')->put($path,$bytes)?$path:null;
-        } catch(\Throwable $e){
-            Log::notice('Could not download football news image',['candidate_id'=>$candidate->id,'url'=>$imageUrl,'error'=>$e->getMessage()]);
-            return null;
+            return ['facts'=>$fallback];
         }
     }
 }

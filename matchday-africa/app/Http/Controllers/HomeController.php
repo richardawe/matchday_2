@@ -157,10 +157,11 @@ class HomeController extends Controller
                 $showcase = app(\App\Services\HomeShowcase::class);
                 $front = app(\App\Services\FrontPage::class);
                 $liveMatches = $front->orderLive($liveMatches);
-                $news = $front->news(6);
+                $page = $this->frontPage($liveMatches, $front->news(6));
+                $news = $page['news'];
                 return view('home-v2', compact('liveMatches', 'upcomingMatches', 'recentResults', 'news',
                     'featuredLeagues', 'followedTeams', 'personalMatches', 'openPredictionSets', 'africanPlayersInFocus')
-                    + $this->frontPage($liveMatches)
+                    + $page
                     + ['featured' => $front->featuredVideos(), 'reels' => $showcase->rolling(), 'board' => $showcase->board(), 'arena' => $arena]);
             }
 
@@ -207,14 +208,17 @@ class HomeController extends Controller
     }
 
     /** The live front page's hero, "New on Matchday" rail and "Updated HH:MM" (App\Services\FrontPage). */
-    private function frontPage(\Illuminate\Support\Collection $liveMatches): array
+    private function frontPage(\Illuminate\Support\Collection $liveMatches, ?\Illuminate\Support\Collection $news = null): array
     {
         $front = app(\App\Services\FrontPage::class);
         $hero = $front->hero($liveMatches);
         $fresh = $front->fresh(10);
+        $freshKey = \App\Services\FrontPage::freshKey($fresh);
+        // No picture twice down the page: hero, then New on Matchday, then Latest News.
+        [$shown, $news] = $front->distinctImages($hero, $fresh, $news);
 
-        return ['hero' => $hero, 'heroKey' => \App\Services\FrontPage::heroKey($hero, $liveMatches), 'fresh' => $fresh,
-            'freshKey' => \App\Services\FrontPage::freshKey($fresh), 'updatedAt' => $front->updatedAt($hero, $fresh, $liveMatches)];
+        return ['hero' => $hero, 'heroKey' => \App\Services\FrontPage::heroKey($hero, $liveMatches), 'fresh' => $shown, 'news' => $news,
+            'freshKey' => $freshKey, 'updatedAt' => $front->updatedAt($hero, $fresh, $liveMatches)];
     }
 
     /** What the pulse sends the front page: the hero again, the rail when it changed, the "Updated" time. */

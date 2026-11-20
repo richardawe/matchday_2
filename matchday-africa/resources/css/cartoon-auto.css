@@ -348,3 +348,4 @@ body.md-cartoon footer{background:var(--c-surface)!important}
 .md-cartoon .md-start-players img,.md-cartoon .md-start-initial{background:var(--c-surface);font-family:var(--c-display);font-weight:400}
 .md-cartoon .md-start-fixtures a{background:var(--c-surface)}
 .md-cartoon .md-start-radio{background:var(--c-surface)}
+.md-cartoon .md-reels-copy .md-video-notes{color:var(--c-ink)}

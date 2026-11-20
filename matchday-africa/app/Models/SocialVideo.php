@@ -136,6 +136,37 @@ class SocialVideo extends Model
         return route('reels.video', $this);
     }
 
+    /**
+     * The text pages show: a clean summary of the description (else the caption), never the raw
+     * YouTube/social text. See App\Support\VideoText.
+     */
+    public function summary(): string
+    {
+        $parts = $this->textParts();
+
+        return $parts['summary'];
+    }
+
+    /** Photo/music credit lines and the AI disclosure from the description and caption, for the small print on the video page. */
+    public function smallPrint(): array
+    {
+        $parts = $this->textParts();
+        $caption = \App\Support\VideoText::parts((string) $this->caption);
+
+        return ['credits' => array_values(array_unique(array_merge($parts['credits'], $caption['credits']))),
+            'disclosure' => $parts['disclosure'] ?? $caption['disclosure']];
+    }
+
+    private function textParts(): array
+    {
+        $parts = \App\Support\VideoText::parts((string) $this->description);
+        if ($parts['summary'] === '' && $this->caption) {
+            $parts = ['summary' => \App\Support\VideoText::parts((string) $this->caption)['summary']] + $parts;
+        }
+
+        return $parts;
+    }
+
     public function typeLabel(): string
     {
         return match ($this->type) {
