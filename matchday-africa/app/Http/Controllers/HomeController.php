@@ -25,6 +25,8 @@ class HomeController extends Controller
             $showcase=app(\App\Services\HomeShowcase::class);$reels=$showcase->rolling();
             if(\App\Services\HomeShowcase::rollingKey($reels)!==request('reels')){$strip=['reels_html'=>view('partials.home.reels-strip',['reels'=>$reels,'board'=>$showcase->board()])->render()];}
         }
+        // The live front page (home-v2) asks for its hero and "New on Matchday" rail too.
+        if(request()->has('hero')){$strip+=$this->frontPagePulse($pulse['liveMatches']);}
         return response()->json($strip+['html'=>view('partials.home-pulse',$pulse)->render(),'live'=>view('partials.home.live-now',['liveMatches'=>$pulse['liveMatches']])->render(),'has_live'=>$pulse['liveMatches']->isNotEmpty(),'updated_at'=>$now->toIso8601String(),
             'arena'=>$arena?['match_id'=>$arena['match']->id,'home'=>$arena['match']->home_score,'away'=>$arena['match']->away_score,'label'=>$arena['label'],'state'=>$arena['state']]:null]);
     }
@@ -153,9 +155,13 @@ class HomeController extends Controller
             // The reels-first homepage: on with HOME_V2, or previewed with ?home=v2.
             if (config('home.v2') || request('home') === 'v2') {
                 $showcase = app(\App\Services\HomeShowcase::class);
-                return view('home-v2', compact('liveMatches', 'upcomingMatches', 'recentResults', 'featuredBlogs', 'hasFeaturedBlogs',
+                $front = app(\App\Services\FrontPage::class);
+                $liveMatches = $front->orderLive($liveMatches);
+                $news = $front->news(6);
+                return view('home-v2', compact('liveMatches', 'upcomingMatches', 'recentResults', 'news',
                     'featuredLeagues', 'followedTeams', 'personalMatches', 'openPredictionSets', 'africanPlayersInFocus')
-                    + ['reels' => $showcase->rolling(), 'board' => $showcase->board(), 'arena' => $arena]);
+                    + $this->frontPage($liveMatches)
+                    + ['featured' => $front->featuredVideos(), 'reels' => $showcase->rolling(), 'board' => $showcase->board(), 'arena' => $arena]);
             }
 
             return view('home', compact(
@@ -198,6 +204,32 @@ class HomeController extends Controller
                 'premierLeagueMatches' => collect(), 'africanPlayersInFocus' => collect(), 'arena' => null
             ]);
         }
+    }
+
+    /** The live front page's hero, "New on Matchday" rail and "Updated HH:MM" (App\Services\FrontPage). */
+    private function frontPage(\Illuminate\Support\Collection $liveMatches): array
+    {
+        $front = app(\App\Services\FrontPage::class);
+        $hero = $front->hero($liveMatches);
+        $fresh = $front->fresh(10);
+
+        return ['hero' => $hero, 'heroKey' => \App\Services\FrontPage::heroKey($hero, $liveMatches), 'fresh' => $fresh,
+            'freshKey' => \App\Services\FrontPage::freshKey($fresh), 'updatedAt' => $front->updatedAt($hero, $fresh, $liveMatches)];
+    }
+
+    /** What the pulse sends the front page: the hero again, the rail when it changed, the "Updated" time. */
+    private function frontPagePulse(\Illuminate\Support\Collection $live): array
+    {
+        $live->load(['events' => fn ($q) => $q->whereIn('type', ['goal', 'penalty_goal', 'own_goal'])->orderBy('minute')]);
+        $liveMatches = app(\App\Services\FrontPage::class)->orderLive($live);
+        $page = $this->frontPage($liveMatches);
+        $out = ['hero' => view('partials.home.hero', $page + ['liveMatches' => $liveMatches])->render(), 'hero_key' => $page['heroKey'],
+            'updated' => view('partials.home.updated', $page)->render()];
+        if (request()->has('fresh') && $page['freshKey'] !== request('fresh')) {
+            $out['fresh_html'] = view('partials.home.fresh', $page)->render();
+        }
+
+        return $out;
     }
 
     private function warriorFor(?string $name): array

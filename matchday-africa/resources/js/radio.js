@@ -1,4 +1,9 @@
-document.querySelectorAll('[data-radio-player]').forEach((player) => {
+// Binds every radio player under root once. Runs on load; the homepage calls it again when the
+// pulse swaps in a new hero (resources/js/app.js).
+export function bindRadioPlayers(root = document) {
+root.querySelectorAll('[data-radio-player]').forEach((player) => {
+    if (player.dataset.radioBound) return;
+    player.dataset.radioBound = '1';
     const audio = player.querySelector('audio');
     const play = player.querySelector('[data-radio-play]');
     const label = player.querySelector('[data-radio-label]');
@@ -63,6 +68,9 @@ document.querySelectorAll('[data-radio-player]').forEach((player) => {
         document.querySelectorAll('audio, video').forEach((other) => { if (other !== audio) other.pause(); });
     });
 });
+}
+
+bindRadioPlayers();
 
 document.addEventListener('volumechange', (event) => {
     if (event.target instanceof HTMLVideoElement && !event.target.muted) {
