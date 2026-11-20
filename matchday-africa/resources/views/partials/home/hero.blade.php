@@ -71,7 +71,7 @@
         <div class="md-front-copy">
             <p class="md-front-tag">New video · {{ $video->typeLabel() }}@if($video->lengthLabel()) · {{ $video->lengthLabel() }}@endif</p>
             <h2 class="md-front-title"><a class="md-front-title-link" href="{{ $video->pageUrl() }}">{{ $video->title }}</a></h2>
-            @if($video->description)<p class="md-front-text">{{ Str::limit($video->description, 220) }}</p>@endif
+            @if($summary = $video->summary())<p class="md-front-text">{{ $summary }}</p>@endif
             <a class="md-front-cta" href="{{ $video->pageUrl() }}">Watch ▶</a>
         </div>
     </div>
